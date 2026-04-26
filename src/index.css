@@ -1,0 +1,136 @@
+:root {
+  /* Base palette */
+  --bg: #f0efeb;
+  --text: #333333;
+  --text-h: #333333;
+
+  --accent: #a5c8e6;
+  --danger: #ffcccc;
+
+  /* Derived tones (still based on the two colors) */
+  --border: color-mix(in oklab, var(--text) 22%, var(--bg));
+  --code-bg: color-mix(in oklab, var(--accent) 10%, var(--bg));
+
+  --accent-bg: color-mix(in oklab, var(--accent) 18%, transparent);
+  --accent-border: color-mix(in oklab, var(--accent) 40%, transparent);
+  --social-bg: color-mix(in oklab, var(--accent) 10%, transparent);
+  --danger-bg: color-mix(in oklab, var(--danger) 65%, transparent);
+  --danger-border: color-mix(in oklab, var(--danger) 78%, transparent);
+  --shadow:
+    color-mix(in oklab, var(--text) 18%, transparent) 0 10px 15px -3px,
+    color-mix(in oklab, var(--text) 10%, transparent) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --greek-font: 'Segoe UI', system-ui, 'Noto Sans', sans-serif;
+  /*
+    Windows環境でギリシャ語のトノス付き文字（ά, έ, ή, ί, ό, ύ, ώ）が
+    フォントによって「トノス無しに見える」ケースがあるため、
+    より広いフォールバックを用意する。
+  */
+  --mono: ui-monospace, 'Cascadia Mono', 'Segoe UI', Consolas, 'Noto Sans Mono', monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Keep same palette in dark mode to match the design system */
+    --bg: #f0efeb;
+    --text: #333333;
+    --text-h: #333333;
+
+    --accent: #a5c8e6;
+    --danger: #ffcccc;
+
+    --border: color-mix(in oklab, var(--text) 22%, var(--bg));
+    --code-bg: color-mix(in oklab, var(--accent) 10%, var(--bg));
+
+    --accent-bg: color-mix(in oklab, var(--accent) 18%, transparent);
+    --accent-border: color-mix(in oklab, var(--accent) 40%, transparent);
+    --social-bg: color-mix(in oklab, var(--accent) 10%, transparent);
+    --danger-bg: color-mix(in oklab, var(--danger) 65%, transparent);
+    --danger-border: color-mix(in oklab, var(--danger) 78%, transparent);
+    --shadow:
+      color-mix(in oklab, var(--text) 18%, transparent) 0 10px 15px -3px,
+      color-mix(in oklab, var(--text) 10%, transparent) 0 4px 6px -2px;
+  }
+
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
+}
+
+#root {
+  width: 100%;
+  min-height: 100svh;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 420px at 50% 0%, var(--accent-bg), transparent 50%),
+    var(--bg);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+
+h3 {
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}

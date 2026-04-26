@@ -1,0 +1,464 @@
+.appShell {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.topBarInner {
+  padding: 12px 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.brand {
+  font-family: var(--heading);
+  color: var(--text-h);
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.main {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 14px 12px 90px;
+  box-sizing: border-box;
+}
+
+.tabBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.tab {
+  padding: 12px 10px;
+  text-decoration: none;
+  text-align: center;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.tab.active {
+  color: var(--text-h);
+  background: var(--accent-bg);
+}
+
+.page h2 {
+  margin: 10px 0 12px;
+  font-size: 22px;
+}
+
+.subtle {
+  color: var(--text);
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+/* 活用マトリックスのセクション見出し */
+.matrixSectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-h);
+  opacity: 1;
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 96%, black);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+  margin: 12px 0;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+.field.inline {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  border-radius: 10px;
+  padding: 10px 10px;
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.help {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.row.wrap {
+  flex-wrap: wrap;
+}
+
+.status {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.primary {
+  border: 1px solid var(--accent-border);
+  background: var(--accent);
+  color: #08060d;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.secondary {
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.danger {
+  border: 1px solid var(--danger-border);
+  background: color-mix(in oklab, var(--danger) 22%, var(--code-bg));
+  color: var(--text-h);
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chip {
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  color: var(--text-h);
+  line-height: 1.25;
+}
+
+.chipButton {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chipButton:active {
+  transform: translateY(1px);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: color-mix(in oklab, black 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 12px;
+}
+
+.modalCard {
+  width: min(720px, 100%);
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 96%, black);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+}
+
+.mono {
+  font-family: var(--mono);
+}
+.big {
+  font-size: 24px;
+  /* 一部フォントで上部ダイアクリティカルが欠けないように余白を確保 */
+  line-height: 1.35;
+  display: inline-block;
+  padding-top: 2px;
+}
+
+.mono.big {
+  font-size: 24px;
+  line-height: 1.35;
+  display: inline-block;
+  padding-top: 2px;
+}
+
+.greek {
+  /*
+    等幅フォントや環境依存のフォールバックでトノスが「無いように見える」ケースがあるため、
+    ギリシャ語表示はグリフ品質の安定したフォントへ寄せる。
+  */
+  font-family: var(--greek-font);
+}
+
+/* `.mono` が付いていてもギリシャ語フォントを優先する */
+.mono.greek {
+  font-family: var(--greek-font);
+}
+
+.output {
+  font-size: 16px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+.known {
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  border: 1px solid var(--accent-border);
+  color: var(--text-h);
+}
+.unknown {
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--danger) 24%, transparent);
+  border: 1px solid color-mix(in oklab, var(--danger) 70%, transparent);
+  color: var(--text-h);
+}
+
+.unknownList {
+  padding-left: 18px;
+}
+.unknownToken {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  line-height: 1.25;
+}
+
+/* 品詞バッジ（見分け用の薄い色） */
+.badge.badgePos {
+  border-color: transparent;
+}
+.badgePos-noun {
+  background: color-mix(in oklab, #7cc4ff 30%, var(--code-bg));
+}
+.badgePos-verb {
+  background: color-mix(in oklab, #7dffa6 26%, var(--code-bg));
+}
+.badgePos-adjective {
+  background: color-mix(in oklab, #ffd37c 28%, var(--code-bg));
+}
+.badgePos-adverb {
+  background: color-mix(in oklab, #c9a3ff 28%, var(--code-bg));
+}
+.badgePos-pronoun_personal {
+  background: color-mix(in oklab, #ff9fd3 26%, var(--code-bg));
+}
+.badgePos-other {
+  background: color-mix(in oklab, #d0d0d0 22%, var(--code-bg));
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.splitMobile {
+  display: block;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.listItem {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+.listTitle {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+/* 単語帳の見出し語（詳細/編集） */
+.lemmaTitle {
+  font-weight: 700;
+}
+.listSub {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  align-items: start;
+  margin: 12px 0;
+}
+@media (max-width: 720px) {
+  .kv {
+    grid-template-columns: 1fr;
+  }
+}
+.k {
+  color: var(--text);
+  font-size: 13px;
+}
+.v {
+  color: var(--text-h);
+  /* 子要素の横スクロールを有効にし、ページ全体の横スクロールを避ける */
+  min-width: 0;
+}
+
+.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* 横幅が足りないときはマトリックスを横スクロール */
+.matrixWrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.matrixWrap > .matrix {
+  width: max-content;
+  min-width: 100%;
+}
+.matrixWrap .matrix th,
+.matrixWrap .matrix td {
+  white-space: nowrap;
+}
+.matrixWrap .matrix td input {
+  min-width: 150px;
+}
+.matrix th,
+.matrix td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  font-size: 14px;
+}
+.matrix th {
+  text-align: left;
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--accent-bg) 60%, transparent);
+}
+.matrix tr:last-child td {
+  border-bottom: none;
+}
+
+.matrixEdit {
+  display: grid;
+  gap: 10px;
+}
+
+.ending {
+  color: #d11a2a;
+  font-weight: 700;
+}
