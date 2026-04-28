@@ -93,6 +93,10 @@ export function inflectionLabel(t?: InflectionType) {
       return 'Α : -γω/-χω/-χνω'
     case 'verb_pres_act_-πω_-φω_-βω_-εύω':
       return 'Α : -πω/-φω/-βω/-εύω'
+    case 'verb_pres_act_B1_-άω_-ησα':
+      return 'Β1 : -άω（アオリスト -ησα）'
+    case 'verb_pres_act_B1_-άω_-ασα':
+      return 'Β1 : -άω（アオリスト -ασα）'
     case 'noun_masc_-ος_last':
     case 'noun_masc_-ος_penult':
     case 'noun_masc_-ος_antepenult':
@@ -150,6 +154,10 @@ export function verbInflectionShortLabel(t?: InflectionType): string | null {
       return 'Α'
     case 'verb_pres_act_-πω_-φω_-βω_-εύω':
       return 'Α'
+    case 'verb_pres_act_B1_-άω_-ησα':
+      return 'Β1'
+    case 'verb_pres_act_B1_-άω_-ασα':
+      return 'Β1'
     default:
       return null
   }
@@ -159,6 +167,8 @@ export const verbInflectionOptions: Array<{ value: InflectionType; label: string
   { value: 'verb_pres_act_-ω', label: inflectionLabel('verb_pres_act_-ω') },
   { value: 'verb_pres_act_-γω_-χω_-χνω', label: inflectionLabel('verb_pres_act_-γω_-χω_-χνω') },
   { value: 'verb_pres_act_-πω_-φω_-βω_-εύω', label: inflectionLabel('verb_pres_act_-πω_-φω_-βω_-εύω') },
+  { value: 'verb_pres_act_B1_-άω_-ησα', label: inflectionLabel('verb_pres_act_B1_-άω_-ησα') },
+  { value: 'verb_pres_act_B1_-άω_-ασα', label: inflectionLabel('verb_pres_act_B1_-άω_-ασα') },
 ]
 export { nounAutoForms } from '../../grammar/noun'
 

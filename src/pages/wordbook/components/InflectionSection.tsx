@@ -20,6 +20,77 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   if (!lemma) return <span className="subtle">見出し語が未入力です。</span>
 
   if (selected.pos === 'verb') {
+    const isB1 = (t?: Entry['inflectionType']) =>
+      t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα'
+
+    const renderAoristEndingWithMarkerBlue = (form: string, endingsPlain: string[]) => {
+      const s = form ?? ''
+      if (!s.trim()) return s
+
+      const parts = s.split(/\s+/g)
+      const last = parts[parts.length - 1] ?? ''
+      const lastPlain = stripGreekTonos(last)
+      const sorted = [...endingsPlain].filter(Boolean).sort((a, b) => b.length - a.length)
+      const hit = sorted.find((e) => lastPlain.endsWith(e) && lastPlain.length > e.length)
+      if (!hit) return s
+
+      const base = last.slice(0, last.length - hit.length)
+      const suffix = last.slice(last.length - hit.length)
+
+      // 語尾直前の σ/ψ/ξ（または B1(-ησα) の ησ）を青で強調（アオリストの目印）
+      const basePlain = stripGreekTonos(base)
+      const hasEtaSigma = basePlain.endsWith('ησ')
+      const marker = hasEtaSigma ? base.slice(-2) : base.slice(-1)
+      const hasMarker = hasEtaSigma || marker === 'σ' || marker === 'ψ' || marker === 'ξ'
+      const baseNoMarker = hasMarker ? base.slice(0, base.length - marker.length) : base
+
+      const head = parts.slice(0, -1).join(' ')
+      return (
+        <>
+          {head ? `${head} ` : null}
+          {baseNoMarker}
+          {hasMarker ? <span className="endingMarker">{marker}</span> : null}
+          <span className="ending">{suffix}</span>
+        </>
+      )
+    }
+
+    const renderImperfectPastWithMarkerBlue = (form: string, endingsPlain: string[]) => {
+      const s = form ?? ''
+      if (!s.trim()) return s
+
+      const parts = s.split(/\s+/g)
+      const last = parts[parts.length - 1] ?? ''
+      const lastPlain = stripGreekTonos(last)
+      const sorted = [...endingsPlain].filter(Boolean).sort((a, b) => b.length - a.length)
+      const hit = sorted.find((e) => lastPlain.endsWith(e) && lastPlain.length > e.length)
+      if (!hit) return s
+
+      const base = last.slice(0, last.length - hit.length)
+      const suffix = last.slice(last.length - hit.length)
+
+      // Β1未完了過去: ...ούσ + α/ες/...
+      const basePlain = stripGreekTonos(base)
+      const hasOus = basePlain.endsWith('ουσ')
+      const marker = hasOus ? base.slice(-3) : ''
+      const baseNoMarker = hasOus ? base.slice(0, -3) : base
+
+      const head = parts.slice(0, -1).join(' ')
+      return (
+        <>
+          {head ? `${head} ` : null}
+          {baseNoMarker}
+          {hasOus ? <span className="endingMarker">{marker}</span> : null}
+          <span className="ending">{suffix}</span>
+        </>
+      )
+    }
+
+    const presEndings = (t?: Entry['inflectionType']) => {
+      // Β1（-άω）: ζητάω/ζητάς/ζητάε/ζητάμε/ζητάτε/ζητάνε
+      if (t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα') return ['αω', 'ας', 'αε', 'αμε', 'ατε', 'ανε']
+      return ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε']
+    }
     const personLabel = (p: string) => {
       switch (p) {
         case '1sg':
@@ -38,17 +109,11 @@ export function InflectionSection({ selected }: { selected: Entry }) {
           return ''
       }
     }
-    const aorPastEnds = (s: string) => (stripGreekTonos(s).endsWith('σα') ? ['σα', 'σες', 'σε', 'σαμε', 'σατε', 'σαν'] : ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])
-    const aorFutEnds = (s: string) =>
-      stripGreekTonos(s).endsWith('σω') || stripGreekTonos(s).endsWith('σεις') || stripGreekTonos(s).endsWith('σει')
-        ? ['σω', 'σεις', 'σει', 'σουμε', 'σετε', 'σουν']
-        : ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε']
-    const aorImpEnds = (s: string) =>
-      stripGreekTonos(s).endsWith('σε') || stripGreekTonos(s).endsWith('στε')
-        ? ['σε', 'στε']
-        : stripGreekTonos(s).endsWith('ξε') || stripGreekTonos(s).endsWith('ξτε') || stripGreekTonos(s).endsWith('ψε') || stripGreekTonos(s).endsWith('ψτε')
-          ? ['ξε', 'ξτε', 'ψε', 'ψτε']
-          : []
+    // アオリストは「σ/ψ/ξ（目印）」を赤から外し、純粋な人称語尾だけを赤にする
+    // 例: αγόρασα → α、αγόρασες → ες、θα αγοράσω → ω、αγόρασε → ε、αγοράστε → τε
+    const aorPastEnds = (_s: string) => ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν']
+    const aorFutEnds = (_s: string) => ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε']
+    const aorImpEnds = (_s: string) => ['ε', 'τε']
     const m = verbMatrix(lemma, selected.inflectionType)
     const a = verbAoristMatrix(lemma, selected.inflectionType)
     const imp = verbImperativeForms(lemma, selected.inflectionType)
@@ -92,11 +157,11 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                   return (
                     <tr key={`aor-${r.person}`}>
                       <td>{personLabel(r.person)}</td>
-                      <td className="mono greek">{renderEndingRed(pres, ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'])}</td>
-                      <td className="mono greek">{renderEndingRed(ap, aorPastEnds(ap))}</td>
-                      <td className="mono greek">{renderEndingRed(af, aorFutEnds(af))}</td>
-                      <td className="mono greek">{renderEndingRed(an, aorFutEnds(an))}</td>
-                      <td className="mono greek">{aorImp ? renderEndingRed(aorImp, aorImpEnds(aorImp)) : ''}</td>
+                      <td className="mono greek">{renderEndingRed(pres, presEndings(selected.inflectionType))}</td>
+                      <td className="mono greek">{renderAoristEndingWithMarkerBlue(ap, aorPastEnds(ap))}</td>
+                      <td className="mono greek">{renderAoristEndingWithMarkerBlue(af, aorFutEnds(af))}</td>
+                      <td className="mono greek">{renderAoristEndingWithMarkerBlue(an, aorFutEnds(an))}</td>
+                      <td className="mono greek">{aorImp ? renderAoristEndingWithMarkerBlue(aorImp, aorImpEnds(aorImp)) : ''}</td>
                     </tr>
                   )
                 })}
@@ -140,11 +205,23 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                 return (
                   <tr key={r.person}>
                     <td>{personLabel(r.person)}</td>
-                    <td className="mono greek">{renderEndingRed(pres, ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'])}</td>
-                    <td className="mono greek">{renderEndingRed(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])}</td>
-                    <td className="mono greek">{renderEndingRed(fut, ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'])}</td>
-                    <td className="mono greek">{renderEndingRed(na, ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'])}</td>
-                    <td className="mono greek">{presImp ? renderEndingRed(presImp, ['ε', 'ετε']) : ''}</td>
+                    <td className="mono greek">{renderEndingRed(pres, presEndings(selected.inflectionType))}</td>
+                    <td className="mono greek">
+                      {isB1(selected.inflectionType)
+                        ? renderImperfectPastWithMarkerBlue(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])
+                        : renderEndingRed(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])}
+                    </td>
+                    <td className="mono greek">{renderEndingRed(fut, presEndings(selected.inflectionType))}</td>
+                    <td className="mono greek">{renderEndingRed(na, presEndings(selected.inflectionType))}</td>
+                    <td className="mono greek">
+                      {presImp
+                        ? isB1(selected.inflectionType) && r.person === '2pl'
+                          ? renderEndingRed(presImp, ['ατε'])
+                          : isB1(selected.inflectionType) && r.person === '2sg'
+                            ? renderEndingRed(presImp, ['α'])
+                          : renderEndingRed(presImp, ['ε', 'ετε'])
+                        : ''}
+                    </td>
                   </tr>
                 )
               })}

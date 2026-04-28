@@ -15,6 +15,8 @@ export type InflectionType =
   | 'verb_pres_act_-ω'
   | 'verb_pres_act_-γω_-χω_-χνω'
   | 'verb_pres_act_-πω_-φω_-βω_-εύω'
+  | 'verb_pres_act_B1_-άω_-ησα'
+  | 'verb_pres_act_B1_-άω_-ασα'
   // 男性名詞（GreekNoteベースの最小セット）
   // -ος, -οι（アクセント位置で3分類。ただし(1)/(2)の区別はしない）
   | 'noun_masc_-ος_last'

@@ -66,7 +66,9 @@ function verbStem(lemma: string, type?: InflectionType): string | null {
   if (
     type !== 'verb_pres_act_-ω' &&
     type !== 'verb_pres_act_-γω_-χω_-χνω' &&
-    type !== 'verb_pres_act_-πω_-φω_-βω_-εύω'
+    type !== 'verb_pres_act_-πω_-φω_-βω_-εύω' &&
+    type !== 'verb_pres_act_B1_-άω_-ησα' &&
+    type !== 'verb_pres_act_B1_-άω_-ασα'
   )
     return null
   if (!lemma.endsWith('ω')) return null
@@ -119,6 +121,15 @@ function detectVerbPerson(tokenNorm: string, entry: Entry, lemmaNorm: string, ty
   if ((o as any)?.v_aor_na_3pl && tokenNorm === normalizeToken((o as any).v_aor_na_3pl)) return '3pl'
   const stem = verbStem(lemmaNorm, type)
   if (!stem) return 'unknown'
+  if (type === 'verb_pres_act_B1_-άω_-ησα' || type === 'verb_pres_act_B1_-άω_-ασα') {
+    if (tokenNorm === `${stem}ω`) return '1sg'
+    if (tokenNorm === `${stem}ς`) return '2sg'
+    if (tokenNorm === `${stem}` || tokenNorm === `${stem}ε`) return '3sg'
+    if (tokenNorm === `${stem}με`) return '1pl'
+    if (tokenNorm === `${stem}τε`) return '2pl'
+    if (tokenNorm === `${stem}νε`) return '3pl'
+    return 'unknown'
+  }
   if (tokenNorm === `${stem}ω`) return '1sg'
   if (tokenNorm === `${stem}εις`) return '2sg'
   if (tokenNorm === `${stem}ει`) return '3sg'
