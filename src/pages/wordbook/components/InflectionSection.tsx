@@ -20,6 +20,24 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   if (!lemma) return <span className="subtle">見出し語が未入力です。</span>
 
   if (selected.pos === 'verb') {
+    const personLabel = (p: string) => {
+      switch (p) {
+        case '1sg':
+          return '一単'
+        case '2sg':
+          return '二単'
+        case '3sg':
+          return '三単'
+        case '1pl':
+          return '一複'
+        case '2pl':
+          return '二複'
+        case '3pl':
+          return '三複'
+        default:
+          return ''
+      }
+    }
     const aorPastEnds = (s: string) => (stripGreekTonos(s).endsWith('σα') ? ['σα', 'σες', 'σε', 'σαμε', 'σατε', 'σαν'] : ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])
     const aorFutEnds = (s: string) =>
       stripGreekTonos(s).endsWith('σω') || stripGreekTonos(s).endsWith('σεις') || stripGreekTonos(s).endsWith('σει')
@@ -73,7 +91,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                         : ''
                   return (
                     <tr key={`aor-${r.person}`}>
-                      <td>{r.label}</td>
+                      <td>{personLabel(r.person)}</td>
                       <td className="mono greek">{renderEndingRed(pres, ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'])}</td>
                       <td className="mono greek">{renderEndingRed(ap, aorPastEnds(ap))}</td>
                       <td className="mono greek">{renderEndingRed(af, aorFutEnds(af))}</td>
@@ -121,7 +139,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                       : ''
                 return (
                   <tr key={r.person}>
-                    <td>{r.label}</td>
+                    <td>{personLabel(r.person)}</td>
                     <td className="mono greek">{renderEndingRed(pres, ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'])}</td>
                     <td className="mono greek">{renderEndingRed(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])}</td>
                     <td className="mono greek">{renderEndingRed(fut, ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'])}</td>
@@ -236,30 +254,51 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     const endsMasc = endingsByCell[tMasc] ?? undefined
     const endsFem = endingsByCell[tFem] ?? undefined
 
-    const cellWithOverrides = (rowLabel: string, colIndex: number, baseCell: string, ends?: typeof endsMasc) => {
-      const rowIsPlural = rowLabel === '複数'
+    const article = (g: 'masc' | 'fem' | 'neut', num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
+      if (kase === 'gen' && num === 'pl') return 'των'
+      if (g === 'neut') return num === 'sg' ? 'το' : 'τα'
+      if (g === 'masc') {
+        if (kase === 'nom') return num === 'sg' ? 'ο' : 'οι'
+        if (kase === 'gen') return 'του'
+        return num === 'sg' ? 'τον' : 'τους'
+      }
+      // fem
+      if (kase === 'nom') return num === 'sg' ? 'η' : 'οι'
+      if (kase === 'gen') return 'της'
+      return num === 'sg' ? 'την' : 'τις'
+    }
+
+    const rowLabel = (num: 'sg' | 'pl') => (num === 'sg' ? '単数' : '複数')
+
+    const cellWithOverrides = (
+      g: 'masc' | 'fem',
+      num: 'sg' | 'pl',
+      kase: 'nom' | 'gen' | 'acc',
+      baseForm: string,
+      ends?: typeof endsMasc,
+    ) => {
       const ov =
-        colIndex === 0
-          ? rowIsPlural
+        kase === 'nom'
+          ? num === 'pl'
             ? selected.inflectionOverrides?.n_nom_pl
             : selected.inflectionOverrides?.n_nom_sg
-          : colIndex === 1
-            ? rowIsPlural
+          : kase === 'gen'
+            ? num === 'pl'
               ? selected.inflectionOverrides?.n_gen_pl
               : selected.inflectionOverrides?.n_gen_sg
-            : rowIsPlural
+            : num === 'pl'
               ? selected.inflectionOverrides?.n_acc_pl
               : selected.inflectionOverrides?.n_acc_sg
 
-      const cell = ov ?? baseCell
-      if (ov) return cell
-      if (!ends) return cell
-      if (colIndex === 0) return renderEndingRed(cell, [rowIsPlural ? ends.nomPl : ends.nomSg])
-      if (colIndex === 1) return renderEndingRed(cell, [rowIsPlural ? ends.genPl : ends.genSg])
-      return renderEndingRed(cell, [rowIsPlural ? ends.accPl : ends.accSg])
+      const form = ov ?? baseForm
+      const display = `${article(g, num, kase)} ${form}`
+      if (ov || !ends) return display
+      if (kase === 'nom') return renderEndingRed(display, [num === 'pl' ? ends.nomPl : ends.nomSg])
+      if (kase === 'gen') return renderEndingRed(display, [num === 'pl' ? ends.genPl : ends.genSg])
+      return renderEndingRed(display, [num === 'pl' ? ends.accPl : ends.accSg])
     }
     return (
-      <div className="twoCol">
+      <div className="mfStack">
         <div>
           <div className="subtle" style={{ marginBottom: 6 }}>
             男性
@@ -269,20 +308,18 @@ export function InflectionSection({ selected }: { selected: Entry }) {
               <thead>
                 <tr>
                   <th></th>
-                  {nMasc.headers.map((h) => (
+                  {['～は', '～の', '～を'].map((h) => (
                     <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {nMasc.rows.map((r) => (
-                  <tr key={r.label}>
-                    <td>{r.label}</td>
-                    {r.cells.map((c, i) => (
-                      <td key={`${r.label}-${i}`} className="mono greek">
-                        {cellWithOverrides(r.label, i, c, endsMasc)}
-                      </td>
-                    ))}
+                  <tr key={r.number}>
+                    <td>{rowLabel(r.number)}</td>
+                    <td className="mono greek">{cellWithOverrides('masc', r.number, 'nom', r.forms.nom, endsMasc)}</td>
+                    <td className="mono greek">{cellWithOverrides('masc', r.number, 'gen', r.forms.gen, endsMasc)}</td>
+                    <td className="mono greek">{cellWithOverrides('masc', r.number, 'acc', r.forms.acc, endsMasc)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -301,20 +338,18 @@ export function InflectionSection({ selected }: { selected: Entry }) {
               <thead>
                 <tr>
                   <th></th>
-                  {nFem.headers.map((h) => (
+                  {['～は', '～の', '～を'].map((h) => (
                     <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {nFem.rows.map((r) => (
-                  <tr key={r.label}>
-                    <td>{r.label}</td>
-                    {r.cells.map((c, i) => (
-                      <td key={`${r.label}-${i}`} className="mono greek">
-                        {cellWithOverrides(r.label, i, c, endsFem)}
-                      </td>
-                    ))}
+                  <tr key={r.number}>
+                    <td>{rowLabel(r.number)}</td>
+                    <td className="mono greek">{cellWithOverrides('fem', r.number, 'nom', r.forms.nom, endsFem)}</td>
+                    <td className="mono greek">{cellWithOverrides('fem', r.number, 'gen', r.forms.gen, endsFem)}</td>
+                    <td className="mono greek">{cellWithOverrides('fem', r.number, 'acc', r.forms.acc, endsFem)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -331,48 +366,55 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   const n = nounMatrix(lemma, nounType)
   if (!n) return <span className="subtle">この活用タイプは未対応です。</span>
   const ends = endingsByCell[nounType] ?? undefined
+  const g = selected.nounGender === 'fem' ? 'fem' : selected.nounGender === 'neut' ? 'neut' : 'masc'
+  const article = (num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
+    if (kase === 'gen' && num === 'pl') return 'των'
+    if (g === 'neut') return num === 'sg' ? 'το' : 'τα'
+    if (g === 'masc') {
+      if (kase === 'nom') return num === 'sg' ? 'ο' : 'οι'
+      if (kase === 'gen') return 'του'
+      return num === 'sg' ? 'τον' : 'τους'
+    }
+    // fem
+    if (kase === 'nom') return num === 'sg' ? 'η' : 'οι'
+    if (kase === 'gen') return 'της'
+    return num === 'sg' ? 'την' : 'τις'
+  }
+  const rowLabel = (num: 'sg' | 'pl') => (num === 'sg' ? '単数' : '複数')
   return (
     <div className="matrixWrap">
       <table className="matrix">
       <thead>
         <tr>
           <th></th>
-          {n.headers.map((h) => (
+          {['～は', '～の', '～を'].map((h) => (
             <th key={h}>{h}</th>
           ))}
         </tr>
       </thead>
       <tbody>
-        {n.rows.map((r) => (
-          <tr key={r.label}>
-            <td>{r.label}</td>
-            {r.cells.map((c, i) => (
-              <td key={`${r.label}-${i}`} className="mono greek">
-                {(() => {
-                  const rowIsPlural = r.label === '複数'
-                  const ov =
-                    i === 0
-                      ? rowIsPlural
-                        ? selected.inflectionOverrides?.n_nom_pl
-                        : selected.inflectionOverrides?.n_nom_sg
-                      : i === 1
-                        ? rowIsPlural
-                          ? selected.inflectionOverrides?.n_gen_pl
-                          : selected.inflectionOverrides?.n_gen_sg
-                        : rowIsPlural
-                          ? selected.inflectionOverrides?.n_acc_pl
-                          : selected.inflectionOverrides?.n_acc_sg
-                  const base = ov ?? c
-                  if (ov) return base
-                  if (!ends) return base
-                  if (i === 0) return renderEndingRed(base, [rowIsPlural ? ends.nomPl : ends.nomSg])
-                  if (i === 1) return renderEndingRed(base, [rowIsPlural ? ends.genPl : ends.genSg])
-                  return renderEndingRed(base, [rowIsPlural ? ends.accPl : ends.accSg])
-                })()}
-              </td>
-            ))}
-          </tr>
-        ))}
+        {n.rows.map((r) => {
+          const num = r.number
+          const ovNom = num === 'pl' ? selected.inflectionOverrides?.n_nom_pl : selected.inflectionOverrides?.n_nom_sg
+          const ovGen = num === 'pl' ? selected.inflectionOverrides?.n_gen_pl : selected.inflectionOverrides?.n_gen_sg
+          const ovAcc = num === 'pl' ? selected.inflectionOverrides?.n_acc_pl : selected.inflectionOverrides?.n_acc_sg
+
+          const cell = (kase: 'nom' | 'gen' | 'acc', form: string, ov?: string, ending?: string) => {
+            const baseForm = ov ?? form
+            const display = `${article(num, kase)} ${baseForm}`
+            if (ov || !ends || !ending) return display
+            return renderEndingRed(display, [ending])
+          }
+
+          return (
+            <tr key={r.number}>
+              <td>{rowLabel(r.number)}</td>
+              <td className="mono greek">{cell('nom', r.forms.nom, ovNom, num === 'pl' ? ends?.nomPl : ends?.nomSg)}</td>
+              <td className="mono greek">{cell('gen', r.forms.gen, ovGen, num === 'pl' ? ends?.genPl : ends?.genSg)}</td>
+              <td className="mono greek">{cell('acc', r.forms.acc, ovAcc, num === 'pl' ? ends?.accPl : ends?.accSg)}</td>
+            </tr>
+          )
+        })}
       </tbody>
       </table>
     </div>

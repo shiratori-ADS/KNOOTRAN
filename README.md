@@ -32,6 +32,24 @@
 
 - React + TypeScript + Vite
 - IndexedDB（Dexie）
+- （任意）Supabase（Auth + DB）: クラウド同期（PC/スマホで同じ単語帳を使う）
+
+## コード構成（文法/活用まわり）
+
+このプロトタイプでは、活用生成やアクセント処理を `src/grammar/` に寄せています（UIの表示都合は `src/pages/wordbook/` 側）。
+
+- **`src/grammar/accent.ts`**
+  - トノスの除去/付与、アクセント位置推定
+  - **母音ユニット**（例: `ου/ευ/αι/ει/οι/αυ/ηυ` など）を 1 つとして扱うAPIも持ちます
+    - 例: `addTonosOnNthFromEndVowelUnit(...)`
+    - 例: `applyAccentFromByVowelUnit(...)`
+- **`src/grammar/verb.ts`**
+  - 動詞の最小活用（現在/過去/未来/να/命令、アオリスト）を生成
+  - UIラベルは持たず、`person: '1sg' | ...` のような **純データ**を返します
+- **`src/grammar/noun.ts`**
+  - 名詞の自動語形（`nounAutoForms`）とマトリックス用データ（`nounMatrix`）を生成
+  - `endingsByCell`（語尾表）や `resolveNounTypeForMatrix`（名詞タイプ決定）もここに集約
+  - `nounMatrix` は **冠詞なし・UIラベルなし**の語形データを返し、冠詞表示（`ο/η/το` 等）や「単数/複数」「～は/～の/～を」は UI 側で組み立てます
 
 ## 必要なもの
 
@@ -45,13 +63,34 @@
 ```powershell
 cd C:\Projects\known-only-translate
 npm install
-npm run dev -- --host --port 5174
+npm run dev
 ```
 
 起動後、ターミナルに表示されるURLを開いてください。
 
 - PCで開く: `http://localhost:5174/`
 - スマホで開く（同一Wi-Fi）: `Network:` に表示されるURL（例：`http://192.168.xx.xx:5174/`）
+
+### （任意）Supabaseを使う場合の環境変数（ローカル）
+
+クラウド同期（ログイン/クラウド保存/復元）を使う場合は、`.env` を作って以下を設定します。
+
+```powershell
+cd C:\Projects\known-only-translate
+Copy-Item ".env.example" ".env"
+notepad ".env"
+```
+
+`.env` の中身（例）:
+
+```env
+VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<your-anon-public-key>
+```
+
+注意:
+- `VITE_SUPABASE_URL` は **`/rest/v1/` を付けない**でください（Project URLそのまま）。
+- `service_role` キーはフロントに入れません（`anon public` のみ）。
 
 ## よく使うコマンド
 
@@ -93,6 +132,70 @@ npm run lint
   - 形式は概ね以下です（実体は `settings` / `entries` を含むオブジェクト）
     - `kind: "known-only-translate-backup"`
     - `version: 1`
+
+## 公開（Vercel）とクラウド同期（Supabase）
+
+### 公開（Vercel）
+
+1. GitHubにpush
+2. VercelでGitHubリポジトリをImportしてDeploy（Viteなので通常は自動設定でOK）
+   - Build: `npm run build`
+   - Output: `dist`
+
+### Vercelの環境変数（Supabase）
+
+Vercelのプロジェクトで環境変数を設定し、設定後にRedeployします。
+
+- `VITE_SUPABASE_URL`: Supabaseの Project URL（例: `https://<ref>.supabase.co`）
+- `VITE_SUPABASE_ANON_KEY`: Supabaseの `anon public` key
+
+### Supabase側の準備（メール+パスワード + 1ユーザー=1単語帳）
+
+- Authenticationで **Email（メール/パスワード）** を有効化
+- DBに `user_state` テーブル（バックアップJSONを丸ごと保存）を作成し、RLSで本人だけアクセスできるようにします
+
+```sql
+create table if not exists public.user_state (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.user_state enable row level security;
+
+create policy "user_state_select_own"
+on public.user_state for select
+using (user_id = auth.uid());
+
+create policy "user_state_insert_own"
+on public.user_state for insert
+with check (user_id = auth.uid());
+
+create policy "user_state_update_own"
+on public.user_state for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+create policy "user_state_delete_own"
+on public.user_state for delete
+using (user_id = auth.uid());
+```
+
+### ローカルのデータを公開URLへ移す
+
+方法は2つあります。
+
+- **クラウド同期（おすすめ）**:
+  - ローカル（`http://localhost:5174/`）でログイン → `クラウドへ保存（上書き）`
+  - 公開URLでログイン → `クラウドから復元（上書き）`
+- **JSONで移行**:
+  - ローカルで `エクスポート`
+  - 公開URLで `インポート（上書き）`
+
+### PCとスマホで同じデータを使う
+
+- PC/スマホそれぞれで **公開URL** を開き、同じアカウントでログインします。
+- 現状の同期は手動（上書き）なので、必要なタイミングで `クラウドへ保存 / クラウドから復元` を使います。
 
 ## よくあるトラブル
 

@@ -191,6 +191,11 @@ textarea {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.mfStack {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
 @media (max-width: 720px) {
   .twoCol {
     grid-template-columns: 1fr;
@@ -393,6 +398,9 @@ textarea {
   gap: 10px;
   align-items: start;
   margin: 12px 0;
+}
+.kv.kvFull {
+  grid-template-columns: 1fr;
 }
 @media (max-width: 720px) {
   .kv {

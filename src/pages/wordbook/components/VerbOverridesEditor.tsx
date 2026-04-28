@@ -1,7 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { Entry } from '../../../db/types'
+import type { VerbAorRow, VerbImperatives, VerbPerson, VerbRow } from '../../../grammar/verb'
 
-export type VerbPersonKey = '1sg' | '2sg' | '3sg' | '1pl' | '2pl' | '3pl'
+export type VerbPersonKey = VerbPerson
 export type VerbTense = 'pres' | 'past' | 'fut'
 
 export type VerbOverrideKey =
@@ -17,21 +18,7 @@ export type VerbOverrideKey =
   | 'v_aor_imp_2sg'
   | 'v_aor_imp_2pl'
 
-export type VerbRow = {
-  person: VerbPersonKey
-  label: string
-  pres: string
-  past: string
-  fut: string
-}
-
-export type VerbAorRow = {
-  person: VerbPersonKey
-  label: string
-  pres: string
-  aorPast: string
-  aorFut: string
-}
+export type { VerbRow, VerbAorRow }
 
 export function VerbOverridesEditor({
   editOverrides,
@@ -44,7 +31,7 @@ export function VerbOverridesEditor({
   setEditOverrides: Dispatch<SetStateAction<Entry['inflectionOverrides']>>
   autoEditVerb: VerbRow[] | null
   autoEditAor: VerbAorRow[] | null
-  autoEditImp: { pres2sg: string; pres2pl: string; aor2sg: string; aor2pl: string } | null
+  autoEditImp: VerbImperatives | null
 }) {
   const valueOf = (k: VerbOverrideKey) => ((editOverrides as any)?.[k] as string | undefined) ?? ''
   const setValue = (k: VerbOverrideKey, v: string) => setEditOverrides((p) => ({ ...(p ?? {}), [k]: v }))

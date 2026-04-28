@@ -34,7 +34,7 @@ export function DetailView({
         </div>
       )}
 
-      <div className="kv">
+      <div className="kv kvFull">
         <div className="k">活用</div>
         <div className="v">
           <InflectionSection selected={selected} />
