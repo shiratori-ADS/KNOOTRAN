@@ -107,23 +107,61 @@ function verbMatchesToken(tokenNorm: string, entry: Entry): boolean {
   if ((o as any)?.v_aor_na_2pl && tokenNorm === normalizeToken((o as any).v_aor_na_2pl)) return true
   if ((o as any)?.v_aor_na_3pl && tokenNorm === normalizeToken((o as any).v_aor_na_3pl)) return true
 
-  if (
-    entry.inflectionType !== 'verb_pres_act_-ω' &&
-    entry.inflectionType !== 'verb_pres_act_-γω_-χω_-χνω' &&
-    entry.inflectionType !== 'verb_pres_act_-πω_-φω_-βω_-εύω'
-  )
-    return false
-  if (!lemma.endsWith('ω')) return false
+  if (!stripGreekTonos(lemma).endsWith('ω')) return false
   const stem = lemma.slice(0, -1)
-  return (
-    tokenNorm === `${stem}ω` ||
-    tokenNorm === `${stem}εις` ||
-    tokenNorm === `${stem}ει` ||
-    tokenNorm === `${stem}ουμε` ||
-    tokenNorm === `${stem}ετε` ||
-    tokenNorm === `${stem}ουν` ||
-    tokenNorm === `${stem}ουνε`
-  )
+
+  // Β2: -ώ（現在形は -είς/-εί/-ούμε/-είτε/-ούν）
+  if (
+    entry.inflectionType === 'verb_pres_act_B2_-ώ_-ησα' ||
+    entry.inflectionType === 'verb_pres_act_B2_-ώ_-ασα' ||
+    entry.inflectionType === 'verb_pres_act_B2_-ώ_-εσα'
+  ) {
+    const forms = [
+      `${stem}ώ`,
+      `${stem}είς`,
+      `${stem}εί`,
+      `${stem}ούμε`,
+      `${stem}είτε`,
+      `${stem}ούν`,
+    ]
+    return forms.some((f) => tokenNorm === normalizeToken(f) || tokenNorm === stripGreekTonos(normalizeToken(f)))
+  }
+
+  // A系: -ω
+  if (
+    entry.inflectionType === 'verb_pres_act_-ω' ||
+    entry.inflectionType === 'verb_pres_act_-γω_-χω_-χνω' ||
+    entry.inflectionType === 'verb_pres_act_-πω_-φω_-βω_-εύω'
+  ) {
+    return (
+      tokenNorm === `${stem}ω` ||
+      tokenNorm === `${stem}εις` ||
+      tokenNorm === `${stem}ει` ||
+      tokenNorm === `${stem}ουμε` ||
+      tokenNorm === `${stem}ετε` ||
+      tokenNorm === `${stem}ουν` ||
+      tokenNorm === `${stem}ουνε`
+    )
+  }
+
+  // Β1: -άω（現在形は特殊）
+  if (
+    entry.inflectionType === 'verb_pres_act_B1_-άω_-ησα' ||
+    entry.inflectionType === 'verb_pres_act_B1_-άω_-εσα' ||
+    entry.inflectionType === 'verb_pres_act_B1_-άω_-ασα'
+  ) {
+    return (
+      tokenNorm === `${stem}ω` ||
+      tokenNorm === `${stem}ς` ||
+      tokenNorm === `${stem}` ||
+      tokenNorm === `${stem}ει` ||
+      tokenNorm === `${stem}με` ||
+      tokenNorm === `${stem}τε` ||
+      tokenNorm === `${stem}νε`
+    )
+  }
+
+  return false
 }
 
 function nounStem(lemmaNorm: string, type: InflectionType): string | null {

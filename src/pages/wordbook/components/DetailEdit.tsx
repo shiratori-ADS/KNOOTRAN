@@ -168,11 +168,21 @@ export function DetailEdit({
       <div className="twoCol">
         <label className="field">
           <span className="label">例文（任意・複数行）</span>
-          <textarea value={editExamplesText} onChange={(e) => setEditExamplesText(e.target.value)} rows={4} />
+          <textarea
+            value={editExamplesText}
+            onChange={(e) => setEditExamplesText(e.target.value)}
+            rows={4}
+            placeholder={'例：\το κόκκινο μήλο\t赤いりんご\nΠονάει το κεφάλι μου.\t頭が痛い。'}
+          />
+          <span className="help">1行につき「原文[TAB]訳」。TABの代わりに「→」「=&gt;」「-&gt;」もOK。</span>
         </label>
         <label className="field">
           <span className="label">関連語（任意・複数行）</span>
           <textarea value={editRelatedText} onChange={(e) => setEditRelatedText(e.target.value)} rows={4} />
+          {/* PCで例文欄と高さを揃えるためのスペーサー（例文側のhelpと同じ高さ） */}
+          <span className="help" style={{ visibility: 'hidden' }} aria-hidden="true">
+            1行につき「原文[TAB]訳」。TABの代わりに「→」「=&gt;」「-&gt;」もOK。
+          </span>
         </label>
       </div>
 

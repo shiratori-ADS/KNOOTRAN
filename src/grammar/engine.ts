@@ -3,6 +3,7 @@ import { normalizeToken } from '../lib/normalize'
 import { tokenize } from '../lib/translate'
 import type { Entry, InflectionType } from '../db/types'
 import { resolveNounInflectionType } from './infer'
+import { normalizeExamplePairs } from '../lib/examples'
 import {
   addTonosOnAntepenultVowel,
   addTonosOnLastVowel,
@@ -68,10 +69,14 @@ function verbStem(lemma: string, type?: InflectionType): string | null {
     type !== 'verb_pres_act_-γω_-χω_-χνω' &&
     type !== 'verb_pres_act_-πω_-φω_-βω_-εύω' &&
     type !== 'verb_pres_act_B1_-άω_-ησα' &&
-    type !== 'verb_pres_act_B1_-άω_-ασα'
+    type !== 'verb_pres_act_B1_-άω_-εσα' &&
+    type !== 'verb_pres_act_B1_-άω_-ασα' &&
+    type !== 'verb_pres_act_B2_-ώ_-ησα' &&
+    type !== 'verb_pres_act_B2_-ώ_-ασα' &&
+    type !== 'verb_pres_act_B2_-ώ_-εσα'
   )
     return null
-  if (!lemma.endsWith('ω')) return null
+  if (!stripGreekTonos(lemma).endsWith('ω')) return null
   return lemma.slice(0, -1)
 }
 
@@ -83,51 +88,69 @@ function detectVerbPerson(tokenNorm: string, entry: Entry, lemmaNorm: string, ty
   if (o?.v_1pl && tokenNorm === normalizeToken(o.v_1pl)) return '1pl'
   if (o?.v_2pl && tokenNorm === normalizeToken(o.v_2pl)) return '2pl'
   if (o?.v_3pl && tokenNorm === normalizeToken(o.v_3pl)) return '3pl'
-  if ((o as any)?.v_past_1sg && tokenNorm === normalizeToken((o as any).v_past_1sg)) return '1sg'
-  if ((o as any)?.v_past_2sg && tokenNorm === normalizeToken((o as any).v_past_2sg)) return '2sg'
-  if ((o as any)?.v_past_3sg && tokenNorm === normalizeToken((o as any).v_past_3sg)) return '3sg'
-  if ((o as any)?.v_past_1pl && tokenNorm === normalizeToken((o as any).v_past_1pl)) return '1pl'
-  if ((o as any)?.v_past_2pl && tokenNorm === normalizeToken((o as any).v_past_2pl)) return '2pl'
-  if ((o as any)?.v_past_3pl && tokenNorm === normalizeToken((o as any).v_past_3pl)) return '3pl'
-  if ((o as any)?.v_fut_1sg && tokenNorm === normalizeToken((o as any).v_fut_1sg)) return '1sg'
-  if ((o as any)?.v_fut_2sg && tokenNorm === normalizeToken((o as any).v_fut_2sg)) return '2sg'
-  if ((o as any)?.v_fut_3sg && tokenNorm === normalizeToken((o as any).v_fut_3sg)) return '3sg'
-  if ((o as any)?.v_fut_1pl && tokenNorm === normalizeToken((o as any).v_fut_1pl)) return '1pl'
-  if ((o as any)?.v_fut_2pl && tokenNorm === normalizeToken((o as any).v_fut_2pl)) return '2pl'
-  if ((o as any)?.v_fut_3pl && tokenNorm === normalizeToken((o as any).v_fut_3pl)) return '3pl'
-  if ((o as any)?.v_na_1sg && tokenNorm === normalizeToken((o as any).v_na_1sg)) return '1sg'
-  if ((o as any)?.v_na_2sg && tokenNorm === normalizeToken((o as any).v_na_2sg)) return '2sg'
-  if ((o as any)?.v_na_3sg && tokenNorm === normalizeToken((o as any).v_na_3sg)) return '3sg'
-  if ((o as any)?.v_na_1pl && tokenNorm === normalizeToken((o as any).v_na_1pl)) return '1pl'
-  if ((o as any)?.v_na_2pl && tokenNorm === normalizeToken((o as any).v_na_2pl)) return '2pl'
-  if ((o as any)?.v_na_3pl && tokenNorm === normalizeToken((o as any).v_na_3pl)) return '3pl'
-  if ((o as any)?.v_aor_past_1sg && tokenNorm === normalizeToken((o as any).v_aor_past_1sg)) return '1sg'
-  if ((o as any)?.v_aor_past_2sg && tokenNorm === normalizeToken((o as any).v_aor_past_2sg)) return '2sg'
-  if ((o as any)?.v_aor_past_3sg && tokenNorm === normalizeToken((o as any).v_aor_past_3sg)) return '3sg'
-  if ((o as any)?.v_aor_past_1pl && tokenNorm === normalizeToken((o as any).v_aor_past_1pl)) return '1pl'
-  if ((o as any)?.v_aor_past_2pl && tokenNorm === normalizeToken((o as any).v_aor_past_2pl)) return '2pl'
-  if ((o as any)?.v_aor_past_3pl && tokenNorm === normalizeToken((o as any).v_aor_past_3pl)) return '3pl'
-  if ((o as any)?.v_aor_fut_1sg && tokenNorm === normalizeToken((o as any).v_aor_fut_1sg)) return '1sg'
-  if ((o as any)?.v_aor_fut_2sg && tokenNorm === normalizeToken((o as any).v_aor_fut_2sg)) return '2sg'
-  if ((o as any)?.v_aor_fut_3sg && tokenNorm === normalizeToken((o as any).v_aor_fut_3sg)) return '3sg'
-  if ((o as any)?.v_aor_fut_1pl && tokenNorm === normalizeToken((o as any).v_aor_fut_1pl)) return '1pl'
-  if ((o as any)?.v_aor_fut_2pl && tokenNorm === normalizeToken((o as any).v_aor_fut_2pl)) return '2pl'
-  if ((o as any)?.v_aor_fut_3pl && tokenNorm === normalizeToken((o as any).v_aor_fut_3pl)) return '3pl'
-  if ((o as any)?.v_aor_na_1sg && tokenNorm === normalizeToken((o as any).v_aor_na_1sg)) return '1sg'
-  if ((o as any)?.v_aor_na_2sg && tokenNorm === normalizeToken((o as any).v_aor_na_2sg)) return '2sg'
-  if ((o as any)?.v_aor_na_3sg && tokenNorm === normalizeToken((o as any).v_aor_na_3sg)) return '3sg'
-  if ((o as any)?.v_aor_na_1pl && tokenNorm === normalizeToken((o as any).v_aor_na_1pl)) return '1pl'
-  if ((o as any)?.v_aor_na_2pl && tokenNorm === normalizeToken((o as any).v_aor_na_2pl)) return '2pl'
-  if ((o as any)?.v_aor_na_3pl && tokenNorm === normalizeToken((o as any).v_aor_na_3pl)) return '3pl'
+  if (o?.v_past_1sg && tokenNorm === normalizeToken(o.v_past_1sg)) return '1sg'
+  if (o?.v_past_2sg && tokenNorm === normalizeToken(o.v_past_2sg)) return '2sg'
+  if (o?.v_past_3sg && tokenNorm === normalizeToken(o.v_past_3sg)) return '3sg'
+  if (o?.v_past_1pl && tokenNorm === normalizeToken(o.v_past_1pl)) return '1pl'
+  if (o?.v_past_2pl && tokenNorm === normalizeToken(o.v_past_2pl)) return '2pl'
+  if (o?.v_past_3pl && tokenNorm === normalizeToken(o.v_past_3pl)) return '3pl'
+  if (o?.v_fut_1sg && tokenNorm === normalizeToken(o.v_fut_1sg)) return '1sg'
+  if (o?.v_fut_2sg && tokenNorm === normalizeToken(o.v_fut_2sg)) return '2sg'
+  if (o?.v_fut_3sg && tokenNorm === normalizeToken(o.v_fut_3sg)) return '3sg'
+  if (o?.v_fut_1pl && tokenNorm === normalizeToken(o.v_fut_1pl)) return '1pl'
+  if (o?.v_fut_2pl && tokenNorm === normalizeToken(o.v_fut_2pl)) return '2pl'
+  if (o?.v_fut_3pl && tokenNorm === normalizeToken(o.v_fut_3pl)) return '3pl'
+  if (o?.v_na_1sg && tokenNorm === normalizeToken(o.v_na_1sg)) return '1sg'
+  if (o?.v_na_2sg && tokenNorm === normalizeToken(o.v_na_2sg)) return '2sg'
+  if (o?.v_na_3sg && tokenNorm === normalizeToken(o.v_na_3sg)) return '3sg'
+  if (o?.v_na_1pl && tokenNorm === normalizeToken(o.v_na_1pl)) return '1pl'
+  if (o?.v_na_2pl && tokenNorm === normalizeToken(o.v_na_2pl)) return '2pl'
+  if (o?.v_na_3pl && tokenNorm === normalizeToken(o.v_na_3pl)) return '3pl'
+  if (o?.v_aor_past_1sg && tokenNorm === normalizeToken(o.v_aor_past_1sg)) return '1sg'
+  if (o?.v_aor_past_2sg && tokenNorm === normalizeToken(o.v_aor_past_2sg)) return '2sg'
+  if (o?.v_aor_past_3sg && tokenNorm === normalizeToken(o.v_aor_past_3sg)) return '3sg'
+  if (o?.v_aor_past_1pl && tokenNorm === normalizeToken(o.v_aor_past_1pl)) return '1pl'
+  if (o?.v_aor_past_2pl && tokenNorm === normalizeToken(o.v_aor_past_2pl)) return '2pl'
+  if (o?.v_aor_past_3pl && tokenNorm === normalizeToken(o.v_aor_past_3pl)) return '3pl'
+  if (o?.v_aor_fut_1sg && tokenNorm === normalizeToken(o.v_aor_fut_1sg)) return '1sg'
+  if (o?.v_aor_fut_2sg && tokenNorm === normalizeToken(o.v_aor_fut_2sg)) return '2sg'
+  if (o?.v_aor_fut_3sg && tokenNorm === normalizeToken(o.v_aor_fut_3sg)) return '3sg'
+  if (o?.v_aor_fut_1pl && tokenNorm === normalizeToken(o.v_aor_fut_1pl)) return '1pl'
+  if (o?.v_aor_fut_2pl && tokenNorm === normalizeToken(o.v_aor_fut_2pl)) return '2pl'
+  if (o?.v_aor_fut_3pl && tokenNorm === normalizeToken(o.v_aor_fut_3pl)) return '3pl'
+  if (o?.v_aor_na_1sg && tokenNorm === normalizeToken(o.v_aor_na_1sg)) return '1sg'
+  if (o?.v_aor_na_2sg && tokenNorm === normalizeToken(o.v_aor_na_2sg)) return '2sg'
+  if (o?.v_aor_na_3sg && tokenNorm === normalizeToken(o.v_aor_na_3sg)) return '3sg'
+  if (o?.v_aor_na_1pl && tokenNorm === normalizeToken(o.v_aor_na_1pl)) return '1pl'
+  if (o?.v_aor_na_2pl && tokenNorm === normalizeToken(o.v_aor_na_2pl)) return '2pl'
+  if (o?.v_aor_na_3pl && tokenNorm === normalizeToken(o.v_aor_na_3pl)) return '3pl'
   const stem = verbStem(lemmaNorm, type)
   if (!stem) return 'unknown'
-  if (type === 'verb_pres_act_B1_-άω_-ησα' || type === 'verb_pres_act_B1_-άω_-ασα') {
+  if (
+    type === 'verb_pres_act_B1_-άω_-ησα' ||
+    type === 'verb_pres_act_B1_-άω_-εσα' ||
+    type === 'verb_pres_act_B1_-άω_-ασα'
+  ) {
     if (tokenNorm === `${stem}ω`) return '1sg'
     if (tokenNorm === `${stem}ς`) return '2sg'
-    if (tokenNorm === `${stem}` || tokenNorm === `${stem}ε`) return '3sg'
+    if (tokenNorm === `${stem}` || tokenNorm === `${stem}ε` || tokenNorm === `${stem}ει`) return '3sg'
     if (tokenNorm === `${stem}με`) return '1pl'
     if (tokenNorm === `${stem}τε`) return '2pl'
     if (tokenNorm === `${stem}νε`) return '3pl'
+    return 'unknown'
+  }
+  if (
+    type === 'verb_pres_act_B2_-ώ_-ησα' ||
+    type === 'verb_pres_act_B2_-ώ_-ασα' ||
+    type === 'verb_pres_act_B2_-ώ_-εσα'
+  ) {
+    // -ώ: δημιουργώ/δημιουργείς/δημιουργεί/δημιουργούμε/δημιουργείτε/δημιουργούν（最小）
+    if (tokenNorm === normalizeToken(`${stem}ώ`)) return '1sg'
+    if (tokenNorm === normalizeToken(`${stem}είς`)) return '2sg'
+    if (tokenNorm === normalizeToken(`${stem}εί`)) return '3sg'
+    if (tokenNorm === normalizeToken(`${stem}ούμε`)) return '1pl'
+    if (tokenNorm === normalizeToken(`${stem}είτε`)) return '2pl'
+    if (tokenNorm === normalizeToken(`${stem}ούν`)) return '3pl'
     return 'unknown'
   }
   if (tokenNorm === `${stem}ω`) return '1sg'
@@ -493,6 +516,22 @@ async function findCandidateNoun(tokenNorm: string): Promise<Entry | undefined> 
 }
 
 export async function translateSentenceForeignToJa(input: string): Promise<SentenceResult> {
+  // 例文が完全一致する場合は、その訳を最優先（「参考」用の最小実装）
+  const inputNorm = normalizeToken(stripPunct(input))
+  if (inputNorm) {
+    const entriesWithExamples = await db.entries.where('pos').equals('verb').limit(300).toArray()
+    // verbs 以外も例文は持てるので、追加で少し見る（全件は重いので上限）
+    const others = await db.entries.where('pos').notEqual('verb').limit(400).toArray()
+    const pool = [...entriesWithExamples, ...others]
+    for (const e of pool) {
+      const pairs = normalizeExamplePairs(e.examples)
+      const hit = pairs.find((p) => normalizeToken(stripPunct(p.foreign)) === inputNorm && p.ja.trim())
+      if (hit) {
+        return { analysis: { nouns: [] }, ja: hit.ja.trim(), unknownTokens: [] }
+      }
+    }
+  }
+
   const toks = tokenize(input)
     .filter((t) => t.kind === 'word')
     .map((t) => normalizeToken(stripPunct(t.raw)))

@@ -1,6 +1,7 @@
 import type { Entry } from '../../../db/types'
 import { InflectionSection } from './InflectionSection'
 import { displayForm, genderLabel, inflectionLabel, posLabel, verbInflectionShortLabel } from '../wordbookHelpers'
+import { normalizeExamplePairs } from '../../../lib/examples'
 
 export function DetailView({
   selected,
@@ -46,8 +47,11 @@ export function DetailView({
         <div className="v">
           {selected.examples?.length ? (
             <ul>
-              {selected.examples.map((x, i) => (
-                <li key={`${x}-${i}`}>{x}</li>
+              {normalizeExamplePairs(selected.examples).map((x, i) => (
+                <li key={`${x.foreign}-${i}`}>
+                  <div className="mono greek">{x.foreign}</div>
+                  {x.ja?.trim() ? <div style={{ marginTop: 2 }}>{x.ja}</div> : null}
+                </li>
               ))}
             </ul>
           ) : (

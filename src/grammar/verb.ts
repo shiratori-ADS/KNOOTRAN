@@ -43,13 +43,21 @@ function isSupportedVerbType(t?: InflectionType): t is
   | 'verb_pres_act_-γω_-χω_-χνω'
   | 'verb_pres_act_-πω_-φω_-βω_-εύω'
   | 'verb_pres_act_B1_-άω_-ησα'
-  | 'verb_pres_act_B1_-άω_-ασα' {
+  | 'verb_pres_act_B1_-άω_-εσα'
+  | 'verb_pres_act_B1_-άω_-ασα'
+  | 'verb_pres_act_B2_-ώ_-ησα'
+  | 'verb_pres_act_B2_-ώ_-ασα'
+  | 'verb_pres_act_B2_-ώ_-εσα' {
   return (
     t === 'verb_pres_act_-ω' ||
     t === 'verb_pres_act_-γω_-χω_-χνω' ||
     t === 'verb_pres_act_-πω_-φω_-βω_-εύω' ||
     t === 'verb_pres_act_B1_-άω_-ησα' ||
-    t === 'verb_pres_act_B1_-άω_-ασα'
+    t === 'verb_pres_act_B1_-άω_-εσα' ||
+    t === 'verb_pres_act_B1_-άω_-ασα' ||
+    t === 'verb_pres_act_B2_-ώ_-ησα' ||
+    t === 'verb_pres_act_B2_-ώ_-ασα' ||
+    t === 'verb_pres_act_B2_-ώ_-εσα'
   )
 }
 
@@ -86,11 +94,25 @@ function presFormsB1FromLemma(lemmaNorm: string) {
   return {
     '1sg': lemmaNorm,
     '2sg': `${stem}ς`,
-    // 3単は「-ε」表記を採用（例: απαντάω → απαντάε）。短い形（απαντά）も一般的。
-    '3sg': `${stem}ε`,
+    // 3単は「-ει」表記を採用（例: απαντάω → απαντάει）。短い形（απαντά）も一般的。
+    '3sg': `${stem}ει`,
     '1pl': `${stem}με`,
     '2pl': `${stem}τε`,
     '3pl': `${stem}νε`,
+  } as const
+}
+
+function presFormsB2FromLemma(lemmaNorm: string) {
+  // -ώ: δημιουργώ/δημιουργείς/δημιουργεί/δημιουργούμε/δημιουργείτε/δημιουργούν（最小）
+  if (!lemmaNorm.endsWith('ώ')) return null
+  const stem = lemmaNorm.slice(0, -1)
+  return {
+    '1sg': lemmaNorm,
+    '2sg': `${stem}είς`,
+    '3sg': `${stem}εί`,
+    '1pl': `${stem}ούμε`,
+    '2pl': `${stem}είτε`,
+    '3pl': `${stem}ούν`,
   } as const
 }
 
@@ -143,28 +165,67 @@ function aoristStemFromLemmaStem(lemmaStem: string, t: InflectionType): string {
     if (plain.endsWith('α')) return `${plain.slice(0, -1)}η`
     return plain
   }
+  if (t === 'verb_pres_act_B1_-άω_-εσα') {
+    // 最小: -άω の Β1（-εσα）
+    // 例: πονάω/φοράω → πόνεσα/φόρεσα
+    const plain = stripGreekTonos(lemmaStem)
+    if (plain.endsWith('α')) return `${plain.slice(0, -1)}ε`
+    return plain
+  }
   if (t === 'verb_pres_act_B1_-άω_-ασα') {
     // 最小: -άω の Β1（-ασα）
     // 例: γελάω/πεινάω/χαλάω → γέλασα/πείνασα/χάλασα
     return stripGreekTonos(lemmaStem)
+  }
+  if (t === 'verb_pres_act_B2_-ώ_-ησα') {
+    // 最小: -ώ の Β2（-ησα）
+    // 例: δημιουργώ/εξηγώ → δημιούργησα/εξήγησα
+    const plain = stripGreekTonos(lemmaStem)
+    return plain.endsWith('η') ? plain : `${plain}η`
+  }
+  if (t === 'verb_pres_act_B2_-ώ_-ασα') {
+    // 最小: -ώ の Β2（-ασα）
+    // 例: （最小ルール）語幹 + α + σα
+    const plain = stripGreekTonos(lemmaStem)
+    return plain.endsWith('α') ? plain : `${plain}α`
+  }
+  if (t === 'verb_pres_act_B2_-ώ_-εσα') {
+    // 最小: -ώ の Β2（-εσα）
+    // 例: （最小ルール）語幹 + ε + σα
+    const plain = stripGreekTonos(lemmaStem)
+    return plain.endsWith('ε') ? plain : `${plain}ε`
   }
   return lemmaStem.endsWith('ζ') || lemmaStem.endsWith('ν') ? lemmaStem.slice(0, -1) : lemmaStem
 }
 
 export function verbMatrix(lemmaNorm: string, t?: InflectionType): VerbRow[] | null {
   if (!isSupportedVerbType(t)) return null
-  if (!lemmaNorm.endsWith('ω')) return null
+  const lemmaPlain = stripGreekTonos(lemmaNorm)
+  if (!lemmaPlain.endsWith('ω')) return null
   const stem = lemmaNorm.slice(0, -1)
 
   const pres =
-    t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα'
+    t === 'verb_pres_act_B1_-άω_-ησα' ||
+    t === 'verb_pres_act_B1_-άω_-εσα' ||
+    t === 'verb_pres_act_B1_-άω_-ασα'
       ? presFormsB1FromLemma(lemmaNorm)
+      : t === 'verb_pres_act_B2_-ώ_-ησα' ||
+          t === 'verb_pres_act_B2_-ώ_-ασα' ||
+          t === 'verb_pres_act_B2_-ώ_-εσα'
+        ? presFormsB2FromLemma(lemmaNorm)
       : presFormsFromStem(stem)
   if (!pres) return null
 
   const past = (() => {
-    // Β1（-άω）の未完了過去は最小で -ούσα 系に寄せる（例: ζητούσα）
-    if (t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα') {
+    // Β（-άω / -ώ）の未完了過去は最小で -ούσα 系に寄せる（例: ζητούσα / δημιουργούσα）
+    if (
+      t === 'verb_pres_act_B1_-άω_-ησα' ||
+      t === 'verb_pres_act_B1_-άω_-εσα' ||
+      t === 'verb_pres_act_B1_-άω_-ασα' ||
+      t === 'verb_pres_act_B2_-ώ_-ησα' ||
+      t === 'verb_pres_act_B2_-ώ_-ασα' ||
+      t === 'verb_pres_act_B2_-ώ_-εσα'
+    ) {
       const stemPlain = stripGreekTonos(stem)
       const base = stemPlain.endsWith('α') ? `${stemPlain.slice(0, -1)}ούσ` : `${stemPlain}ούσ`
       return {
@@ -219,20 +280,35 @@ export function verbMatrix(lemmaNorm: string, t?: InflectionType): VerbRow[] | n
 
 export function verbAoristMatrix(lemmaNorm: string, t?: InflectionType): VerbAorRow[] | null {
   if (!isSupportedVerbType(t)) return null
-  if (!lemmaNorm.endsWith('ω')) return null
+  const lemmaPlain = stripGreekTonos(lemmaNorm)
+  if (!lemmaPlain.endsWith('ω')) return null
   const stem = lemmaNorm.slice(0, -1)
   const aorStem = aoristStemFromLemmaStem(stem, t)
 
   const pres =
-    t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα'
+    t === 'verb_pres_act_B1_-άω_-ησα' ||
+    t === 'verb_pres_act_B1_-άω_-εσα' ||
+    t === 'verb_pres_act_B1_-άω_-ασα'
       ? presFormsB1FromLemma(lemmaNorm)
+      : t === 'verb_pres_act_B2_-ώ_-ησα' ||
+          t === 'verb_pres_act_B2_-ώ_-ασα' ||
+          t === 'verb_pres_act_B2_-ώ_-εσα'
+        ? presFormsB2FromLemma(lemmaNorm)
       : presFormsFromStem(stem)
   if (!pres) return null
 
   const aorPastStem = (() => {
     // -εύω（...ευ-）は現代標準では増音なしが一般的なので、語幹が変化（...εψ-）しても付けない
     if (shouldSuppressAugmentForStem(stem)) return aorStem
-    if (t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα') return aorStem
+    if (
+      t === 'verb_pres_act_B1_-άω_-ησα' ||
+      t === 'verb_pres_act_B1_-άω_-εσα' ||
+      t === 'verb_pres_act_B1_-άω_-ασα' ||
+      t === 'verb_pres_act_B2_-ώ_-ησα' ||
+      t === 'verb_pres_act_B2_-ώ_-ασα' ||
+      t === 'verb_pres_act_B2_-ώ_-εσα'
+    )
+      return aorStem
     return withAugment(aorStem, lemmaNorm)
   })()
   const aorPastStemPlural = aorStem
@@ -251,7 +327,12 @@ export function verbAoristMatrix(lemmaNorm: string, t?: InflectionType): VerbAor
         // 3複は増音あり/なし両方が見えるので、ここでは増音あり寄りにする
         '3pl': accentAntepenultByUnits(`${aorPastStem}αν`),
       } as const)
-    : t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα'
+    : t === 'verb_pres_act_B1_-άω_-ησα' ||
+        t === 'verb_pres_act_B1_-άω_-εσα' ||
+        t === 'verb_pres_act_B1_-άω_-ασα' ||
+        t === 'verb_pres_act_B2_-ώ_-ησα' ||
+        t === 'verb_pres_act_B2_-ώ_-ασα' ||
+        t === 'verb_pres_act_B2_-ώ_-εσα'
       ? ({
           '1sg': accentAntepenultByUnits(`${aorPastStem}σα`),
           '2sg': accentAntepenultByUnits(`${aorPastStem}σες`),
@@ -272,7 +353,12 @@ export function verbAoristMatrix(lemmaNorm: string, t?: InflectionType): VerbAor
   const aorFutVerb = {
     // 最小: アオリスト未来（=単純未来）の語幹 + σω 系（厳密ではない）
     // Β1（-άω）の future は語幹末尾 η にトノス（例: απαντήσω/απαντήσουμε/απαντήσουν）
-    ...(t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα'
+    ...(t === 'verb_pres_act_B1_-άω_-ησα' ||
+    t === 'verb_pres_act_B1_-άω_-εσα' ||
+    t === 'verb_pres_act_B1_-άω_-ασα' ||
+    t === 'verb_pres_act_B2_-ώ_-ησα' ||
+    t === 'verb_pres_act_B2_-ώ_-ασα' ||
+    t === 'verb_pres_act_B2_-ώ_-εσα'
       ? (() => {
           const aorStemAcc = addTonosOnLastVowel(stripGreekTonos(aorStem))
           return {
@@ -336,9 +422,13 @@ export function verbAoristMatrix(lemmaNorm: string, t?: InflectionType): VerbAor
 
 export function verbImperativeForms(lemmaNorm: string, t?: InflectionType): VerbImperatives | null {
   if (!isSupportedVerbType(t)) return null
-  if (!lemmaNorm.endsWith('ω')) return null
+  if (!stripGreekTonos(lemmaNorm).endsWith('ω')) return null
 
-  if (t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα') {
+  if (
+    t === 'verb_pres_act_B1_-άω_-ησα' ||
+    t === 'verb_pres_act_B1_-άω_-εσα' ||
+    t === 'verb_pres_act_B1_-άω_-ασα'
+  ) {
     // Β1（-άω）命令形（ユーザー指定ルール）
     // - Imperfective: 2sg: -α（語幹 = 見出し語から -ω）、2pl: -τε（= 現在2複と同形）
     // - Perfective: 2sg: -ησε、2pl: -ήστε
@@ -363,6 +453,31 @@ export function verbImperativeForms(lemmaNorm: string, t?: InflectionType): Verb
     const aor2plPlain = `${aorStemPlainNoTonos}στε` // ...ήστε（penultにトノス）
     const accentNthFor2sg = (plainForm: string) => (countGreekVowelUnits(plainForm) <= 2 ? 2 : 3)
     const aor2sg = addTonosOnNthFromEndVowelUnit(aor2sgPlain, accentNthFor2sg(aor2sgPlain))
+    const aor2pl = addTonosOnNthFromEndVowelUnit(aor2plPlain, 2)
+
+    return { pres2sg, pres2pl, aor2sg, aor2pl }
+  }
+
+  if (
+    t === 'verb_pres_act_B2_-ώ_-ησα' ||
+    t === 'verb_pres_act_B2_-ώ_-ασα' ||
+    t === 'verb_pres_act_B2_-ώ_-εσα'
+  ) {
+    // Β2（-ώ）命令形（最小）
+    // - Imperfective: 2sg: -εί, 2pl: -είτε
+    // 例: δημιουργώ → δημιουργεί / δημιουργείτε
+    const stemPlain = stripGreekTonos(lemmaNorm).slice(0, -1)
+    const accentNthForImp2sg = (plainForm: string) => (countGreekVowelUnits(plainForm) <= 2 ? 2 : 3)
+
+    const pres2sgPlain = `${stemPlain}ει`
+    const pres2plPlain = `${stemPlain}ειτε` // -είτε（penultユニット=ει にトノス）
+    const pres2sg = addTonosOnNthFromEndVowelUnit(pres2sgPlain, 1)
+    const pres2pl = addTonosOnNthFromEndVowelUnit(pres2plPlain, 2)
+
+    const aorStemPlain = stripGreekTonos(aoristStemFromLemmaStem(stripGreekTonos(lemmaNorm).slice(0, -1), t))
+    const aor2sgPlain = `${aorStemPlain}σε`
+    const aor2plPlain = `${aorStemPlain}στε`
+    const aor2sg = addTonosOnNthFromEndVowelUnit(aor2sgPlain, accentNthForImp2sg(aor2sgPlain))
     const aor2pl = addTonosOnNthFromEndVowelUnit(aor2plPlain, 2)
 
     return { pres2sg, pres2pl, aor2sg, aor2pl }

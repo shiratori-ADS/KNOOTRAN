@@ -95,8 +95,16 @@ export function inflectionLabel(t?: InflectionType) {
       return 'Α : -πω/-φω/-βω/-εύω'
     case 'verb_pres_act_B1_-άω_-ησα':
       return 'Β1 : -άω（アオリスト -ησα）'
+    case 'verb_pres_act_B1_-άω_-εσα':
+      return 'Β1 : -άω（アオリスト -εσα）'
     case 'verb_pres_act_B1_-άω_-ασα':
       return 'Β1 : -άω（アオリスト -ασα）'
+    case 'verb_pres_act_B2_-ώ_-ησα':
+      return 'Β2 : -ώ（アオリスト -ησα）'
+    case 'verb_pres_act_B2_-ώ_-ασα':
+      return 'Β2 : -ώ（アオリスト -ασα）'
+    case 'verb_pres_act_B2_-ώ_-εσα':
+      return 'Β2 : -ώ（アオリスト -εσα）'
     case 'noun_masc_-ος_last':
     case 'noun_masc_-ος_penult':
     case 'noun_masc_-ος_antepenult':
@@ -156,8 +164,16 @@ export function verbInflectionShortLabel(t?: InflectionType): string | null {
       return 'Α'
     case 'verb_pres_act_B1_-άω_-ησα':
       return 'Β1'
+    case 'verb_pres_act_B1_-άω_-εσα':
+      return 'Β1'
     case 'verb_pres_act_B1_-άω_-ασα':
       return 'Β1'
+    case 'verb_pres_act_B2_-ώ_-ησα':
+      return 'Β2'
+    case 'verb_pres_act_B2_-ώ_-ασα':
+      return 'Β2'
+    case 'verb_pres_act_B2_-ώ_-εσα':
+      return 'Β2'
     default:
       return null
   }
@@ -168,7 +184,11 @@ export const verbInflectionOptions: Array<{ value: InflectionType; label: string
   { value: 'verb_pres_act_-γω_-χω_-χνω', label: inflectionLabel('verb_pres_act_-γω_-χω_-χνω') },
   { value: 'verb_pres_act_-πω_-φω_-βω_-εύω', label: inflectionLabel('verb_pres_act_-πω_-φω_-βω_-εύω') },
   { value: 'verb_pres_act_B1_-άω_-ησα', label: inflectionLabel('verb_pres_act_B1_-άω_-ησα') },
+  { value: 'verb_pres_act_B1_-άω_-εσα', label: inflectionLabel('verb_pres_act_B1_-άω_-εσα') },
   { value: 'verb_pres_act_B1_-άω_-ασα', label: inflectionLabel('verb_pres_act_B1_-άω_-ασα') },
+  { value: 'verb_pres_act_B2_-ώ_-ησα', label: inflectionLabel('verb_pres_act_B2_-ώ_-ησα') },
+  { value: 'verb_pres_act_B2_-ώ_-ασα', label: inflectionLabel('verb_pres_act_B2_-ώ_-ασα') },
+  { value: 'verb_pres_act_B2_-ώ_-εσα', label: inflectionLabel('verb_pres_act_B2_-ώ_-εσα') },
 ]
 export { nounAutoForms } from '../../grammar/noun'
 

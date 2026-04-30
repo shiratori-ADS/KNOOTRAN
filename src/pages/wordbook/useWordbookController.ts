@@ -4,6 +4,7 @@ import type { Entry, InflectionType, NounGender, PartOfSpeech, Settings } from '
 import { stripGreekTonos } from '../../grammar/accent'
 import { inferNounInflectionTypeFromLemma } from '../../grammar/infer'
 import { normalizeToken } from '../../lib/normalize'
+import { formatExamplePairsText, parseExamplePairsText } from '../../lib/examples'
 import { adjectiveAutoForms, nounAutoForms, splitLines, verbAoristMatrix, verbImperativeForms, verbMatrix } from './wordbookHelpers'
 
 export function useWordbookController() {
@@ -75,7 +76,7 @@ export function useWordbookController() {
     setEditOverrides(selected.inflectionOverrides ?? {})
     setEditMeaningJaText((selected.meaningJaVariants ?? [selected.meaningJaPrimary]).join('\n'))
     setEditForeignLemma(selected.foreignLemma ?? '')
-    setEditExamplesText((selected.examples ?? []).join('\n'))
+    setEditExamplesText(formatExamplePairsText(selected.examples))
     setEditRelatedText((selected.related ?? []).join('\n'))
     setEditTags(selected.tags ?? [])
     setEditMemo(selected.memo ?? '')
@@ -286,7 +287,7 @@ export function useWordbookController() {
       memo: editMemo ?? '',
       foreignLemma: lemmaNorm ? lemmaNorm : undefined,
       foreignForms: mergedForms,
-      examples: splitLines(editExamplesText),
+      examples: parseExamplePairsText(editExamplesText),
       related: splitLines(editRelatedText),
       updatedAt: Date.now(),
     }

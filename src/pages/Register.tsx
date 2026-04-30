@@ -4,6 +4,7 @@ import type { Entry, InflectionType, NounGender, PartOfSpeech, Settings } from '
 import { normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
 import { nounGenderOptions, verbInflectionOptions } from './wordbook/wordbookHelpers'
+import { parseExamplePairsText } from '../lib/examples'
 
 const posOptions: Array<{ value: PartOfSpeech; label: string }> = [
   { value: 'noun', label: '名詞' },
@@ -87,7 +88,7 @@ export function Register() {
             : 'none',
       foreignLemma: lemmaNorm ? lemmaNorm : undefined,
       foreignForms: lemmaNorm ? [lemmaNorm] : [],
-      examples: splitLines(examplesText),
+      examples: parseExamplePairsText(examplesText),
       related: splitLines(relatedText),
       createdAt: now,
       updatedAt: now,
@@ -195,11 +196,21 @@ export function Register() {
         <div className="twoCol">
           <label className="field">
             <span className="label">例文（任意・複数行）</span>
-            <textarea value={examplesText} onChange={(e) => setExamplesText(e.target.value)} rows={4} />
+            <textarea
+              value={examplesText}
+              onChange={(e) => setExamplesText(e.target.value)}
+              rows={4}
+              placeholder={'例：\nτο κόκκινο μήλο\t赤いりんご\nΠονάει το κεφάλι μου.\t頭が痛い。'}
+            />
+            <span className="help">1行につき「原文[TAB]訳」。TABの代わりに「→」「=&gt;」「-&gt;」もOK。</span>
           </label>
           <label className="field">
             <span className="label">関連語（任意・複数行）</span>
             <textarea value={relatedText} onChange={(e) => setRelatedText(e.target.value)} rows={4} />
+            {/* PCで例文欄と高さを揃えるためのスペーサー（例文側のhelpと同じ高さ） */}
+            <span className="help" style={{ visibility: 'hidden' }} aria-hidden="true">
+              1行につき「原文[TAB]訳」。TABの代わりに「→」「=&gt;」「-&gt;」もOK。
+            </span>
           </label>
         </div>
 

@@ -21,7 +21,12 @@ export function InflectionSection({ selected }: { selected: Entry }) {
 
   if (selected.pos === 'verb') {
     const isB1 = (t?: Entry['inflectionType']) =>
-      t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα'
+      t === 'verb_pres_act_B1_-άω_-ησα' ||
+      t === 'verb_pres_act_B1_-άω_-εσα' ||
+      t === 'verb_pres_act_B1_-άω_-ασα'
+    const isB2 = (t?: Entry['inflectionType']) =>
+      t === 'verb_pres_act_B2_-ώ_-ησα' || t === 'verb_pres_act_B2_-ώ_-ασα' || t === 'verb_pres_act_B2_-ώ_-εσα'
+    const isBImperfect = (t?: Entry['inflectionType']) => isB1(t) || isB2(t)
 
     const renderAoristEndingWithMarkerBlue = (form: string, endingsPlain: string[]) => {
       const s = form ?? ''
@@ -87,8 +92,16 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     }
 
     const presEndings = (t?: Entry['inflectionType']) => {
-      // Β1（-άω）: ζητάω/ζητάς/ζητάε/ζητάμε/ζητάτε/ζητάνε
-      if (t === 'verb_pres_act_B1_-άω_-ησα' || t === 'verb_pres_act_B1_-άω_-ασα') return ['αω', 'ας', 'αε', 'αμε', 'ατε', 'ανε']
+      // Β1（-άω）: ζητάω/ζητάς/ζητάει/ζητάμε/ζητάτε/ζητάνε
+      if (
+        t === 'verb_pres_act_B1_-άω_-ησα' ||
+        t === 'verb_pres_act_B1_-άω_-εσα' ||
+        t === 'verb_pres_act_B1_-άω_-ασα'
+      )
+        return ['αω', 'ας', 'αει', 'αμε', 'ατε', 'ανε']
+      // Β2（-ώ）: δημιουργώ/δημιουργείς/δημιουργεί/δημιουργούμε/δημιουργείτε/δημιουργούν
+      // NOTE: stripGreekTonos 後の語尾で判定するため、-είτε → ειτε
+      if (isB2(t)) return ['ω', 'εις', 'ει', 'ουμε', 'ειτε', 'ουν']
       return ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε']
     }
     const personLabel = (p: string) => {
@@ -207,7 +220,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                     <td>{personLabel(r.person)}</td>
                     <td className="mono greek">{renderEndingRed(pres, presEndings(selected.inflectionType))}</td>
                     <td className="mono greek">
-                      {isB1(selected.inflectionType)
+                      {isBImperfect(selected.inflectionType)
                         ? renderImperfectPastWithMarkerBlue(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])
                         : renderEndingRed(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])}
                     </td>
@@ -219,6 +232,10 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                           ? renderEndingRed(presImp, ['ατε'])
                           : isB1(selected.inflectionType) && r.person === '2sg'
                             ? renderEndingRed(presImp, ['α'])
+                          : isB2(selected.inflectionType) && r.person === '2sg'
+                            ? '-'
+                          : isB2(selected.inflectionType) && r.person === '2pl'
+                            ? renderEndingRed(presImp, ['ειτε'])
                           : renderEndingRed(presImp, ['ε', 'ετε'])
                         : ''}
                     </td>

@@ -16,7 +16,11 @@ export type InflectionType =
   | 'verb_pres_act_-γω_-χω_-χνω'
   | 'verb_pres_act_-πω_-φω_-βω_-εύω'
   | 'verb_pres_act_B1_-άω_-ησα'
+  | 'verb_pres_act_B1_-άω_-εσα'
   | 'verb_pres_act_B1_-άω_-ασα'
+  | 'verb_pres_act_B2_-ώ_-ησα'
+  | 'verb_pres_act_B2_-ώ_-ασα'
+  | 'verb_pres_act_B2_-ώ_-εσα'
   // 男性名詞（GreekNoteベースの最小セット）
   // -ος, -οι（アクセント位置で3分類。ただし(1)/(2)の区別はしない）
   | 'noun_masc_-ος_last'
@@ -156,7 +160,7 @@ export type Entry = {
   >
   foreignLemma?: string
   foreignForms: string[]
-  examples: string[]
+  examples: ExamplePair[]
   related: string[]
   createdAt: number
   updatedAt: number
@@ -167,5 +171,10 @@ export type Settings = {
   /** アプリUIの表示言語（いまは保存のみ。翻訳対象はギリシャ語固定） */
   uiLanguage: 'ja' | 'en'
   tags: string[]
+}
+
+export type ExamplePair = {
+  foreign: string
+  ja: string
 }
 
