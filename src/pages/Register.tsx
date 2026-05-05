@@ -9,6 +9,7 @@ import { parseExamplePairsText } from '../lib/examples'
 const posOptions: Array<{ value: PartOfSpeech; label: string }> = [
   { value: 'noun', label: '名詞' },
   { value: 'pronoun_personal', label: '人称代名詞' },
+  { value: 'pronoun_interrogative', label: '疑問詞' },
   { value: 'adjective', label: '形容詞' },
   { value: 'verb', label: '動詞' },
   { value: 'adverb', label: '副詞' },

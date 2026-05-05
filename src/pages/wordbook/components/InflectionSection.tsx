@@ -26,7 +26,8 @@ export function InflectionSection({ selected }: { selected: Entry }) {
       t === 'verb_pres_act_B1_-άω_-ασα'
     const isB2 = (t?: Entry['inflectionType']) =>
       t === 'verb_pres_act_B2_-ώ_-ησα' || t === 'verb_pres_act_B2_-ώ_-ασα' || t === 'verb_pres_act_B2_-ώ_-εσα'
-    const isBImperfect = (t?: Entry['inflectionType']) => isB1(t) || isB2(t)
+    const isAB = (t?: Entry['inflectionType']) => t === 'verb_pres_act_AB'
+    const isBImperfect = (t?: Entry['inflectionType']) => isB1(t) || isB2(t) || isAB(t)
 
     const renderAoristEndingWithMarkerBlue = (form: string, endingsPlain: string[]) => {
       const s = form ?? ''
@@ -75,17 +76,51 @@ export function InflectionSection({ selected }: { selected: Entry }) {
       const suffix = last.slice(last.length - hit.length)
 
       // Β1未完了過去: ...ούσ + α/ες/...
+      // AB未完了過去: ...γ + α/ες/...（例: έκαιγ-α, έκλαιγ-ες）
       const basePlain = stripGreekTonos(base)
-      const hasOus = basePlain.endsWith('ουσ')
-      const marker = hasOus ? base.slice(-3) : ''
-      const baseNoMarker = hasOus ? base.slice(0, -3) : base
+      const isAB = selected.inflectionType === 'verb_pres_act_AB'
+      const hasOus = !isAB && basePlain.endsWith('ουσ')
+      const hasGamma = isAB && basePlain.endsWith('γ')
+      const marker = hasOus ? base.slice(-3) : hasGamma ? base.slice(-1) : ''
+      const baseNoMarker = hasOus ? base.slice(0, -3) : hasGamma ? base.slice(0, -1) : base
 
       const head = parts.slice(0, -1).join(' ')
       return (
         <>
           {head ? `${head} ` : null}
           {baseNoMarker}
-          {hasOus ? <span className="endingMarker">{marker}</span> : null}
+          {hasOus || hasGamma ? <span className="endingMarker">{marker}</span> : null}
+          <span className="ending">{suffix}</span>
+        </>
+      )
+    }
+
+    const renderPresentImpWithGammaMarkerBlue = (form: string, endingsPlain: string[]) => {
+      const s = form ?? ''
+      if (!s.trim()) return s
+
+      const parts = s.split(/\s+/g)
+      const last = parts[parts.length - 1] ?? ''
+      const lastPlain = stripGreekTonos(last)
+      const sorted = [...endingsPlain].filter(Boolean).sort((a, b) => b.length - a.length)
+      const hit = sorted.find((e) => lastPlain.endsWith(e) && lastPlain.length > e.length)
+      if (!hit) return s
+
+      const base = last.slice(0, last.length - hit.length)
+      const suffix = last.slice(last.length - hit.length)
+
+      // AB継続命令2単: ...γ + ε（例: καίγ-ε, κλαίγ-ε, τρώγ-ε）
+      const basePlain = stripGreekTonos(base)
+      const hasGamma = selected.inflectionType === 'verb_pres_act_AB' && basePlain.endsWith('γ')
+      const marker = hasGamma ? base.slice(-1) : ''
+      const baseNoMarker = hasGamma ? base.slice(0, -1) : base
+
+      const head = parts.slice(0, -1).join(' ')
+      return (
+        <>
+          {head ? `${head} ` : null}
+          {baseNoMarker}
+          {hasGamma ? <span className="endingMarker">{marker}</span> : null}
           <span className="ending">{suffix}</span>
         </>
       )
@@ -99,6 +134,8 @@ export function InflectionSection({ selected }: { selected: Entry }) {
         t === 'verb_pres_act_B1_-άω_-ασα'
       )
         return ['αω', 'ας', 'αει', 'αμε', 'ατε', 'ανε']
+      // ΑΒ（-ω だが現在の語尾が -εις ではないタイプ）
+      if (t === 'verb_pres_act_AB') return ['ω', 'ς', 'ει', 'με', 'τε', 'ν', 'νε']
       // Β2（-ώ）: δημιουργώ/δημιουργείς/δημιουργεί/δημιουργούμε/δημιουργείτε/δημιουργούν
       // NOTE: stripGreekTonos 後の語尾で判定するため、-είτε → ειτε
       if (isB2(t)) return ['ω', 'εις', 'ει', 'ουμε', 'ειτε', 'ουν']
@@ -125,7 +162,21 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     // アオリストは「σ/ψ/ξ（目印）」を赤から外し、純粋な人称語尾だけを赤にする
     // 例: αγόρασα → α、αγόρασες → ες、θα αγοράσω → ω、αγόρασε → ε、αγοράστε → τε
     const aorPastEnds = (_s: string) => ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν']
-    const aorFutEnds = (_s: string) => ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε']
+    const aorFutEnds = (s: string) => {
+      if (selected.inflectionType !== 'verb_pres_act_AB') return ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε']
+
+      // ABでも、ακούω/καίω などの（Aタイプ相当の）語尾は通常の語尾セットで色付けしたい。
+      // ここでは「語尾そのもの」で判定する（例: κάψεις は末尾が -εις で、"σω" 文字列では判定できない）。
+      const last = stripGreekTonos((s ?? '').split(/\s+/g).slice(-1)[0] ?? '')
+      const looksLikeRegularEndings =
+        last.endsWith('εις') ||
+        last.endsWith('ει') ||
+        last.endsWith('ουμε') ||
+        last.endsWith('ετε') ||
+        last.endsWith('ουν') ||
+        last.endsWith('ουνε')
+      return looksLikeRegularEndings ? ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'] : ['ω', 'ς', 'ει', 'με', 'τε', 'ν', 'νε']
+    }
     const aorImpEnds = (_s: string) => ['ε', 'τε']
     const m = verbMatrix(lemma, selected.inflectionType)
     const a = verbAoristMatrix(lemma, selected.inflectionType)
@@ -160,7 +211,10 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                   const pres = (o[presKey] as string | undefined) ?? r.pres
                   const ap = (o[apKey] as string | undefined) ?? r.aorPast
                   const af = (o[afKey] as string | undefined) ?? r.aorFut
-                  const an = (o[anKey] as string | undefined) ?? r.aorNa
+                  const an =
+                    (o[anKey] as string | undefined) ??
+                    (af ? af.replace(/^θα\s+/, 'να ') : '') ||
+                    r.aorNa
                   const aorImp =
                     r.person === '2sg'
                       ? ((o.v_aor_imp_2sg as string | undefined) ?? imp?.aor2sg ?? '')
@@ -208,7 +262,10 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                 const pres = (o[presKey] as string | undefined) ?? r.pres
                 const past = (o[pastKey] as string | undefined) ?? r.past
                 const fut = (o[futKey] as string | undefined) ?? r.fut
-                const na = (o[naKey] as string | undefined) ?? r.na
+                const na =
+                  (o[naKey] as string | undefined) ??
+                  (fut ? fut.replace(/^θα\s+/, 'να ') : '') ||
+                  r.na
                 const presImp =
                   r.person === '2sg'
                     ? ((o.v_imp_2sg as string | undefined) ?? imp?.pres2sg ?? '')
@@ -236,6 +293,8 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                             ? '-'
                           : isB2(selected.inflectionType) && r.person === '2pl'
                             ? renderEndingRed(presImp, ['ειτε'])
+                          : selected.inflectionType === 'verb_pres_act_AB' && r.person === '2sg'
+                            ? renderPresentImpWithGammaMarkerBlue(presImp, ['ε'])
                           : renderEndingRed(presImp, ['ε', 'ετε'])
                         : ''}
                     </td>

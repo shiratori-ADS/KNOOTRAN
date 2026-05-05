@@ -3,6 +3,7 @@ export type LanguageCode = string
 export type PartOfSpeech =
   | 'noun'
   | 'pronoun_personal'
+  | 'pronoun_interrogative'
   | 'adjective'
   | 'verb'
   | 'adverb'
@@ -15,6 +16,7 @@ export type InflectionType =
   | 'verb_pres_act_-ω'
   | 'verb_pres_act_-γω_-χω_-χνω'
   | 'verb_pres_act_-πω_-φω_-βω_-εύω'
+  | 'verb_pres_act_AB'
   | 'verb_pres_act_B1_-άω_-ησα'
   | 'verb_pres_act_B1_-άω_-εσα'
   | 'verb_pres_act_B1_-άω_-ασα'

@@ -293,6 +293,9 @@ export function useWordbookController() {
     }
 
     await db.entries.put(updated)
+    // 保存直後にUIへ即反映（DBのポーリングを待たない）
+    setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
+    setSelected(updated)
     setIsEditing(false)
     setStatus('保存しました。')
   }

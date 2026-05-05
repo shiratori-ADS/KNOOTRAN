@@ -33,6 +33,7 @@ export function displayForm(s?: string) {
 export const posOptions: Array<{ value: PartOfSpeech; label: string }> = [
   { value: 'noun', label: '名詞' },
   { value: 'pronoun_personal', label: '人称代名詞' },
+  { value: 'pronoun_interrogative', label: '疑問詞' },
   { value: 'adjective', label: '形容詞' },
   { value: 'verb', label: '動詞' },
   { value: 'adverb', label: '副詞' },
@@ -74,6 +75,8 @@ export function posLabel(pos: Entry['pos']) {
       return '名詞'
     case 'pronoun_personal':
       return '人称代名詞'
+    case 'pronoun_interrogative':
+      return '疑問詞'
     case 'adjective':
       return '形容詞'
     case 'verb':
@@ -93,18 +96,20 @@ export function inflectionLabel(t?: InflectionType) {
       return 'Α : -γω/-χω/-χνω'
     case 'verb_pres_act_-πω_-φω_-βω_-εύω':
       return 'Α : -πω/-φω/-βω/-εύω'
+    case 'verb_pres_act_AB':
+      return 'ΑΒ : -ω（αόρ. 不規則）'
     case 'verb_pres_act_B1_-άω_-ησα':
-      return 'Β1 : -άω（アオリスト -ησα）'
+      return 'Β1 : -άω（αόρ. -ησα）'
     case 'verb_pres_act_B1_-άω_-εσα':
-      return 'Β1 : -άω（アオリスト -εσα）'
+      return 'Β1 : -άω（αόρ. -εσα）'
     case 'verb_pres_act_B1_-άω_-ασα':
-      return 'Β1 : -άω（アオリスト -ασα）'
+      return 'Β1 : -άω（αόρ. -ασα）'
     case 'verb_pres_act_B2_-ώ_-ησα':
-      return 'Β2 : -ώ（アオリスト -ησα）'
+      return 'Β2 : -ώ（αόρ. -ησα）'
     case 'verb_pres_act_B2_-ώ_-ασα':
-      return 'Β2 : -ώ（アオリスト -ασα）'
+      return 'Β2 : -ώ（αόρ. -ασα）'
     case 'verb_pres_act_B2_-ώ_-εσα':
-      return 'Β2 : -ώ（アオリスト -εσα）'
+      return 'Β2 : -ώ（αόρ. -εσα）'
     case 'noun_masc_-ος_last':
     case 'noun_masc_-ος_penult':
     case 'noun_masc_-ος_antepenult':
@@ -162,6 +167,8 @@ export function verbInflectionShortLabel(t?: InflectionType): string | null {
       return 'Α'
     case 'verb_pres_act_-πω_-φω_-βω_-εύω':
       return 'Α'
+    case 'verb_pres_act_AB':
+      return 'ΑΒ'
     case 'verb_pres_act_B1_-άω_-ησα':
       return 'Β1'
     case 'verb_pres_act_B1_-άω_-εσα':
@@ -183,6 +190,7 @@ export const verbInflectionOptions: Array<{ value: InflectionType; label: string
   { value: 'verb_pres_act_-ω', label: inflectionLabel('verb_pres_act_-ω') },
   { value: 'verb_pres_act_-γω_-χω_-χνω', label: inflectionLabel('verb_pres_act_-γω_-χω_-χνω') },
   { value: 'verb_pres_act_-πω_-φω_-βω_-εύω', label: inflectionLabel('verb_pres_act_-πω_-φω_-βω_-εύω') },
+  { value: 'verb_pres_act_AB', label: inflectionLabel('verb_pres_act_AB') },
   { value: 'verb_pres_act_B1_-άω_-ησα', label: inflectionLabel('verb_pres_act_B1_-άω_-ησα') },
   { value: 'verb_pres_act_B1_-άω_-εσα', label: inflectionLabel('verb_pres_act_B1_-άω_-εσα') },
   { value: 'verb_pres_act_B1_-άω_-ασα', label: inflectionLabel('verb_pres_act_B1_-άω_-ασα') },

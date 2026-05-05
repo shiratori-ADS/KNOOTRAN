@@ -6,7 +6,6 @@ export function Layout() {
       <header className="topBar">
         <div className="topBarInner">
           <div className="brand">KNOOTRAN</div>
-          <div className="hint">プロトタイプ（ローカル保存）</div>
         </div>
       </header>
 

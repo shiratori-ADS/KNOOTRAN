@@ -75,7 +75,7 @@ export function ListPane({
   }
 
   return (
-    <div className="card">
+    <div className="card listPane">
       <div className="row wrap" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
         <div className="subtle">
           表示件数: {sorted.length}/{totalCount}
@@ -190,34 +190,36 @@ export function ListPane({
       {sorted.length === 0 ? (
         <p className="subtle">まだ単語がありません。まずは「登録」から追加してください。</p>
       ) : (
-        <ul className="list">
-          {sorted.map((e) => (
-            <li key={e.id}>
-              <button className="listItem" onClick={() => onSelect(e)}>
-                <div className="listTitle mono greek">{displayForm(e.foreignLemma ?? e.foreignForms[0] ?? '(no form)')}</div>
-                <div className="listSub">
-                  <span className="v">{e.meaningJaVariants?.length ? e.meaningJaVariants.join(' / ') : e.meaningJaPrimary}</span>
-                  {e.pos === 'noun' ? (
-                    <span className="badge badgePos badgePos-noun">{`${posLabel(e.pos)}:${genderLabel(e.nounGender)}`}</span>
-                  ) : e.pos === 'verb' && verbInflectionShortLabel(e.inflectionType) ? (
-                    <span className={`badge badgePos badgePos-${e.pos}`}>{`${posLabel(e.pos)} : ${verbInflectionShortLabel(e.inflectionType)}`}</span>
-                  ) : (
-                    <span className={`badge badgePos badgePos-${e.pos}`}>{posLabel(e.pos)}</span>
-                  )}
-                  {e.tags?.length ? (
-                    <div className="chips">
-                      {e.tags.map((t) => (
-                        <span key={t} className="chip mono">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="listPaneScroll">
+          <ul className="list">
+            {sorted.map((e) => (
+              <li key={e.id}>
+                <button className="listItem" onClick={() => onSelect(e)}>
+                  <div className="listTitle mono greek">{displayForm(e.foreignLemma ?? e.foreignForms[0] ?? '(no form)')}</div>
+                  <div className="listSub">
+                    <span className="v">{e.meaningJaVariants?.length ? e.meaningJaVariants.join(' / ') : e.meaningJaPrimary}</span>
+                    {e.pos === 'noun' ? (
+                      <span className="badge badgePos badgePos-noun">{`${posLabel(e.pos)}:${genderLabel(e.nounGender)}`}</span>
+                    ) : e.pos === 'verb' && verbInflectionShortLabel(e.inflectionType) ? (
+                      <span className={`badge badgePos badgePos-${e.pos}`}>{`${posLabel(e.pos)} : ${verbInflectionShortLabel(e.inflectionType)}`}</span>
+                    ) : (
+                      <span className={`badge badgePos badgePos-${e.pos}`}>{posLabel(e.pos)}</span>
+                    )}
+                    {e.tags?.length ? (
+                      <div className="chips">
+                        {e.tags.map((t) => (
+                          <span key={t} className="chip mono">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   )

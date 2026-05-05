@@ -340,6 +340,9 @@ textarea {
 .badgePos-pronoun_personal {
   background: color-mix(in oklab, #ff9fd3 26%, var(--code-bg));
 }
+.badgePos-pronoun_interrogative {
+  background: color-mix(in oklab, #ff6f9b 22%, var(--code-bg));
+}
 .badgePos-other {
   background: color-mix(in oklab, #d0d0d0 22%, var(--code-bg));
 }
@@ -357,6 +360,32 @@ textarea {
 
 .splitMobile {
   display: block;
+}
+
+.split > .listPane {
+  /* 子要素のスクロールを効かせるため */
+  min-height: 0;
+}
+
+.listPaneScroll {
+  /* PCでは左ペインの中でリストだけスクロールさせる */
+  min-height: 0;
+}
+
+@media (min-width: 901px) {
+  .split > .listPane {
+    /* 画面内で左一覧をスクロールできるようにする */
+    max-height: calc(100svh - 220px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .split > .listPane .listPaneScroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
 }
 
 .list {

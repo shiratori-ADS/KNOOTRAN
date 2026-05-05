@@ -42,6 +42,7 @@ function isSupportedVerbType(t?: InflectionType): t is
   | 'verb_pres_act_-ω'
   | 'verb_pres_act_-γω_-χω_-χνω'
   | 'verb_pres_act_-πω_-φω_-βω_-εύω'
+  | 'verb_pres_act_AB'
   | 'verb_pres_act_B1_-άω_-ησα'
   | 'verb_pres_act_B1_-άω_-εσα'
   | 'verb_pres_act_B1_-άω_-ασα'
@@ -52,6 +53,7 @@ function isSupportedVerbType(t?: InflectionType): t is
     t === 'verb_pres_act_-ω' ||
     t === 'verb_pres_act_-γω_-χω_-χνω' ||
     t === 'verb_pres_act_-πω_-φω_-βω_-εύω' ||
+    t === 'verb_pres_act_AB' ||
     t === 'verb_pres_act_B1_-άω_-ησα' ||
     t === 'verb_pres_act_B1_-άω_-εσα' ||
     t === 'verb_pres_act_B1_-άω_-ασα' ||
@@ -85,6 +87,258 @@ function presFormsFromStem(stem: string) {
     '2pl': `${stem}ετε`,
     '3pl': `${stem}ουν`,
   } as const
+}
+
+function verbFormsAB(lemmaNorm: string) {
+  // ΑΒタイプ（旧 -γω → 現 -ω などの経年変化で不規則が混ざる最小セット）
+  // NOTE: ここでは代表的な3語（ακούω/τρώω/καίω）に絞って手で埋める。
+  const plain = stripGreekTonos(lemmaNorm)
+  if (plain === 'ακουω') {
+    return {
+      pres: {
+        '1sg': 'ακούω',
+        '2sg': 'ακούς',
+        '3sg': 'ακούει',
+        '1pl': 'ακούμε',
+        '2pl': 'ακούτε',
+        '3pl': 'ακούν',
+      } as const,
+      past: {
+        '1sg': 'άκουγα',
+        '2sg': 'άκουγες',
+        '3sg': 'άκουγε',
+        '1pl': 'ακούγαμε',
+        '2pl': 'ακούγατε',
+        '3pl': 'άκουγαν',
+      } as const,
+      aorPast: {
+        '1sg': 'άκουσα',
+        '2sg': 'άκουσες',
+        '3sg': 'άκουσε',
+        '1pl': 'ακούσαμε',
+        '2pl': 'ακούσατε',
+        '3pl': 'άκουσαν',
+      } as const,
+      aorFutVerb: {
+        '1sg': 'ακούσω',
+        '2sg': 'ακούσεις',
+        '3sg': 'ακούσει',
+        '1pl': 'ακούσουμε',
+        '2pl': 'ακούσετε',
+        '3pl': 'ακούσουν',
+      } as const,
+      imp: {
+        pres2sg: 'άκου',
+        pres2pl: 'ακούτε',
+        aor2sg: 'άκουσε',
+        aor2pl: 'ακούστε',
+      } as const,
+    } as const
+  }
+  if (plain === 'τρωω') {
+    return {
+      pres: {
+        '1sg': 'τρώω',
+        '2sg': 'τρως',
+        '3sg': 'τρώει',
+        '1pl': 'τρώμε',
+        '2pl': 'τρώτε',
+        '3pl': 'τρώνε',
+      } as const,
+      past: {
+        '1sg': 'έτρωγα',
+        '2sg': 'έτρωγες',
+        '3sg': 'έτρωγε',
+        '1pl': 'τρώγαμε',
+        '2pl': 'τρώγατε',
+        '3pl': 'έτρωγαν',
+      } as const,
+      aorPast: {
+        '1sg': 'έφαγα',
+        '2sg': 'έφαγες',
+        '3sg': 'έφαγε',
+        '1pl': 'φάγαμε',
+        '2pl': 'φάγατε',
+        '3pl': 'έφαγαν',
+      } as const,
+      aorFutVerb: {
+        '1sg': 'φάω',
+        '2sg': 'φας',
+        '3sg': 'φάει',
+        '1pl': 'φάμε',
+        '2pl': 'φάτε',
+        '3pl': 'φάνε',
+      } as const,
+      imp: {
+        pres2sg: 'τρώγε',
+        pres2pl: 'τρώτε',
+        aor2sg: 'φάε',
+        aor2pl: 'φάτε',
+      } as const,
+    } as const
+  }
+  if (plain === 'καιω') {
+    return {
+      pres: {
+        '1sg': 'καίω',
+        '2sg': 'καίς',
+        '3sg': 'καίει',
+        '1pl': 'καίμε',
+        '2pl': 'καίτε',
+        '3pl': 'καίνε',
+      } as const,
+      past: {
+        '1sg': 'έκαιγα',
+        '2sg': 'έκαιγες',
+        '3sg': 'έκαιγε',
+        '1pl': 'καίγαμε',
+        '2pl': 'καίγατε',
+        '3pl': 'έκαιγαν',
+      } as const,
+      aorPast: {
+        '1sg': 'έκαψα',
+        '2sg': 'έκαψες',
+        '3sg': 'έκαψε',
+        '1pl': 'κάψαμε',
+        '2pl': 'κάψατε',
+        '3pl': 'έκαψαν',
+      } as const,
+      aorFutVerb: {
+        '1sg': 'κάψω',
+        '2sg': 'κάψεις',
+        '3sg': 'κάψει',
+        '1pl': 'κάψουμε',
+        '2pl': 'κάψετε',
+        '3pl': 'κάψουν',
+      } as const,
+      imp: {
+        pres2sg: 'καίγε',
+        pres2pl: 'καίτε',
+        aor2sg: 'κάψε',
+        aor2pl: 'κάψτε',
+      } as const,
+    } as const
+  }
+  if (plain === 'κλαιω') {
+    return {
+      pres: {
+        '1sg': 'κλαίω',
+        '2sg': 'κλαίς',
+        '3sg': 'κλαίει',
+        '1pl': 'κλαίμε',
+        '2pl': 'κλαίτε',
+        '3pl': 'κλαίνε',
+      } as const,
+      past: {
+        '1sg': 'έκλαιγα',
+        '2sg': 'έκλαιγες',
+        '3sg': 'έκλαιγε',
+        '1pl': 'κλαίγαμε',
+        '2pl': 'κλαίγατε',
+        '3pl': 'έκλαιγαν',
+      } as const,
+      aorPast: {
+        '1sg': 'έκλαψα',
+        '2sg': 'έκλαψες',
+        '3sg': 'έκλαψε',
+        '1pl': 'κλάψαμε',
+        '2pl': 'κλάψατε',
+        '3pl': 'έκλαψαν',
+      } as const,
+      aorFutVerb: {
+        '1sg': 'κλάψω',
+        '2sg': 'κλάψεις',
+        '3sg': 'κλάψει',
+        '1pl': 'κλάψουμε',
+        '2pl': 'κλάψετε',
+        '3pl': 'κλάψουν',
+      } as const,
+      imp: {
+        pres2sg: 'κλαίγε',
+        pres2pl: 'κλαίτε',
+        aor2sg: 'κλάψε',
+        aor2pl: 'κλάψτε',
+      } as const,
+    } as const
+  }
+
+  // AB（kaíō 型）
+  // 「手動定義に当たらないなら、-αιωに関係なくκαίωと同じ型」＝このパターンに強制フォールバックする。
+  if (plain.endsWith('ω')) {
+    // 例: κλαίω -> stemNoOmega = κλαί, stemPlainNoOmega = κλαι
+    const stemNoOmega = lemmaNorm.slice(0, -1)
+    const stemPlainNoOmega = stripGreekTonos(stemNoOmega)
+
+    // Present
+    const pres = {
+      '1sg': lemmaNorm,
+      '2sg': `${stemNoOmega}ς`,
+      '3sg': `${stemNoOmega}ει`,
+      '1pl': `${stemNoOmega}με`,
+      '2pl': `${stemNoOmega}τε`,
+      '3pl': `${stemNoOmega}νε`,
+    } as const
+
+    // Imperfect (…αιγ-)
+    const impStem = `${stemPlainNoOmega}γ`
+    const pastStem = withAugment(impStem, lemmaNorm)
+    const pastStemPlural = impStem
+    const past = {
+      '1sg': accentAntepenultByUnits(`${pastStem}α`),
+      '2sg': accentAntepenultByUnits(`${pastStem}ες`),
+      '3sg': accentAntepenultByUnits(`${pastStem}ε`),
+      '1pl': accentAntepenultByUnits(`${pastStemPlural}αμε`),
+      '2pl': accentAntepenultByUnits(`${pastStemPlural}ατε`),
+      '3pl': accentAntepenultByUnits(`${pastStem}αν`),
+    } as const
+
+    // Aorist (…αψ- / …ψ-)
+    // - καίω/κλαίω は ...αι -> ...αψ
+    // - それ以外は「kaíō型に寄せて」語幹 + ψ（最小）
+    const aorStemPlain = stemPlainNoOmega.endsWith('αι') ? `${stemPlainNoOmega.slice(0, -2)}αψ` : `${stemPlainNoOmega}ψ`
+    const aorPastStem = withAugment(aorStemPlain, lemmaNorm)
+    const aorPastStemPlural = aorStemPlain
+    const aorPast = {
+      '1sg': accentAntepenultByUnits(`${aorPastStem}α`),
+      '2sg': accentAntepenultByUnits(`${aorPastStem}ες`),
+      '3sg': accentAntepenultByUnits(`${aorPastStem}ε`),
+      '1pl': accentAntepenultByUnits(`${aorPastStemPlural}αμε`),
+      '2pl': accentAntepenultByUnits(`${aorPastStemPlural}ατε`),
+      '3pl': accentAntepenultByUnits(`${aorPastStem}αν`),
+    } as const
+
+    // Aorist future verb (ψ-stem behaves like ψ future: ...ψω / ...ψεις / ...)
+    const aorFutVerbPlain = {
+      '1sg': `${aorStemPlain}ω`,
+      '2sg': `${aorStemPlain}εις`,
+      '3sg': `${aorStemPlain}ει`,
+      '1pl': `${aorStemPlain}ουμε`,
+      '2pl': `${aorStemPlain}ετε`,
+      '3pl': `${aorStemPlain}ουν`,
+    } as const
+    const aorFutVerb = {
+      '1sg': addTonosOnPenultVowel(aorFutVerbPlain['1sg']),
+      '2sg': addTonosOnPenultVowel(aorFutVerbPlain['2sg']),
+      '3sg': addTonosOnPenultVowel(aorFutVerbPlain['3sg']),
+      '1pl': addTonosOnPenultVowel(aorFutVerbPlain['1pl']),
+      '2pl': addTonosOnPenultVowel(aorFutVerbPlain['2pl']),
+      '3pl': addTonosOnPenultVowel(aorFutVerbPlain['3pl']),
+    } as const
+
+    // Imperatives
+    const accentNthForImp2sg = (plainForm: string) => (countGreekVowelUnits(plainForm) <= 2 ? 2 : 3)
+    const aor2sgPlain = `${aorStemPlain}ε`
+    const aor2plPlain = `${aorStemPlain}τε`
+    const imp = {
+      pres2sg: `${stemNoOmega}γε`,
+      pres2pl: `${stemNoOmega}τε`,
+      aor2sg: addTonosOnNthFromEndVowelUnit(aor2sgPlain, accentNthForImp2sg(aor2sgPlain)),
+      aor2pl: addTonosOnNthFromEndVowelUnit(aor2plPlain, 2),
+    } as const
+
+    return { pres, past, aorPast, aorFutVerb, imp } as const
+  }
+  return null
 }
 
 function presFormsB1FromLemma(lemmaNorm: string) {
@@ -204,6 +458,35 @@ export function verbMatrix(lemmaNorm: string, t?: InflectionType): VerbRow[] | n
   if (!lemmaPlain.endsWith('ω')) return null
   const stem = lemmaNorm.slice(0, -1)
 
+  if (t === 'verb_pres_act_AB') {
+    const ab = verbFormsAB(lemmaNorm)
+    if (!ab) return null
+    const fut = {
+      '1sg': `θα ${ab.pres['1sg']}`,
+      '2sg': `θα ${ab.pres['2sg']}`,
+      '3sg': `θα ${ab.pres['3sg']}`,
+      '1pl': `θα ${ab.pres['1pl']}`,
+      '2pl': `θα ${ab.pres['2pl']}`,
+      '3pl': `θα ${ab.pres['3pl']}`,
+    } as const
+    const na = {
+      '1sg': fut['1sg'].replace(/^θα\s+/, 'να '),
+      '2sg': fut['2sg'].replace(/^θα\s+/, 'να '),
+      '3sg': fut['3sg'].replace(/^θα\s+/, 'να '),
+      '1pl': fut['1pl'].replace(/^θα\s+/, 'να '),
+      '2pl': fut['2pl'].replace(/^θα\s+/, 'να '),
+      '3pl': fut['3pl'].replace(/^θα\s+/, 'να '),
+    } as const
+    return [
+      { person: '1sg', pres: ab.pres['1sg'], past: ab.past['1sg'], fut: fut['1sg'], na: na['1sg'] },
+      { person: '2sg', pres: ab.pres['2sg'], past: ab.past['2sg'], fut: fut['2sg'], na: na['2sg'] },
+      { person: '3sg', pres: ab.pres['3sg'], past: ab.past['3sg'], fut: fut['3sg'], na: na['3sg'] },
+      { person: '1pl', pres: ab.pres['1pl'], past: ab.past['1pl'], fut: fut['1pl'], na: na['1pl'] },
+      { person: '2pl', pres: ab.pres['2pl'], past: ab.past['2pl'], fut: fut['2pl'], na: na['2pl'] },
+      { person: '3pl', pres: ab.pres['3pl'], past: ab.past['3pl'], fut: fut['3pl'], na: na['3pl'] },
+    ]
+  }
+
   const pres =
     t === 'verb_pres_act_B1_-άω_-ησα' ||
     t === 'verb_pres_act_B1_-άω_-εσα' ||
@@ -283,6 +566,35 @@ export function verbAoristMatrix(lemmaNorm: string, t?: InflectionType): VerbAor
   const lemmaPlain = stripGreekTonos(lemmaNorm)
   if (!lemmaPlain.endsWith('ω')) return null
   const stem = lemmaNorm.slice(0, -1)
+
+  if (t === 'verb_pres_act_AB') {
+    const ab = verbFormsAB(lemmaNorm)
+    if (!ab) return null
+    const aorFut = {
+      '1sg': `θα ${ab.aorFutVerb['1sg']}`,
+      '2sg': `θα ${ab.aorFutVerb['2sg']}`,
+      '3sg': `θα ${ab.aorFutVerb['3sg']}`,
+      '1pl': `θα ${ab.aorFutVerb['1pl']}`,
+      '2pl': `θα ${ab.aorFutVerb['2pl']}`,
+      '3pl': `θα ${ab.aorFutVerb['3pl']}`,
+    } as const
+    const aorNa = {
+      '1sg': aorFut['1sg'].replace(/^θα\s+/, 'να '),
+      '2sg': aorFut['2sg'].replace(/^θα\s+/, 'να '),
+      '3sg': aorFut['3sg'].replace(/^θα\s+/, 'να '),
+      '1pl': aorFut['1pl'].replace(/^θα\s+/, 'να '),
+      '2pl': aorFut['2pl'].replace(/^θα\s+/, 'να '),
+      '3pl': aorFut['3pl'].replace(/^θα\s+/, 'να '),
+    } as const
+    return [
+      { person: '1sg', pres: ab.pres['1sg'], aorPast: ab.aorPast['1sg'], aorFut: aorFut['1sg'], aorNa: aorNa['1sg'] },
+      { person: '2sg', pres: ab.pres['2sg'], aorPast: ab.aorPast['2sg'], aorFut: aorFut['2sg'], aorNa: aorNa['2sg'] },
+      { person: '3sg', pres: ab.pres['3sg'], aorPast: ab.aorPast['3sg'], aorFut: aorFut['3sg'], aorNa: aorNa['3sg'] },
+      { person: '1pl', pres: ab.pres['1pl'], aorPast: ab.aorPast['1pl'], aorFut: aorFut['1pl'], aorNa: aorNa['1pl'] },
+      { person: '2pl', pres: ab.pres['2pl'], aorPast: ab.aorPast['2pl'], aorFut: aorFut['2pl'], aorNa: aorNa['2pl'] },
+      { person: '3pl', pres: ab.pres['3pl'], aorPast: ab.aorPast['3pl'], aorFut: aorFut['3pl'], aorNa: aorNa['3pl'] },
+    ]
+  }
   const aorStem = aoristStemFromLemmaStem(stem, t)
 
   const pres =
@@ -423,6 +735,11 @@ export function verbAoristMatrix(lemmaNorm: string, t?: InflectionType): VerbAor
 export function verbImperativeForms(lemmaNorm: string, t?: InflectionType): VerbImperatives | null {
   if (!isSupportedVerbType(t)) return null
   if (!stripGreekTonos(lemmaNorm).endsWith('ω')) return null
+
+  if (t === 'verb_pres_act_AB') {
+    const ab = verbFormsAB(lemmaNorm)
+    return ab?.imp ?? null
+  }
 
   if (
     t === 'verb_pres_act_B1_-άω_-ησα' ||
