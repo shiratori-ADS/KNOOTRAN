@@ -213,7 +213,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                   const af = (o[afKey] as string | undefined) ?? r.aorFut
                   const an =
                     (o[anKey] as string | undefined) ??
-                    (af ? af.replace(/^θα\s+/, 'να ') : '') ||
+                    (af ? af.replace(/^θα\s+/, 'να ') : undefined) ??
                     r.aorNa
                   const aorImp =
                     r.person === '2sg'
@@ -264,7 +264,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                 const fut = (o[futKey] as string | undefined) ?? r.fut
                 const na =
                   (o[naKey] as string | undefined) ??
-                  (fut ? fut.replace(/^θα\s+/, 'να ') : '') ||
+                  (fut ? fut.replace(/^θα\s+/, 'να ') : undefined) ??
                   r.na
                 const presImp =
                   r.person === '2sg'
