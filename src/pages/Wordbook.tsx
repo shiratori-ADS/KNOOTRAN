@@ -1,11 +1,17 @@
-import { posOptions } from './wordbook/wordbookHelpers'
-import { ListPane } from './wordbook/components/ListPane'
-import { DetailHeader, DetailView } from './wordbook/components/DetailView'
-import { DetailEdit } from './wordbook/components/DetailEdit'
-import { useWordbookController } from './wordbook/useWordbookController'
+import { useLayoutEffect, useRef } from 'react'
+import { DetailEdit, DetailHeader, DetailView, ListPane, useWordbookController, wordbookUi } from '../features/wordbook'
 
 export function Wordbook() {
   const c = useWordbookController()
+  const detailScrollRef = useRef<HTMLDivElement | null>(null)
+
+  // 左の単語選択が変わったら、右詳細を先頭へ戻す
+  useLayoutEffect(() => {
+    if (!c.selection.selected?.id) return
+
+    // ページ全体は動かさず、右ペインのスクロールだけ先頭へ戻す
+    if (detailScrollRef.current) detailScrollRef.current.scrollTop = 0
+  }, [c.selection.selected?.id])
 
   return (
     <section className="page">
@@ -16,23 +22,18 @@ export function Wordbook() {
         )}
 
         {(!c.layout.isMobile || c.selection.selected) && (
-          <div className="card">
-            <div className="row wrap">
-            </div>
+          <div className="card detailPane">
           {c.selection.selected ? (
-            <div className="detail">
-              <DetailHeader selected={c.selection.selected} />
+            <div ref={detailScrollRef} className="detailPaneScroll">
+              <div className="detail">
+                <DetailHeader selected={c.selection.selected} />
 
-              {c.mode.isEditing ? (
-                <DetailEdit
-                  {...c.edit}
-                  posOptions={posOptions}
-                />
-              ) : (
-                <DetailView
-                  {...c.detailViewProps!}
-                />
-              )}
+                {c.mode.isEditing ? (
+                  <DetailEdit {...c.edit} posOptions={wordbookUi.posOptions} />
+                ) : (
+                  <DetailView {...c.detailViewProps!} />
+                )}
+              </div>
             </div>
           ) : (
             <p className="subtle">左から単語を選択してください。</p>

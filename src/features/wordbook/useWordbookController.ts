@@ -118,7 +118,7 @@ export function useWordbookController() {
   }, [editPos, editLemmaNorm, editNounGender, inferredEditNounType])
 
   const autoEditAdj = useMemo(() => {
-    if (editPos !== 'adjective') return null
+    if (!(editPos === 'adjective' || editPos === 'pronoun_interrogative')) return null
     if (!editLemmaNorm) return null
     return adjectiveAutoForms(editLemmaNorm)
   }, [editPos, editLemmaNorm])
@@ -160,7 +160,7 @@ export function useWordbookController() {
         'Ψ',
         'Ω',
       ]),
-    []
+    [],
   )
 
   function alphaKeyForEntry(e: Entry) {

@@ -3,7 +3,7 @@ import { db, getSettings } from '../db/db'
 import type { Entry, InflectionType, NounGender, PartOfSpeech, Settings } from '../db/types'
 import { normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
-import { nounGenderOptions, verbInflectionOptions } from './wordbook/wordbookHelpers'
+import { nounGenderOptions, verbInflectionOptions } from '../features/wordbook/wordbookHelpers'
 import { parseExamplePairsText } from '../lib/examples'
 
 const posOptions: Array<{ value: PartOfSpeech; label: string }> = [
@@ -12,6 +12,8 @@ const posOptions: Array<{ value: PartOfSpeech; label: string }> = [
   { value: 'pronoun_interrogative', label: '疑問詞' },
   { value: 'adjective', label: '形容詞' },
   { value: 'verb', label: '動詞' },
+  { value: 'preposition', label: '前置詞' },
+  { value: 'conjunction', label: '接続詞' },
   { value: 'adverb', label: '副詞' },
   { value: 'other', label: 'その他' },
 ]

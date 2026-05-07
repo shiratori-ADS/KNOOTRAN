@@ -137,8 +137,8 @@ export function DetailEdit({
               : '名詞は見出し語の語尾と性から活用タイプを推定します。上書き/手入力した語形は単語モード/文モードの照合にも反映されます。'
             : editPos === 'verb'
               ? '動詞は活用タイプからマトリックスを表示します。上書き/手入力した語形は単語モード/文モードの照合にも反映されます。'
-              : editPos === 'adjective'
-                ? '形容詞は（いまは -ος のみ）見出し語から活用形を推定します。必要なら下の欄で上書きしてください（入力した形は照合にも反映されます）。'
+              : editPos === 'adjective' || editPos === 'pronoun_interrogative'
+                ? '形容詞/疑問詞は（最小対応）見出し語から活用形を推定します。必要なら下の欄で上書きしてください（入力した形は照合にも反映されます）。'
                 : '必要なら下の欄で語形（活用形）を手入力してください（入力した形は照合にも反映されます）。'}
         </div>
 
@@ -158,7 +158,7 @@ export function DetailEdit({
           </div>
         )}
 
-        {editPos === 'adjective' && (
+        {(editPos === 'adjective' || editPos === 'pronoun_interrogative') && (
           <div className="matrixEdit">
             <AdjectiveOverridesEditor editOverrides={editOverrides} setEditOverrides={setEditOverrides} autoEditAdj={autoEditAdj} />
           </div>
@@ -172,7 +172,7 @@ export function DetailEdit({
             value={editExamplesText}
             onChange={(e) => setEditExamplesText(e.target.value)}
             rows={4}
-            placeholder={'例：\το κόκκινο μήλο\t赤いりんご\nΠονάει το κεφάλι μου.\t頭が痛い。'}
+            placeholder={'例：\to κόκκινο μήλο\t赤いりんご\nΠονάει το κεφάλι μου.\t頭が痛い。'}
           />
           <span className="help">1行につき「原文[TAB]訳」。TABの代わりに「→」「=&gt;」「-&gt;」もOK。</span>
         </label>

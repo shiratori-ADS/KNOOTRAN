@@ -14,7 +14,8 @@ import {
 import { inferNounInflectionTypeFromLemma } from '../../../grammar/infer'
 
 export function InflectionSection({ selected }: { selected: Entry }) {
-  if (!(selected.pos === 'verb' || selected.pos === 'noun' || selected.pos === 'adjective')) return null
+  if (!(selected.pos === 'verb' || selected.pos === 'noun' || selected.pos === 'adjective' || selected.pos === 'pronoun_interrogative'))
+    return null
 
   const lemma = normalizeToken(selected.foreignLemma ?? '')
   if (!lemma) return <span className="subtle">見出し語が未入力です。</span>
@@ -43,11 +44,47 @@ export function InflectionSection({ selected }: { selected: Entry }) {
       const base = last.slice(0, last.length - hit.length)
       const suffix = last.slice(last.length - hit.length)
 
-      // 語尾直前の σ/ψ/ξ（または B1(-ησα) の ησ）を青で強調（アオリストの目印）
+      // Γ2 アオリスト命令:
+      // - 2単: κοιμήσου → 「ή」だけ青、残り「σου」は赤
+      // - 2複: κοιμηθείτε → 「ηθ」を青、残り「ειτε」は赤
+      if (selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι') {
+        const suffixPlain = stripGreekTonos(suffix)
+        const head = parts.slice(0, -1).join(' ')
+        if (suffixPlain === 'ησου') {
+          const blue = suffix.slice(0, 1) // ή
+          const red = suffix.slice(1) // σου
+          return (
+            <>
+              {head ? `${head} ` : null}
+              {base}
+              <span className="endingMarker">{blue}</span>
+              <span className="ending">{red}</span>
+            </>
+          )
+        }
+        if (suffixPlain === 'ηθειτε') {
+          const blue = suffix.slice(0, 2) // ηθ
+          const red = suffix.slice(2) // είτε
+          return (
+            <>
+              {head ? `${head} ` : null}
+              {base}
+              <span className="endingMarker">{blue}</span>
+              <span className="ending">{red}</span>
+            </>
+          )
+        }
+      }
+
+      // 語尾直前の目印を青で強調（アオリストの目印）
+      // - A: σ/ψ/ξ
+      // - B1(-ησα): ησ
+      // - Γ: στ / ηθ
       const basePlain = stripGreekTonos(base)
-      const hasEtaSigma = basePlain.endsWith('ησ')
-      const marker = hasEtaSigma ? base.slice(-2) : base.slice(-1)
-      const hasMarker = hasEtaSigma || marker === 'σ' || marker === 'ψ' || marker === 'ξ'
+      const markerCandidates = ['ησ', 'ηθ', 'στ', 'σ', 'ψ', 'ξ']
+      const hitMarker = markerCandidates.find((m) => basePlain.endsWith(m))
+      const marker = hitMarker ? base.slice(-hitMarker.length) : ''
+      const hasMarker = Boolean(hitMarker)
       const baseNoMarker = hasMarker ? base.slice(0, base.length - marker.length) : base
 
       const head = parts.slice(0, -1).join(' ')
@@ -127,6 +164,10 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     }
 
     const presEndings = (t?: Entry['inflectionType']) => {
+      // Γ（中動態）: λέγομαι/λέγεσαι/λέγεται/λεγόμαστε/λέγεστε/λέγονται
+      if (t === 'verb_pres_mid_Γ1_-ομαι') return ['ομαι', 'εσαι', 'εται', 'ομαστε', 'εστε', 'ονται']
+      // stripGreekTonos 後の語尾で判定するため、-άμαι → αμαι（例: κοιμάμαι）
+      if (t === 'verb_pres_mid_Γ2_-άμαι') return ['αμαι', 'ασαι', 'αται', 'ομαστε', 'αστε', 'ονται']
       // Β1（-άω）: ζητάω/ζητάς/ζητάει/ζητάμε/ζητάτε/ζητάνε
       if (
         t === 'verb_pres_act_B1_-άω_-ησα' ||
@@ -161,9 +202,19 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     }
     // アオリストは「σ/ψ/ξ（目印）」を赤から外し、純粋な人称語尾だけを赤にする
     // 例: αγόρασα → α、αγόρασες → ες、θα αγοράσω → ω、αγόρασε → ε、αγοράστε → τε
-    const aorPastEnds = (_s: string) => ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν']
+    const aorPastEnds = (_s: string) => {
+      // Γ: εργάστηκα / κοιμήθηκα は末尾を -ηκα 系として赤くする（目印は別途青）
+      if (selected.inflectionType === 'verb_pres_mid_Γ1_-ομαι' || selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι')
+        return ['ηκα', 'ηκες', 'ηκε', 'ηκαμε', 'ηκατε', 'ηκαν']
+      return ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν']
+    }
     const aorFutEnds = (s: string) => {
-      if (selected.inflectionType !== 'verb_pres_act_AB') return ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε']
+      if (selected.inflectionType !== 'verb_pres_act_AB') {
+        // Γ の2複は -είτε（stripGreekTonos 後は ειτε）
+        if (selected.inflectionType === 'verb_pres_mid_Γ1_-ομαι' || selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι')
+          return ['ω', 'εις', 'ει', 'ουμε', 'ειτε', 'ουν', 'ουνε']
+        return ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε']
+      }
 
       // ABでも、ακούω/καίω などの（Aタイプ相当の）語尾は通常の語尾セットで色付けしたい。
       // ここでは「語尾そのもの」で判定する（例: κάψεις は末尾が -εις で、"σω" 文字列では判定できない）。
@@ -177,12 +228,112 @@ export function InflectionSection({ selected }: { selected: Entry }) {
         last.endsWith('ουνε')
       return looksLikeRegularEndings ? ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'] : ['ω', 'ς', 'ει', 'με', 'τε', 'ν', 'νε']
     }
-    const aorImpEnds = (_s: string) => ['ε', 'τε']
+    const aorImpEnds = (_s: string) => {
+      // Γ: 2単/2複の語尾を赤くする（stripGreekTonos後）
+      if (selected.inflectionType === 'verb_pres_mid_Γ1_-ομαι') return ['ου', 'ειτε']
+      if (selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι') return ['ησου', 'ηθειτε']
+      return ['ε', 'τε']
+    }
+    const o: any = selected.inflectionOverrides ?? {}
     const m = verbMatrix(lemma, selected.inflectionType)
     const a = verbAoristMatrix(lemma, selected.inflectionType)
     const imp = verbImperativeForms(lemma, selected.inflectionType)
-    if (!m) return <span className="subtle">この活用タイプは未対応です。</span>
-    const o: any = selected.inflectionOverrides ?? {}
+
+    // 活用タイプ未対応でも、手入力（上書き）分は表示できるようにする
+    if (!m) {
+      const get = (k: string) => ((o?.[k] as string | undefined) ?? '').trim()
+      const autoNaFromFuture = (s: string) => (s ? s.replace(/^θα\s+/, 'να ') : '')
+      const hasAny = Object.keys(o).some((k) => k.startsWith('v_') && typeof o[k] === 'string' && (o[k] as string).trim())
+      if (!hasAny) return <span className="subtle">この活用タイプは未対応です。</span>
+
+      const rows = [
+        { person: '1sg', label: '一単' },
+        { person: '2sg', label: '二単' },
+        { person: '3sg', label: '三単' },
+        { person: '1pl', label: '一複' },
+        { person: '2pl', label: '二複' },
+        { person: '3pl', label: '三複' },
+      ] as const
+
+      return (
+        <>
+          <div className="subtle" style={{ marginBottom: 6 }}>
+            <span className="matrixSectionTitle">アオリスト</span>
+          </div>
+          <div className="matrixWrap" style={{ marginBottom: 12 }}>
+            <table className="matrix">
+              <thead>
+                <tr>
+                  <th>区分</th>
+                  <th>現在</th>
+                  <th>過去</th>
+                  <th>未来</th>
+                  <th>να</th>
+                  <th>命令</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const pres = get(`v_${r.person}`)
+                  const ap = get(`v_aor_past_${r.person}`)
+                  const af = get(`v_aor_fut_${r.person}`)
+                  const an = get(`v_aor_na_${r.person}`) || autoNaFromFuture(af)
+                  const aorImpHere =
+                    r.person === '2sg' ? get('v_aor_imp_2sg') : r.person === '2pl' ? get('v_aor_imp_2pl') : ''
+                  return (
+                    <tr key={`manual-aor-${r.person}`}>
+                      <td>{r.label}</td>
+                      <td className="mono greek">{pres}</td>
+                      <td className="mono greek">{ap}</td>
+                      <td className="mono greek">{af}</td>
+                      <td className="mono greek">{an}</td>
+                      <td className="mono greek">{aorImpHere}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="subtle" style={{ marginBottom: 6 }}>
+            <span className="matrixSectionTitle">継続・繰返し</span>
+          </div>
+          <div className="matrixWrap">
+            <table className="matrix">
+              <thead>
+                <tr>
+                  <th>区分</th>
+                  <th>現在</th>
+                  <th>過去</th>
+                  <th>未来</th>
+                  <th>να</th>
+                  <th>命令</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const pres = get(`v_${r.person}`)
+                  const past = get(`v_past_${r.person}`)
+                  const fut = get(`v_fut_${r.person}`)
+                  const na = get(`v_na_${r.person}`) || autoNaFromFuture(fut)
+                  const impHere = r.person === '2sg' ? get('v_imp_2sg') : r.person === '2pl' ? get('v_imp_2pl') : ''
+                  return (
+                    <tr key={`manual-${r.person}`}>
+                      <td>{r.label}</td>
+                      <td className="mono greek">{pres}</td>
+                      <td className="mono greek">{past}</td>
+                      <td className="mono greek">{fut}</td>
+                      <td className="mono greek">{na}</td>
+                      <td className="mono greek">{impHere}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )
+    }
     return (
       <>
         {a && (
@@ -279,7 +430,9 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                     <td className="mono greek">
                       {isBImperfect(selected.inflectionType)
                         ? renderImperfectPastWithMarkerBlue(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])
-                        : renderEndingRed(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])}
+                        : selected.inflectionType === 'verb_pres_mid_Γ1_-ομαι' || selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι'
+                          ? renderEndingRed(past, ['ομουν', 'οσουν', 'οταν', 'ομασταν', 'οσασταν', 'ονταν'])
+                          : renderEndingRed(past, ['α', 'ες', 'ε', 'αμε', 'ατε', 'αν'])}
                     </td>
                     <td className="mono greek">{renderEndingRed(fut, presEndings(selected.inflectionType))}</td>
                     <td className="mono greek">{renderEndingRed(na, presEndings(selected.inflectionType))}</td>
@@ -289,6 +442,10 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                           ? renderEndingRed(presImp, ['ατε'])
                           : isB1(selected.inflectionType) && r.person === '2sg'
                             ? renderEndingRed(presImp, ['α'])
+                          : selected.inflectionType === 'verb_pres_mid_Γ1_-ομαι' && r.person === '2pl'
+                            ? renderEndingRed(presImp, ['εστε'])
+                          : selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι' && r.person === '2pl'
+                            ? renderEndingRed(presImp, ['αστε'])
                           : isB2(selected.inflectionType) && r.person === '2sg'
                             ? '-'
                           : isB2(selected.inflectionType) && r.person === '2pl'
@@ -308,18 +465,30 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     )
   }
 
-  if (selected.pos === 'adjective') {
+  if (selected.pos === 'adjective' || selected.pos === 'pronoun_interrogative') {
     const a = adjectiveMatrix(lemma)
     const o = selected.inflectionOverrides ?? {}
     const hasOverrides = Object.keys(o).some((k) => k.startsWith('a_') && typeof (o as any)[k] === 'string' && (o as any)[k].trim())
-    if (!a && !hasOverrides) return <span className="subtle">この形容詞タイプは未対応です（いまは -ος のみ）。</span>
+    if (!a && !hasOverrides) return <span className="subtle">この形容詞/疑問詞タイプは未対応です。</span>
 
     const headers = a?.headers ?? ['男', '女', '中']
     const get = (k: keyof typeof o, fallback: string) => (((o as any)[k] as string | undefined) ?? fallback).toString()
     const row = (idx: number, col: number) => a?.rows?.[idx]?.cells?.[col] ?? ''
     const lemmaPlain = stripGreekTonos(lemma)
-    const adjType = lemmaPlain.endsWith('υς') ? 'adj_-υς' : 'adj_-ος'
+    const adjType =
+      lemmaPlain === 'πολυς' ? 'adj_πολυς' : lemmaPlain.endsWith('υς') ? 'adj_-υς' : lemmaPlain.endsWith('ιος') ? 'adj_-ιος' : 'adj_-ος'
     const endingFor = (r: number, c: number): string => {
+      if (adjType === 'adj_πολυς') {
+        const map: string[][] = [
+          ['υς', 'η', 'υ'],
+          ['ου', 'ης', 'ου'],
+          ['υ', 'η', 'υ'],
+          ['οι', 'ες', 'α'],
+          ['ων', 'ων', 'ων'],
+          ['ους', 'ες', 'α'],
+        ]
+        return map[r]?.[c] ?? ''
+      }
       if (adjType === 'adj_-υς') {
         // r: 0 sg-nom,1 sg-gen,2 sg-acc,3 pl-nom,4 pl-gen,5 pl-acc
         // c: 0 masc,1 fem,2 neut
@@ -330,6 +499,19 @@ export function InflectionSection({ selected }: { selected: Entry }) {
           ['ιοι', 'ιες', 'ια'],
           ['ιων', 'ιων', 'ιων'],
           ['ιους', 'ιες', 'ια'],
+        ]
+        return map[r]?.[c] ?? ''
+      }
+      if (adjType === 'adj_-ιος') {
+        // ποιος 系:
+        // - 女単: ποια / ποιας / ποια（= α / ας / α を赤字にしたい）
+        const map: string[][] = [
+          ['ος', 'α', 'ο'],
+          ['ου', 'ας', 'ου'],
+          ['ο', 'α', 'ο'],
+          ['οι', 'ες', 'α'],
+          ['ων', 'ων', 'ων'],
+          ['ους', 'ες', 'α'],
         ]
         return map[r]?.[c] ?? ''
       }

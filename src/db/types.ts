@@ -6,6 +6,8 @@ export type PartOfSpeech =
   | 'pronoun_interrogative'
   | 'adjective'
   | 'verb'
+  | 'preposition'
+  | 'conjunction'
   | 'adverb'
   | 'other'
 
@@ -23,6 +25,8 @@ export type InflectionType =
   | 'verb_pres_act_B2_-ώ_-ησα'
   | 'verb_pres_act_B2_-ώ_-ασα'
   | 'verb_pres_act_B2_-ώ_-εσα'
+  | 'verb_pres_mid_Γ1_-ομαι'
+  | 'verb_pres_mid_Γ2_-άμαι'
   // 男性名詞（GreekNoteベースの最小セット）
   // -ος, -οι（アクセント位置で3分類。ただし(1)/(2)の区別はしない）
   | 'noun_masc_-ος_last'

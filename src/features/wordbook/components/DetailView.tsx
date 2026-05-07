@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Entry } from '../../../db/types'
 import { InflectionSection } from './InflectionSection'
 import { displayForm, genderLabel, inflectionLabel, posLabel, verbInflectionShortLabel } from '../wordbookHelpers'
@@ -22,6 +23,8 @@ export function DetailView({
   onDelete: () => void
   onLookupRelated: (term: string) => void
 }) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
   return (
     <>
       <div className="kv">
@@ -31,7 +34,7 @@ export function DetailView({
       {selected.pos === 'verb' && (
         <div className="kv">
           <div className="k">活用タイプ</div>
-          <div className="v">{inflectionLabel(selected.inflectionType)}</div>
+          <div className="v">{selected.inflectionType === 'none' ? 'その他' : inflectionLabel(selected.inflectionType)}</div>
         </div>
       )}
 
@@ -94,13 +97,41 @@ export function DetailView({
         <button className="primary" onClick={onEdit}>
           編集
         </button>
-        <button className="danger" onClick={onDelete}>
+        <button className="danger" onClick={() => setShowDeleteConfirm(true)}>
           削除
         </button>
         <div className="status" role="status" aria-live="polite">
           {status}
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div
+          className="modalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="削除確認"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div className="modalCard" onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>削除しますか？</div>
+            <div className="row wrap" style={{ justifyContent: 'flex-end' }}>
+              <button className="secondary" onClick={() => setShowDeleteConfirm(false)}>
+                キャンセル
+              </button>
+              <button
+                className="danger"
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  onDelete()
+                }}
+              >
+                削除する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

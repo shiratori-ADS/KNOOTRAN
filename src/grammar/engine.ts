@@ -1,9 +1,13 @@
-import { db } from '../db/db'
 import { normalizeToken } from '../lib/normalize'
-import { tokenize } from '../lib/translate'
-import type { Entry, InflectionType } from '../db/types'
+import type { InflectionType } from '../db/types'
 import { resolveNounInflectionType } from './infer'
-import { normalizeExamplePairs } from '../lib/examples'
+import type {
+  SentenceAnalysis,
+  SentenceNounCase,
+  SentencePerson,
+  SentenceResult,
+} from './sentenceTypes'
+import type { NounLike, VerbLike } from './sentenceLexicon'
 import {
   addTonosOnAntepenultVowel,
   addTonosOnLastVowel,
@@ -13,25 +17,9 @@ import {
   stripGreekTonos,
 } from './accent'
 
-type Person = '1sg' | '2sg' | '3sg' | '1pl' | '2pl' | '3pl' | 'unknown'
-type NounCase = 'nom' | 'acc' | 'gen' | 'unknown'
+export type { SentenceAnalysis, SentenceNounCase, SentencePerson, SentenceResult } from './sentenceTypes'
 
-export type SentenceAnalysis = {
-  verb?: { token: string; entryId: number; lemma: string; person: Person }
-  nouns: Array<{ token: string; entryId: number; lemma: string; case: NounCase }>
-}
-
-export type SentenceResult = {
-  analysis: SentenceAnalysis
-  ja: string
-  unknownTokens: string[]
-}
-
-function stripPunct(s: string) {
-  return s.replace(/[.··;,:!?]/g, '')
-}
-
-function subjectFromPerson(p: Person): string {
+function subjectFromPerson(p: SentencePerson): string {
   switch (p) {
     case '1sg':
       return '私は'
@@ -50,7 +38,7 @@ function subjectFromPerson(p: Person): string {
   }
 }
 
-function particleFromCase(c: NounCase): string {
+function particleFromCase(c: SentenceNounCase): string {
   switch (c) {
     case 'acc':
       return 'を'
@@ -73,15 +61,22 @@ function verbStem(lemma: string, type?: InflectionType): string | null {
     type !== 'verb_pres_act_B1_-άω_-ασα' &&
     type !== 'verb_pres_act_B2_-ώ_-ησα' &&
     type !== 'verb_pres_act_B2_-ώ_-ασα' &&
-    type !== 'verb_pres_act_B2_-ώ_-εσα'
+    type !== 'verb_pres_act_B2_-ώ_-εσα' &&
+    type !== 'verb_pres_mid_Γ1_-ομαι' &&
+    type !== 'verb_pres_mid_Γ2_-άμαι'
   )
     return null
-  if (!stripGreekTonos(lemma).endsWith('ω')) return null
+  const lemmaPlain = stripGreekTonos(lemma)
+  if (type === 'verb_pres_mid_Γ1_-ομαι' || type === 'verb_pres_mid_Γ2_-άμαι') {
+    if (!lemmaPlain.endsWith('ομαι') && !lemmaPlain.endsWith('αμαι')) return null
+    return lemma.slice(0, -4)
+  }
+  if (!lemmaPlain.endsWith('ω')) return null
   return lemma.slice(0, -1)
 }
 
-function detectVerbPerson(tokenNorm: string, entry: Entry, lemmaNorm: string, type?: InflectionType): Person {
-  const o = entry.inflectionOverrides
+function detectVerbPerson(tokenNorm: string, v: VerbLike, lemmaNorm: string, type?: InflectionType): SentencePerson {
+  const o = v.inflectionOverrides
   if (o?.v_1sg && tokenNorm === normalizeToken(o.v_1sg)) return '1sg'
   if (o?.v_2sg && tokenNorm === normalizeToken(o.v_2sg)) return '2sg'
   if (o?.v_3sg && tokenNorm === normalizeToken(o.v_3sg)) return '3sg'
@@ -124,6 +119,84 @@ function detectVerbPerson(tokenNorm: string, entry: Entry, lemmaNorm: string, ty
   if (o?.v_aor_na_1pl && tokenNorm === normalizeToken(o.v_aor_na_1pl)) return '1pl'
   if (o?.v_aor_na_2pl && tokenNorm === normalizeToken(o.v_aor_na_2pl)) return '2pl'
   if (o?.v_aor_na_3pl && tokenNorm === normalizeToken(o.v_aor_na_3pl)) return '3pl'
+
+  if (type === 'verb_pres_mid_Γ1_-ομαι' || type === 'verb_pres_mid_Γ2_-άμαι') {
+    const tokenPlain = stripGreekTonos(tokenNorm)
+    const lemmaPlain = stripGreekTonos(lemmaNorm)
+    if (!lemmaPlain.endsWith('ομαι') && !lemmaPlain.endsWith('αμαι')) return 'unknown'
+    const stemPlain = lemmaPlain.slice(0, -4)
+
+    const pres =
+      type === 'verb_pres_mid_Γ1_-ομαι'
+        ? ({
+            '1sg': `${stemPlain}ομαι`,
+            '2sg': `${stemPlain}εσαι`,
+            '3sg': `${stemPlain}εται`,
+            '1pl': `${stemPlain}ομαστε`,
+            '2pl': `${stemPlain}εστε`,
+            '3pl': `${stemPlain}ονται`,
+          } as const)
+        : ({
+            '1sg': `${stemPlain}αμαι`,
+            '2sg': `${stemPlain}ασαι`,
+            '3sg': `${stemPlain}αται`,
+            '1pl': `${stemPlain}ομαστε`,
+            '2pl': `${stemPlain}αστε`,
+            '3pl': `${stemPlain}ονται`,
+          } as const)
+
+    if (tokenPlain === pres['1sg']) return '1sg'
+    if (tokenPlain === pres['2sg']) return '2sg'
+    if (tokenPlain === pres['3sg']) return '3sg'
+    if (tokenPlain === pres['1pl']) return '1pl'
+    if (tokenPlain === pres['2pl']) return '2pl'
+    if (tokenPlain === pres['3pl']) return '3pl'
+
+    // 未完了過去（最小）
+    const imp = {
+      '1sg': `${stemPlain}ομουν`,
+      '2sg': `${stemPlain}οσουν`,
+      '3sg': `${stemPlain}οταν`,
+      '1pl': `${stemPlain}ομασταν`,
+      '2pl': `${stemPlain}οσασταν`,
+      '3pl': `${stemPlain}ονταν`,
+    } as const
+    if (tokenPlain === imp['1sg']) return '1sg'
+    if (tokenPlain === imp['2sg']) return '2sg'
+    if (tokenPlain === imp['3sg']) return '3sg'
+    if (tokenPlain === imp['1pl']) return '1pl'
+    if (tokenPlain === imp['2pl']) return '2pl'
+    if (tokenPlain === imp['3pl']) return '3pl'
+
+    // アオリスト過去（最小・照合用）
+    const aorPast =
+      type === 'verb_pres_mid_Γ1_-ομαι'
+        ? ({
+            '1sg': `${stemPlain.endsWith('ζ') ? `${stemPlain.slice(0, -1)}σ` : `${stemPlain}σ`}τηκα`,
+            '2sg': `${stemPlain.endsWith('ζ') ? `${stemPlain.slice(0, -1)}σ` : `${stemPlain}σ`}τηκες`,
+            '3sg': `${stemPlain.endsWith('ζ') ? `${stemPlain.slice(0, -1)}σ` : `${stemPlain}σ`}τηκε`,
+            '1pl': `${stemPlain.endsWith('ζ') ? `${stemPlain.slice(0, -1)}σ` : `${stemPlain}σ`}τηκαμε`,
+            '2pl': `${stemPlain.endsWith('ζ') ? `${stemPlain.slice(0, -1)}σ` : `${stemPlain}σ`}τηκατε`,
+            '3pl': `${stemPlain.endsWith('ζ') ? `${stemPlain.slice(0, -1)}σ` : `${stemPlain}σ`}τηκαν`,
+          } as const)
+        : ({
+            '1sg': `${stemPlain}ηθηκα`,
+            '2sg': `${stemPlain}ηθηκες`,
+            '3sg': `${stemPlain}ηθηκε`,
+            '1pl': `${stemPlain}ηθηκαμε`,
+            '2pl': `${stemPlain}ηθηκατε`,
+            '3pl': `${stemPlain}ηθηκαν`,
+          } as const)
+    if (tokenPlain === aorPast['1sg']) return '1sg'
+    if (tokenPlain === aorPast['2sg']) return '2sg'
+    if (tokenPlain === aorPast['3sg']) return '3sg'
+    if (tokenPlain === aorPast['1pl']) return '1pl'
+    if (tokenPlain === aorPast['2pl']) return '2pl'
+    if (tokenPlain === aorPast['3pl']) return '3pl'
+
+    return 'unknown'
+  }
+
   const stem = verbStem(lemmaNorm, type)
   if (!stem) return 'unknown'
   if (
@@ -234,7 +307,7 @@ function nounStem(lemma: string, type?: InflectionType): string | null {
   return null
 }
 
-function nounForms(entry: Entry, lemmaNorm: string, type?: InflectionType): {
+function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
   nom: string[]
   acc: string[]
   gen: string[]
@@ -470,7 +543,12 @@ function nounForms(entry: Entry, lemmaNorm: string, type?: InflectionType): {
   return null
 }
 
-function detectNounCaseByForm(tokenNorm: string, entry: Entry, lemmaNorm: string, type?: InflectionType): NounCase {
+function detectNounCaseByForm(
+  tokenNorm: string,
+  entry: NounLike,
+  lemmaNorm: string,
+  type?: InflectionType,
+): SentenceNounCase {
   const f = nounForms(entry, lemmaNorm, type)
   if (!f) return 'unknown'
   const inNom = f.nom.includes(tokenNorm)
@@ -483,96 +561,95 @@ function detectNounCaseByForm(tokenNorm: string, entry: Entry, lemmaNorm: string
   return 'unknown'
 }
 
-async function findCandidateVerb(tokenNorm: string): Promise<Entry | undefined> {
-  // 1) 見出し語一致
-  const byLemma = await db.entries.where('foreignLemma').equals(tokenNorm).first()
-  if (byLemma?.pos === 'verb') return byLemma
-
-  // 2) -ωタイプの簡易活用一致（全件なめるのは重いので上限）
-  const verbs = await db.entries.where('pos').equals('verb').limit(300).toArray()
-  for (const v of verbs) {
-    const lemma = normalizeToken(v.foreignLemma ?? '')
-    if (!lemma) continue
-    const p = detectVerbPerson(tokenNorm, v, lemma, v.inflectionType)
-    if (p !== 'unknown') return v
-  }
-  return undefined
-}
-
-async function findCandidateNoun(tokenNorm: string): Promise<Entry | undefined> {
-  const byLemma = await db.entries.where('foreignLemma').equals(tokenNorm).first()
-  if (byLemma?.pos === 'noun') return byLemma
-
-  const nouns = await db.entries.where('pos').equals('noun').limit(500).toArray()
-  for (const n of nouns) {
-    const lemma = normalizeToken(n.foreignLemma ?? '')
-    if (!lemma) continue
-    const t = resolveNounInflectionType(n, lemma)
-    const f = nounForms(n, lemma, t)
-    if (!f) continue
-    if (f.nom.includes(tokenNorm) || f.acc.includes(tokenNorm) || f.gen.includes(tokenNorm)) return n
-  }
-  return undefined
-}
-
-export async function translateSentenceForeignToJa(input: string): Promise<SentenceResult> {
-  // 例文が完全一致する場合は、その訳を最優先（「参考」用の最小実装）
-  const inputNorm = normalizeToken(stripPunct(input))
-  if (inputNorm) {
-    const entriesWithExamples = await db.entries.where('pos').equals('verb').limit(300).toArray()
-    // verbs 以外も例文は持てるので、追加で少し見る（全件は重いので上限）
-    const others = await db.entries.where('pos').notEqual('verb').limit(400).toArray()
-    const pool = [...entriesWithExamples, ...others]
-    for (const e of pool) {
-      const pairs = normalizeExamplePairs(e.examples)
-      const hit = pairs.find((p) => normalizeToken(stripPunct(p.foreign)) === inputNorm && p.ja.trim())
-      if (hit) {
-        return { analysis: { nouns: [] }, ja: hit.ja.trim(), unknownTokens: [] }
-      }
-    }
-  }
-
-  const toks = tokenize(input)
-    .filter((t) => t.kind === 'word')
-    .map((t) => normalizeToken(stripPunct(t.raw)))
-    .filter(Boolean)
-
+export function translateSentenceForeignToJaCore(args: {
+  tokens: string[]
+  verbs: VerbLike[]
+  nouns: NounLike[]
+}): SentenceResult {
+  const toks = args.tokens
   const unknownTokens: string[] = []
 
   // 動詞を1つ探す（最初にヒットしたもの）
   let verb:
     | {
         token: string
-        entry: Entry
-        person: Person
+        entry: VerbLike
+        person: SentencePerson
         tokenIndex: number
       }
     | undefined
 
   for (let i = 0; i < toks.length; i++) {
     const tok = toks[i]
-    const e = await findCandidateVerb(tok)
+    const eLemma = args.verbs.find((v) => normalizeToken(v.lemma ?? '') === tok)
+    const e =
+      eLemma ??
+      args.verbs.find((v) => {
+        const lemma = normalizeToken(v.lemma ?? '')
+        if (!lemma) return false
+        return detectVerbPerson(tok, v, lemma, v.inflectionType) !== 'unknown'
+      })
     if (!e?.id) continue
-    const lemma = normalizeToken(e.foreignLemma ?? tok)
+    const lemma = normalizeToken(e.lemma ?? tok)
     const person = detectVerbPerson(tok, e, lemma, e.inflectionType)
     verb = { token: tok, entry: e, person, tokenIndex: i }
     break
   }
 
   // 名詞を拾う（とりあえず複数OK）
-  const nouns: Array<{ token: string; entry: Entry; case: NounCase; tokenIndex: number }> = []
+  const nouns: Array<{ token: string; entry: NounLike; case: SentenceNounCase; tokenIndex: number }> = []
   for (let i = 0; i < toks.length; i++) {
     const tok = toks[i]
     if (verb && i === verb.tokenIndex) continue
-    const e = await findCandidateNoun(tok)
+    const eLemma = args.nouns.find((n) => normalizeToken(n.lemma ?? '') === tok)
+    const e =
+      eLemma ??
+      args.nouns.find((n) => {
+        const lemma = normalizeToken(n.lemma ?? '')
+        if (!lemma) return false
+        const t = resolveNounInflectionType(
+          {
+            pos: 'noun',
+            meaningJaPrimary: n.meaningJaPrimary,
+            meaningJaVariants: [],
+            nounGender: n.nounGender,
+            inflectionType: n.inflectionType,
+            inflectionOverrides: n.inflectionOverrides as any,
+            foreignForms: [],
+            examples: [],
+            related: [],
+            createdAt: 0,
+            updatedAt: 0,
+          } as any,
+          lemma,
+        )
+        const f = nounForms(n, lemma, t)
+        if (!f) return false
+        return f.nom.includes(tok) || f.acc.includes(tok) || f.gen.includes(tok)
+      })
     if (!e?.id) continue
 
-    const lemma = normalizeToken(e.foreignLemma ?? tok)
-    const t = resolveNounInflectionType(e, lemma)
+    const lemma = normalizeToken(e.lemma ?? tok)
+    const t = resolveNounInflectionType(
+      {
+        pos: 'noun',
+        meaningJaPrimary: e.meaningJaPrimary,
+        meaningJaVariants: [],
+        nounGender: e.nounGender,
+        inflectionType: e.inflectionType,
+        inflectionOverrides: e.inflectionOverrides as any,
+        foreignForms: [],
+        examples: [],
+        related: [],
+        createdAt: 0,
+        updatedAt: 0,
+      } as any,
+      lemma,
+    )
     const byForm = detectNounCaseByForm(tok, e, lemma, t)
 
     // 同形や不明はヒューリスティック：動詞の後に出た名詞は目的語(対格)扱い
-    const c: NounCase =
+    const c: SentenceNounCase =
       byForm !== 'unknown'
         ? byForm
         : verb && i > verb.tokenIndex
@@ -595,14 +672,14 @@ export async function translateSentenceForeignToJa(input: string): Promise<Sente
       ? {
           token: verb.token,
           entryId: verb.entry.id!,
-          lemma: normalizeToken(verb.entry.foreignLemma ?? verb.token),
+          lemma: normalizeToken(verb.entry.lemma ?? verb.token),
           person: verb.person,
         }
       : undefined,
     nouns: nouns.map((n) => ({
       token: n.token,
       entryId: n.entry.id!,
-      lemma: normalizeToken(n.entry.foreignLemma ?? n.token),
+      lemma: normalizeToken(n.entry.lemma ?? n.token),
       case: n.case,
     })),
   }

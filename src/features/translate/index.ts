@@ -1,0 +1,2 @@
+export { TranslatePage } from './TranslatePage'
+

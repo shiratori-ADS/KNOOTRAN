@@ -66,6 +66,11 @@
   background: var(--accent-bg);
 }
 
+.page {
+  /* 見出し（例: 単語帳）が上に詰まりすぎないよう余白 */
+  padding-top: 8px;
+}
+
 .page h2 {
   margin: 10px 0 12px;
   font-size: 22px;
@@ -343,6 +348,12 @@ textarea {
 .badgePos-pronoun_interrogative {
   background: color-mix(in oklab, #ff6f9b 22%, var(--code-bg));
 }
+.badgePos-preposition {
+  background: color-mix(in oklab, #4fe3ff 24%, var(--code-bg));
+}
+.badgePos-conjunction {
+  background: color-mix(in oklab, #ff8a4f 24%, var(--code-bg));
+}
 .badgePos-other {
   background: color-mix(in oklab, #d0d0d0 22%, var(--code-bg));
 }
@@ -382,6 +393,20 @@ textarea {
   }
 
   .split > .listPane .listPaneScroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* 右詳細もペイン内だけスクロール（ページ全体は動かさない） */
+  .split > .detailPane {
+    max-height: calc(100svh - 220px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .split > .detailPane .detailPaneScroll {
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
