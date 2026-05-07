@@ -11,6 +11,9 @@ export function Wordbook() {
 
     // ページ全体は動かさず、右ペインのスクロールだけ先頭へ戻す
     if (detailScrollRef.current) detailScrollRef.current.scrollTop = 0
+
+    // スマホ表示はページ全体がスクロール主体なので、画面先頭へ戻す
+    if (c.layout.isMobile) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [c.selection.selected?.id])
 
   return (

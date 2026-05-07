@@ -3,9 +3,10 @@ import { db, getSettings } from '../db/db'
 import type { Entry, Settings as SettingsType } from '../db/types'
 import { normalizeToken } from '../lib/normalize'
 import { supabase } from '../lib/supabaseClient'
+import { parseExcelImportB } from '../lib/excelImportB'
 
 export function Settings() {
-  const [view, setView] = useState<'home' | 'language' | 'tags' | 'backup'>('home')
+  const [view, setView] = useState<'home' | 'language' | 'tags' | 'bulkImport' | 'backup'>('home')
   const [settings, setSettings] = useState<SettingsType | null>(null)
   const [uiLanguage, setUiLanguage] = useState<'ja' | 'en'>('ja')
   const [tagsText, setTagsText] = useState('')
@@ -14,6 +15,10 @@ export function Settings() {
   const [status, setStatus] = useState('')
   const [ioStatus, setIoStatus] = useState('')
   const [cloudStatus, setCloudStatus] = useState('')
+  const [excelStatus, setExcelStatus] = useState('')
+  const [excelErrors, setExcelErrors] = useState<Array<{ rowNumber: number; foreignLemma: string; message: string }> | null>(null)
+  const [excelPendingEntries, setExcelPendingEntries] = useState<Entry[] | null>(null)
+  const [excelDuplicates, setExcelDuplicates] = useState<Array<{ foreignLemma: string; existingId: number }> | null>(null)
   const [authEmail, setAuthEmail] = useState('')
   const [authPassword, setAuthPassword] = useState('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -46,6 +51,7 @@ export function Settings() {
     setStatus('')
     setIoStatus('')
     setCloudStatus('')
+    setExcelStatus('')
   }
 
   async function buildLocalPayload() {
@@ -187,6 +193,83 @@ export function Settings() {
       setIoStatus(`インポートしました（${n}件）。`)
     } catch (e: any) {
       setIoStatus(`インポートに失敗しました: ${e?.message ?? String(e)}`)
+    }
+  }
+
+  async function onImportExcelB(file: File | null) {
+    if (!file) return
+    setExcelStatus('')
+    setExcelErrors(null)
+    setExcelPendingEntries(null)
+    setExcelDuplicates(null)
+
+    try {
+      const buf = await file.arrayBuffer()
+      const parsed = parseExcelImportB(buf)
+      if (!parsed.ok) {
+        setExcelErrors(parsed.errors)
+        return
+      }
+
+      const entries = parsed.entries
+      // 重複チェック（foreignLemmaの完全一致を基本とする。forms 側も将来拡張できるが、個人用の一括登録ではlemmaベースが扱いやすい）
+      const existing = await db.entries.where('foreignLemma').anyOf(entries.map((e) => e.foreignLemma ?? '')).toArray()
+      const existingByLemma = new Map(existing.filter((e) => e.id != null).map((e) => [e.foreignLemma ?? '', e.id!]))
+
+      const dups = entries
+        .map((e) => {
+          const id = existingByLemma.get(e.foreignLemma ?? '')
+          return id != null ? { foreignLemma: e.foreignLemma ?? '', existingId: id } : null
+        })
+        .filter(Boolean) as Array<{ foreignLemma: string; existingId: number }>
+
+      if (dups.length) {
+        setExcelPendingEntries(entries)
+        setExcelDuplicates(dups)
+        return
+      }
+
+      // 重複なし → そのまま登録
+      await db.entries.bulkAdd(entries)
+      setExcelStatus(`一括登録しました（${entries.length}件）。`)
+    } catch (e: any) {
+      setExcelStatus(`Excelの読み込みに失敗しました: ${e?.message ?? String(e)}`)
+    }
+  }
+
+  async function applyExcelImport(mode: 'overwrite' | 'skip') {
+    const entries = excelPendingEntries
+    const dups = excelDuplicates
+    if (!entries || !dups) return
+    setExcelStatus('')
+
+    const dupSet = new Set(dups.map((d) => d.foreignLemma))
+    const toInsert = entries.filter((e) => !dupSet.has(e.foreignLemma ?? ''))
+    const toDup = entries.filter((e) => dupSet.has(e.foreignLemma ?? ''))
+
+    try {
+      await db.transaction('rw', db.entries, async () => {
+        if (toInsert.length) {
+          await db.entries.bulkAdd(toInsert)
+        }
+        if (toDup.length) {
+          if (mode === 'overwrite') {
+            const byLemma = new Map(dups.map((d) => [d.foreignLemma, d.existingId]))
+            const updates: Entry[] = toDup.map((e) => ({ ...e, id: byLemma.get(e.foreignLemma ?? '') }))
+            await db.entries.bulkPut(updates)
+          }
+          // skip の場合は何もしない
+        }
+      })
+
+      const imported = toInsert.length + (mode === 'overwrite' ? toDup.length : 0)
+      const skipped = mode === 'skip' ? toDup.length : 0
+      setExcelStatus(`一括登録しました（登録/上書き: ${imported}件、スキップ: ${skipped}件）。`)
+    } catch (e: any) {
+      setExcelStatus(`一括登録に失敗しました: ${e?.message ?? String(e)}`)
+    } finally {
+      setExcelPendingEntries(null)
+      setExcelDuplicates(null)
     }
   }
 
@@ -356,6 +439,15 @@ export function Settings() {
               }}
             >
               タグ設定
+            </button>
+            <button
+              className="secondary"
+              onClick={() => {
+                resetStatuses()
+                setView('bulkImport')
+              }}
+            >
+              一括登録
             </button>
             <button
               className="secondary"
@@ -533,6 +625,130 @@ export function Settings() {
             </button>
             <div className="status" role="status" aria-live="polite">
               {cloudStatus}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {view === 'bulkImport' && (
+        <div className="card">
+          <h3>一括登録（Excel）</h3>
+          <div className="row wrap">
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => {
+                const href = `${import.meta.env.BASE_URL}template.xlsx`
+                const a = document.createElement('a')
+                a.href = href
+                a.download = 'template.xlsx'
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+              }}
+            >
+              テンプレートをダウンロード
+            </button>
+            <label className="chipButton mono" style={{ cursor: 'pointer' }}>
+              Excelをアップロード
+              <input
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                style={{ display: 'none' }}
+                onChange={(e) => void onImportExcelB(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            <div className="status" role="status" aria-live="polite">
+              {excelStatus}
+            </div>
+          </div>
+          <div className="help">
+            `word/noun/adjective/verb` シートを持つテンプレのExcelを想定します。名詞・形容詞/疑問詞・動詞は対応シートに行が無い場合エラーになります。
+          </div>
+        </div>
+      )}
+
+      {/* Excel不足エラー一覧 */}
+      {excelErrors && (
+        <div
+          className="modalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="一括登録エラー"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setExcelErrors(null)
+          }}
+        >
+          <div className="modalCard" onMouseDown={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>一括登録エラー</div>
+            <div className="help" style={{ marginBottom: 8 }}>
+              word の「何行目の何が不足か」を一覧表示します。
+            </div>
+            <div style={{ maxHeight: '55svh', overflowY: 'auto' }}>
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {excelErrors.slice(0, 200).map((x, i) => (
+                  <li key={`${x.rowNumber}-${x.foreignLemma}-${i}`}>
+                    {x.rowNumber ? `word:${x.rowNumber}行 ` : ''}
+                    {x.foreignLemma ? `（${x.foreignLemma}） ` : ''}
+                    {x.message}
+                  </li>
+                ))}
+              </ul>
+              {excelErrors.length > 200 && <div className="help">（先頭200件のみ表示）</div>}
+            </div>
+            <div className="row wrap" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+              <button className="primary" onClick={() => setExcelErrors(null)}>
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Excel重複確認 */}
+      {excelDuplicates && excelPendingEntries && (
+        <div
+          className="modalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="重複lemmaの確認"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setExcelPendingEntries(null)
+              setExcelDuplicates(null)
+            }
+          }}
+        >
+          <div className="modalCard" onMouseDown={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>重複lemmaが見つかりました</div>
+            <div className="help" style={{ marginBottom: 8 }}>
+              既に単語帳に存在するlemmaです。上書き/スキップ/キャンセルを選んでください。
+            </div>
+            <div style={{ maxHeight: '45svh', overflowY: 'auto' }}>
+              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                {excelDuplicates.slice(0, 200).map((d) => (
+                  <li key={`${d.existingId}-${d.foreignLemma}`}>{d.foreignLemma}</li>
+                ))}
+              </ul>
+              {excelDuplicates.length > 200 && <div className="help">（先頭200件のみ表示）</div>}
+            </div>
+            <div className="row wrap" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+              <button
+                className="secondary"
+                onClick={() => {
+                  setExcelPendingEntries(null)
+                  setExcelDuplicates(null)
+                  setExcelStatus('キャンセルしました。')
+                }}
+              >
+                キャンセル
+              </button>
+              <button className="secondary" onClick={() => void applyExcelImport('skip')}>
+                スキップ
+              </button>
+              <button className="primary" onClick={() => void applyExcelImport('overwrite')}>
+                上書き
+              </button>
             </div>
           </div>
         </div>
