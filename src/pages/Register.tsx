@@ -5,6 +5,7 @@ import { normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
 import { nounGenderOptions, verbInflectionOptions } from '../features/wordbook/wordbookHelpers'
 import { parseExamplePairsText } from '../lib/examples'
+import { markLocalDirty } from '../lib/cloudAutoSync'
 
 const posOptions: Array<{ value: PartOfSpeech; label: string }> = [
   { value: 'noun', label: '名詞' },
@@ -98,6 +99,7 @@ export function Register() {
     }
 
     await db.entries.add(entry)
+    markLocalDirty()
     setMeaningJaText('')
     setForeignLemma('')
     setTags([])

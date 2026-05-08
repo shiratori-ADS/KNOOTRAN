@@ -1,0 +1,175 @@
+import { supabase } from './supabaseClient'
+import { buildLocalPayload, restoreFromPayload, type BackupPayloadV1 } from './backupPayload'
+import type { Entry } from '../db/types'
+import { db } from '../db/db'
+
+type CloudRow = { data: BackupPayloadV1; updated_at: string | null }
+
+let dirtySince: number | null = null
+let pushTimer: number | null = null
+let loopTimer: number | null = null
+let currentUserId: string | null = null
+
+function metaKey(userId: string) {
+  return `knootran_cloud_meta_v1:${userId}`
+}
+
+type CloudMeta = {
+  lastPulledAt?: number
+  lastPushedAt?: number
+  lastAppliedRemoteUpdatedAt?: string
+}
+
+function loadMeta(userId: string): CloudMeta {
+  try {
+    const raw = localStorage.getItem(metaKey(userId))
+    return raw ? (JSON.parse(raw) as CloudMeta) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveMeta(userId: string, patch: Partial<CloudMeta>) {
+  const cur = loadMeta(userId)
+  const next = { ...cur, ...patch }
+  localStorage.setItem(metaKey(userId), JSON.stringify(next))
+}
+
+export function markLocalDirty() {
+  dirtySince = dirtySince ?? Date.now()
+}
+
+async function localSnapshotSummary(): Promise<{ entryCount: number; maxEntryUpdatedAt: number }> {
+  const entries = await db.entries.toArray()
+  const maxEntryUpdatedAt = entries.reduce((m: number, e: Entry) => Math.max(m, e.updatedAt ?? 0), 0)
+  return { entryCount: entries.length, maxEntryUpdatedAt }
+}
+
+async function fetchCloud(userId: string): Promise<CloudRow | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.from('user_state').select('data, updated_at').eq('user_id', userId).maybeSingle()
+  if (error) throw error
+  if (!data?.data) return null
+  return { data: data.data as BackupPayloadV1, updated_at: (data as any).updated_at ?? null }
+}
+
+async function pushCloud(userId: string) {
+  if (!supabase) return
+  const payload = await buildLocalPayload()
+  const { error } = await supabase
+    .from('user_state')
+    .upsert({ user_id: userId, data: payload, updated_at: new Date().toISOString() })
+  if (error) throw error
+  dirtySince = null
+  saveMeta(userId, { lastPushedAt: Date.now() })
+}
+
+async function pullIfSafe(userId: string) {
+  const meta = loadMeta(userId)
+  const cloud = await fetchCloud(userId)
+  if (!cloud) return
+
+  // 既に適用済みなら何もしない
+  if (cloud.updated_at && meta.lastAppliedRemoteUpdatedAt === cloud.updated_at) return
+
+  const local = await localSnapshotSummary()
+  const cloudEntries: any[] = Array.isArray((cloud.data as any)?.entries) ? ((cloud.data as any).entries as any[]) : []
+
+  // ローカルが空でクラウドにデータがある → 自動復元してOK
+  if (local.entryCount === 0 && cloudEntries.length > 0) {
+    await restoreFromPayload(cloud.data)
+    saveMeta(userId, { lastPulledAt: Date.now(), lastAppliedRemoteUpdatedAt: cloud.updated_at ?? undefined })
+    dirtySince = null
+    return
+  }
+
+  // ローカルに未プッシュ変更がある場合は、上書き復元せず「ローカル優先」で後でpushする
+  if (dirtySince != null) return
+
+  // 変更が無い状態なら、クラウドの方が新しいときだけ自動復元（最後に触った方＝クラウドを優先）
+  // ※このプロトタイプは「丸ごと上書き」方式なので、マージはしない
+  if (cloudEntries.length > 0) {
+    // ローカルが空でない場合でも、最大updatedAtがクラウドのexportedAtより古いなら復元する、という緩い判定
+    const cloudExportedAt = typeof (cloud.data as any)?.exportedAt === 'number' ? (cloud.data as any).exportedAt : 0
+    if (cloudExportedAt >= local.maxEntryUpdatedAt) {
+      await restoreFromPayload(cloud.data)
+      saveMeta(userId, { lastPulledAt: Date.now(), lastAppliedRemoteUpdatedAt: cloud.updated_at ?? undefined })
+    }
+  }
+}
+
+function schedulePush(userId: string) {
+  if (pushTimer != null) window.clearTimeout(pushTimer)
+  pushTimer = window.setTimeout(() => {
+    void (async () => {
+      try {
+        // 変更が無ければpushしない
+        if (dirtySince == null) return
+        await pushCloud(userId)
+      } catch {
+        // 通信失敗等は次のループでリトライ
+      }
+    })()
+  }, 1500)
+}
+
+export function startCloudAutoSync() {
+  if (!supabase) return () => {}
+
+  let stopped = false
+
+  async function startForSession() {
+    const { data } = await supabase!.auth.getSession()
+    const userId = data.session?.user?.id ?? null
+    currentUserId = userId
+    if (!userId) return
+
+    // 起動時は「安全にpullできるならpull」
+    try {
+      await pullIfSafe(userId)
+    } catch {
+      // 無視（オフライン等）
+    }
+
+    if (loopTimer != null) window.clearInterval(loopTimer)
+    loopTimer = window.setInterval(() => {
+      if (stopped) return
+      if (!currentUserId) return
+      // dirtyならpush（デバウンス）
+      if (dirtySince != null) schedulePush(currentUserId)
+      // たまにクラウド側更新も確認（dirtyでなければpull）
+      void (async () => {
+        try {
+          if (dirtySince != null) return
+          await pullIfSafe(currentUserId!)
+        } catch {
+          // 無視
+        }
+      })()
+    }, 5000)
+  }
+
+  void startForSession()
+
+  const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    currentUserId = session?.user?.id ?? null
+    if (!currentUserId) {
+      if (loopTimer != null) window.clearInterval(loopTimer)
+      loopTimer = null
+      dirtySince = null
+      return
+    }
+    void startForSession()
+  })
+
+  return () => {
+    stopped = true
+    sub.subscription.unsubscribe()
+    if (pushTimer != null) window.clearTimeout(pushTimer)
+    if (loopTimer != null) window.clearInterval(loopTimer)
+    pushTimer = null
+    loopTimer = null
+    currentUserId = null
+  }
+}
+

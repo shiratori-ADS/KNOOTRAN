@@ -6,6 +6,7 @@ import { inferNounInflectionTypeFromLemma } from '../../grammar/infer'
 import { normalizeToken } from '../../lib/normalize'
 import { formatExamplePairsText, parseExamplePairsText } from '../../lib/examples'
 import { adjectiveAutoForms, nounAutoForms, splitLines, verbAoristMatrix, verbImperativeForms, verbMatrix } from './wordbookHelpers'
+import { markLocalDirty } from '../../lib/cloudAutoSync'
 
 export function useWordbookController() {
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -185,6 +186,7 @@ export function useWordbookController() {
   async function onDelete(id?: number) {
     if (!id) return
     await db.entries.delete(id)
+    markLocalDirty()
     setSelected(null)
   }
 
@@ -293,6 +295,7 @@ export function useWordbookController() {
     }
 
     await db.entries.put(updated)
+    markLocalDirty()
     // 保存直後にUIへ即反映（DBのポーリングを待たない）
     setItems((prev) => prev.map((x) => (x.id === updated.id ? updated : x)))
     setSelected(updated)

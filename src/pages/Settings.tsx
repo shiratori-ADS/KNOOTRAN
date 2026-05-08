@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db, getSettings } from '../db/db'
 import type { Entry, Settings as SettingsType } from '../db/types'
-import { normalizeToken } from '../lib/normalize'
 import { supabase } from '../lib/supabaseClient'
 import { parseExcelImportB } from '../lib/excelImportB'
+import { buildLocalPayload, restoreFromPayload } from '../lib/backupPayload'
+import { markLocalDirty } from '../lib/cloudAutoSync'
 
 export function Settings() {
   const [view, setView] = useState<'home' | 'language' | 'tags' | 'bulkImport' | 'backup'>('home')
@@ -54,65 +55,13 @@ export function Settings() {
     setExcelStatus('')
   }
 
-  async function buildLocalPayload() {
+  async function restoreFromPayloadAndRefresh(raw: unknown) {
+    const { restoredCount } = await restoreFromPayload(raw)
     const s = await getSettings()
-    const entries = await db.entries.toArray()
-    const payload = {
-      kind: 'known-only-translate-backup',
-      version: 1,
-      exportedAt: Date.now(),
-      settings: s,
-      entries,
-    } as const
-    return payload
-  }
-
-  async function restoreFromPayload(raw: any) {
-    if (!raw || raw.kind !== 'known-only-translate-backup' || raw.version !== 1) {
-      throw new Error('バックアップ形式が不正です。')
-    }
-    const nextSettings: SettingsType | null =
-      raw.settings && raw.settings.id === 'singleton' ? (raw.settings as SettingsType) : null
-    const nextEntries: Entry[] = Array.isArray(raw.entries) ? (raw.entries as Entry[]) : []
-
-    if (!nextSettings) {
-      throw new Error('settingsが不正です。')
-    }
-
-    const normalizedEntries: Entry[] = nextEntries.map((e) => {
-      const lemma = normalizeToken(e.foreignLemma ?? '')
-      const forms = Array.isArray(e.foreignForms)
-        ? Array.from(new Set(e.foreignForms.map((f) => normalizeToken(f ?? '')).filter(Boolean)))
-        : lemma
-          ? [lemma]
-          : []
-      return {
-        ...e,
-        foreignLemma: lemma ? lemma : undefined,
-        foreignForms: forms,
-      }
-    })
-
-    await db.transaction('rw', db.entries, db.settings, async () => {
-      await db.entries.clear()
-      await db.settings.clear()
-      const patchedSettings: SettingsType = {
-        id: 'singleton',
-        uiLanguage: (nextSettings as any).uiLanguage === 'en' ? 'en' : 'ja',
-        tags: Array.isArray((nextSettings as any).tags) ? (nextSettings as any).tags : [],
-      }
-      await db.settings.put(patchedSettings)
-      await db.entries.bulkPut(normalizedEntries)
-    })
-
-    const patchedSettings: SettingsType = {
-      id: 'singleton',
-      uiLanguage: (nextSettings as any).uiLanguage === 'en' ? 'en' : 'ja',
-      tags: Array.isArray((nextSettings as any).tags) ? (nextSettings as any).tags : [],
-    }
-    setSettings(patchedSettings)
-    setUiLanguage(patchedSettings.uiLanguage)
-    return normalizedEntries.length
+    setSettings(s)
+    setUiLanguage(s.uiLanguage)
+    markLocalDirty()
+    return restoredCount
   }
 
   async function onSave() {
@@ -124,6 +73,7 @@ export function Settings() {
     const next: SettingsType = { id: 'singleton', uiLanguage, tags: settings?.tags ?? [] }
     await db.settings.put(next)
     setSettings(next)
+    markLocalDirty()
     setStatus('保存しました。')
   }
 
@@ -141,6 +91,7 @@ export function Settings() {
     const next: SettingsType = { ...current, tags: nextTags }
     await db.settings.put(next)
     setSettings(next)
+    markLocalDirty()
     setTagsText('')
     setSelectedTag(nextTag)
     setStatus('タグを追加しました。')
@@ -153,6 +104,7 @@ export function Settings() {
     const next: SettingsType = { ...current, tags: nextTags }
     await db.settings.put(next)
     setSettings(next)
+    markLocalDirty()
     setSelectedTag('')
     setStatus('タグを削除しました。')
   }
@@ -189,7 +141,7 @@ export function Settings() {
         `インポートすると現在の単語帳データを全て上書きします（削除→復元）。\n\nインポート件数: ${nextEntries.length}\n\n続行しますか？`,
       )
       if (!ok) return
-      const n = await restoreFromPayload(raw)
+      const n = await restoreFromPayloadAndRefresh(raw)
       setIoStatus(`インポートしました（${n}件）。`)
     } catch (e: any) {
       setIoStatus(`インポートに失敗しました: ${e?.message ?? String(e)}`)
@@ -231,6 +183,7 @@ export function Settings() {
 
       // 重複なし → そのまま登録
       await db.entries.bulkAdd(entries)
+      markLocalDirty()
       setExcelStatus(`一括登録しました（${entries.length}件）。`)
     } catch (e: any) {
       setExcelStatus(`Excelの読み込みに失敗しました: ${e?.message ?? String(e)}`)
@@ -264,6 +217,7 @@ export function Settings() {
 
       const imported = toInsert.length + (mode === 'overwrite' ? toDup.length : 0)
       const skipped = mode === 'skip' ? toDup.length : 0
+      markLocalDirty()
       setExcelStatus(`一括登録しました（登録/上書き: ${imported}件、スキップ: ${skipped}件）。`)
     } catch (e: any) {
       setExcelStatus(`一括登録に失敗しました: ${e?.message ?? String(e)}`)
@@ -386,7 +340,7 @@ export function Settings() {
       )
       if (!ok) return
 
-      const n = await restoreFromPayload(data.data)
+      const n = await restoreFromPayloadAndRefresh(data.data)
       setCloudStatus(`クラウドから復元しました（${n}件）。`)
     } catch (e: any) {
       setCloudStatus(`クラウド復元に失敗しました: ${e?.message ?? String(e)}`)

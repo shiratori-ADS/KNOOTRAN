@@ -1,6 +1,13 @@
+import { useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { startCloudAutoSync } from '../lib/cloudAutoSync'
 
 export function Layout() {
+  useEffect(() => {
+    const stop = startCloudAutoSync()
+    return () => stop()
+  }, [])
+
   return (
     <div className="appShell">
       <header className="topBar">
