@@ -72,8 +72,8 @@ async function pullIfSafe(userId: string) {
   // 既に適用済みなら何もしない
   if (cloud.updated_at && meta.lastAppliedRemoteUpdatedAt === cloud.updated_at) return
 
-  const local = await localSnapshotSummary()
   const cloudEntries: any[] = Array.isArray((cloud.data as any)?.entries) ? ((cloud.data as any).entries as any[]) : []
+  const local = await localSnapshotSummary()
 
   // ローカルが空でクラウドにデータがある → 自動復元してOK
   if (local.entryCount === 0 && cloudEntries.length > 0) {
@@ -86,16 +86,12 @@ async function pullIfSafe(userId: string) {
   // ローカルに未プッシュ変更がある場合は、上書き復元せず「ローカル優先」で後でpushする
   if (dirtySince != null) return
 
-  // 変更が無い状態なら、クラウドの方が新しいときだけ自動復元（最後に触った方＝クラウドを優先）
-  // ※このプロトタイプは「丸ごと上書き」方式なので、マージはしない
-  if (cloudEntries.length > 0) {
-    // ローカルが空でない場合でも、最大updatedAtがクラウドのexportedAtより古いなら復元する、という緩い判定
-    const cloudExportedAt = typeof (cloud.data as any)?.exportedAt === 'number' ? (cloud.data as any).exportedAt : 0
-    if (cloudExportedAt >= local.maxEntryUpdatedAt) {
-      await restoreFromPayload(cloud.data)
-      saveMeta(userId, { lastPulledAt: Date.now(), lastAppliedRemoteUpdatedAt: cloud.updated_at ?? undefined })
-    }
-  }
+  // 念のため：クラウドが空でローカルにデータがある場合は自動削除しない
+  if (cloudEntries.length === 0) return
+
+  await restoreFromPayload(cloud.data)
+  saveMeta(userId, { lastPulledAt: Date.now(), lastAppliedRemoteUpdatedAt: cloud.updated_at ?? undefined })
+  dirtySince = null
 }
 
 function schedulePush(userId: string) {
