@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db, getSettings } from '../db/db'
 import type { Entry, Settings as SettingsType } from '../db/types'
-import { supabase } from '../lib/supabaseClient'
 import { parseExcelImportB } from '../lib/excelImportB'
 import { buildLocalPayload, restoreFromPayload } from '../lib/backupPayload'
 import { markLocalDirty } from '../lib/cloudAutoSync'
@@ -15,33 +14,16 @@ export function Settings() {
   const [modalMessage, setModalMessage] = useState<string | null>(null)
   const [status, setStatus] = useState('')
   const [ioStatus, setIoStatus] = useState('')
-  const [cloudStatus, setCloudStatus] = useState('')
   const [excelStatus, setExcelStatus] = useState('')
   const [excelErrors, setExcelErrors] = useState<Array<{ rowNumber: number; foreignLemma: string; message: string }> | null>(null)
   const [excelPendingEntries, setExcelPendingEntries] = useState<Entry[] | null>(null)
   const [excelDuplicates, setExcelDuplicates] = useState<Array<{ foreignLemma: string; existingId: number }> | null>(null)
-  const [authEmail, setAuthEmail] = useState('')
-  const [authPassword, setAuthPassword] = useState('')
-  const [userEmail, setUserEmail] = useState<string | null>(null)
 
   useEffect(() => {
     getSettings().then((s) => {
       setSettings(s)
       setUiLanguage(s.uiLanguage)
     })
-  }, [])
-
-  useEffect(() => {
-    if (!supabase) return
-    supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email ?? null)
-    })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserEmail(session?.user?.email ?? null)
-    })
-    return () => {
-      sub.subscription.unsubscribe()
-    }
   }, [])
 
   const tags = useMemo(() => {
@@ -51,7 +33,6 @@ export function Settings() {
   function resetStatuses() {
     setStatus('')
     setIoStatus('')
-    setCloudStatus('')
     setExcelStatus('')
   }
 
@@ -107,6 +88,17 @@ export function Settings() {
     markLocalDirty()
     setSelectedTag('')
     setStatus('タグを削除しました。')
+  }
+
+  async function confirmRemoveTag(tag: string) {
+    const usedCount = await db.entries.where('tags').equals(tag).count()
+    if (usedCount > 0) {
+      window.alert(
+        `タグ「${tag}」は単語に使用されているため削除できません（${usedCount}件）。\n\n単語側のタグを先に外してください。`,
+      )
+      return false
+    }
+    return window.confirm(`タグ「${tag}」を削除しますか？\n\n（このタグは単語には使用されていません）\n\n続行しますか？`)
   }
 
   async function onExportJson() {
@@ -227,125 +219,6 @@ export function Settings() {
     }
   }
 
-  async function onSignUp() {
-    setCloudStatus('')
-    if (!supabase) {
-      setCloudStatus('Supabaseが未設定です（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）。')
-      return
-    }
-    const email = authEmail.trim()
-    const password = authPassword
-    if (!email || !password) {
-      setCloudStatus('メールアドレスとパスワードを入力してください。')
-      return
-    }
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) {
-      setCloudStatus(`サインアップに失敗しました: ${error.message}`)
-      return
-    }
-    setCloudStatus('サインアップしました。確認メールが有効な場合はメールを確認してください。')
-  }
-
-  async function onSignIn() {
-    setCloudStatus('')
-    if (!supabase) {
-      setCloudStatus('Supabaseが未設定です（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）。')
-      return
-    }
-    const email = authEmail.trim()
-    const password = authPassword
-    if (!email || !password) {
-      setCloudStatus('メールアドレスとパスワードを入力してください。')
-      return
-    }
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setCloudStatus(`ログインに失敗しました: ${error.message}`)
-      return
-    }
-    setAuthPassword('')
-    setCloudStatus('ログインしました。')
-  }
-
-  async function onSignOut() {
-    setCloudStatus('')
-    if (!supabase) return
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      setCloudStatus(`ログアウトに失敗しました: ${error.message}`)
-      return
-    }
-    setCloudStatus('ログアウトしました。')
-  }
-
-  async function onCloudSave() {
-    setCloudStatus('')
-    if (!supabase) {
-      setCloudStatus('Supabaseが未設定です（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）。')
-      return
-    }
-    const { data: userRes } = await supabase.auth.getUser()
-    if (!userRes.user) {
-      setCloudStatus('先にログインしてください。')
-      return
-    }
-
-    try {
-      const payload = await buildLocalPayload()
-      const ok = window.confirm(
-        `クラウドへ保存します（上書き）。\n\n保存件数: ${payload.entries.length}\n\n続行しますか？`,
-      )
-      if (!ok) return
-
-      const { error } = await supabase
-        .from('user_state')
-        .upsert({ user_id: userRes.user.id, data: payload, updated_at: new Date().toISOString() })
-
-      if (error) {
-        setCloudStatus(`クラウド保存に失敗しました: ${error.message}`)
-        return
-      }
-      setCloudStatus(`クラウドへ保存しました（${payload.entries.length}件）。`)
-    } catch (e: any) {
-      setCloudStatus(`クラウド保存に失敗しました: ${e?.message ?? String(e)}`)
-    }
-  }
-
-  async function onCloudRestore() {
-    setCloudStatus('')
-    if (!supabase) {
-      setCloudStatus('Supabaseが未設定です（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）。')
-      return
-    }
-    const { data: userRes } = await supabase.auth.getUser()
-    if (!userRes.user) {
-      setCloudStatus('先にログインしてください。')
-      return
-    }
-
-    try {
-      const { data, error } = await supabase.from('user_state').select('data, updated_at').eq('user_id', userRes.user.id).maybeSingle()
-      if (error) {
-        setCloudStatus(`クラウド取得に失敗しました: ${error.message}`)
-        return
-      }
-      if (!data?.data) {
-        setCloudStatus('クラウドに保存データがありません。')
-        return
-      }
-      const nextEntries: Entry[] = Array.isArray((data.data as any)?.entries) ? ((data.data as any).entries as Entry[]) : []
-      const ok = window.confirm(
-        `クラウドから復元します（上書き：削除→復元）。\n\n復元件数: ${nextEntries.length}\n\nクラウド更新日時: ${data.updated_at ?? '不明'}\n\n続行しますか？`,
-      )
-      if (!ok) return
-
-      const n = await restoreFromPayloadAndRefresh(data.data)
-      setCloudStatus(`クラウドから復元しました（${n}件）。`)
-    } catch (e: any) {
-      setCloudStatus(`クラウド復元に失敗しました: ${e?.message ?? String(e)}`)
-    }
-  }
 
   return (
     <section className="page">
@@ -493,11 +366,11 @@ export function Settings() {
                 disabled={!selectedTag}
                 onClick={() => {
                   if (!selectedTag) return
-                  const ok = window.confirm(
-                    `タグ「${selectedTag}」を削除しますか？\n\n※単語に付いているタグ（entries.tags）は削除されません。`,
-                  )
-                  if (!ok) return
-                  void onRemoveTag(selectedTag)
+                  void (async () => {
+                    const ok = await confirmRemoveTag(selectedTag)
+                    if (!ok) return
+                    await onRemoveTag(selectedTag)
+                  })()
                 }}
               >
                 削除
@@ -533,53 +406,6 @@ export function Settings() {
           </div>
           <div className="help">
             エクスポートは「単語帳（entries）」と「設定（settings: タグ/表示言語名）」を1つのJSONに保存します。インポートは既存データを削除して復元します。
-          </div>
-
-          <hr style={{ margin: '16px 0' }} />
-
-          <h3>クラウド同期（Supabase）</h3>
-          {!supabase && (
-            <div className="help" style={{ marginBottom: 8 }}>
-              Supabase未設定です。Vercel（またはローカル）で環境変数 `VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY` を設定してください。
-            </div>
-          )}
-
-          <div className="row wrap" style={{ alignItems: 'flex-end' }}>
-            <label className="field" style={{ flex: '1 1 260px', minWidth: 0 }}>
-              <span className="label">メール</span>
-              <input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="you@example.com" />
-            </label>
-            <label className="field" style={{ flex: '1 1 220px', minWidth: 0 }}>
-              <span className="label">パスワード</span>
-              <input type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} placeholder="••••••••" />
-            </label>
-          </div>
-
-          <div className="row wrap" style={{ marginTop: 8 }}>
-            <button className="secondary" onClick={onSignUp} disabled={!supabase}>
-              サインアップ
-            </button>
-            <button className="primary" onClick={onSignIn} disabled={!supabase}>
-              ログイン
-            </button>
-            <button className="secondary" onClick={onSignOut} disabled={!supabase || !userEmail}>
-              ログアウト
-            </button>
-            <div className="status" role="status" aria-live="polite">
-              {userEmail ? `ログイン中: ${userEmail}` : '未ログイン'}
-            </div>
-          </div>
-
-          <div className="row wrap" style={{ marginTop: 10 }}>
-            <button className="primary" onClick={onCloudSave} disabled={!supabase || !userEmail}>
-              クラウドへ保存（上書き）
-            </button>
-            <button className="secondary" onClick={onCloudRestore} disabled={!supabase || !userEmail}>
-              クラウドから復元（上書き）
-            </button>
-            <div className="status" role="status" aria-live="polite">
-              {cloudStatus}
-            </div>
           </div>
         </div>
       )}
