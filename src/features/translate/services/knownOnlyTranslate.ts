@@ -12,6 +12,7 @@ import {
   stripGreekTonos,
 } from '../../../grammar/accent'
 import { adjectiveMatchesToken } from '../../../grammar/adjective'
+import { personalPronounMatchesToken } from '../../../grammar/personalPronoun'
 import { tokenize } from '../../../lib/tokenize'
 
 export type TranslateDirection = 'ja_to_foreign' | 'foreign_to_ja'
@@ -476,6 +477,12 @@ async function findByForeignTokenWithInflection(norm: string): Promise<Entry | u
   const nouns = await db.entries.where('pos').equals('noun').limit(500).toArray()
   for (const n of nouns) {
     if (nounMatchesToken(norm, n)) return n
+  }
+
+  // 人称代名詞
+  const pPro = await db.entries.where('pos').equals('pronoun_personal').limit(200).toArray()
+  for (const p of pPro) {
+    if (personalPronounMatchesToken(norm, p)) return p
   }
 
   // 形容詞/疑問詞

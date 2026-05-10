@@ -78,7 +78,7 @@ export function TranslatePage() {
             </select>
           </label>
           <button className="primary" onClick={onTranslate} disabled={busy}>
-            {busy ? '変換中…' : '変換する'}
+            {busy ? '変換中…' : '変換'}
           </button>
         </div>
 

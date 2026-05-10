@@ -1,10 +1,18 @@
 import type { Entry } from '../../../db/types'
+import type { NounMatrix } from '../../../grammar/noun'
 import { normalizeToken } from '../../../lib/normalize'
 import { stripGreekTonos } from '../../../grammar/accent'
 import {
   adjectiveMatrix,
   endingsByCell,
+  interrogativeLemmaHasAdjectiveDeclension,
   nounMatrix,
+  personalPronounAutoForms,
+  PP_COL_LABELS,
+  PP_COLS,
+  PP_ROW_LABELS,
+  PP_ROWS,
+  ppKey,
   renderEndingRed,
   resolveNounTypeForMatrix,
   verbAoristMatrix,
@@ -13,12 +21,83 @@ import {
 } from '../wordbookHelpers'
 import { inferNounInflectionTypeFromLemma } from '../../../grammar/infer'
 
+const NOUN_OVERRIDE_KEYS = ['n_nom_sg', 'n_gen_sg', 'n_acc_sg', 'n_nom_pl', 'n_gen_pl', 'n_acc_pl'] as const
+
+function hasNounOverrideContent(overrides: Entry['inflectionOverrides'] | undefined): boolean {
+  const o = overrides ?? {}
+  return NOUN_OVERRIDE_KEYS.some((k) => typeof (o as Record<string, string>)[k] === 'string' && (o as Record<string, string>)[k].trim())
+}
+
+/** 自動生成できない名詞タイプでも、上書きだけで活用表を表示する */
+function nounMatrixFromOverrides(overrides: Entry['inflectionOverrides'] | undefined): NounMatrix | null {
+  if (!hasNounOverrideContent(overrides)) return null
+  const o = overrides ?? {}
+  const get = (k: (typeof NOUN_OVERRIDE_KEYS)[number]) => String((o as Record<string, string>)[k] ?? '').trim()
+  return {
+    rows: [
+      {
+        number: 'sg',
+        forms: { nom: get('n_nom_sg'), gen: get('n_gen_sg'), acc: get('n_acc_sg') },
+      },
+      {
+        number: 'pl',
+        forms: { nom: get('n_nom_pl'), gen: get('n_gen_pl'), acc: get('n_acc_pl') },
+      },
+    ],
+  }
+}
+
 export function InflectionSection({ selected }: { selected: Entry }) {
-  if (!(selected.pos === 'verb' || selected.pos === 'noun' || selected.pos === 'adjective' || selected.pos === 'pronoun_interrogative'))
+  if (
+    !(
+      selected.pos === 'verb' ||
+      selected.pos === 'noun' ||
+      selected.pos === 'adjective' ||
+      selected.pos === 'pronoun_interrogative' ||
+      selected.pos === 'pronoun_personal'
+    )
+  )
     return null
 
   const lemma = normalizeToken(selected.foreignLemma ?? '')
   if (!lemma) return <span className="subtle">見出し語が未入力です。</span>
+
+  if (selected.pos === 'pronoun_interrogative' && !interrogativeLemmaHasAdjectiveDeclension(lemma)) return null
+
+  if (selected.pos === 'pronoun_personal') {
+    const auto = personalPronounAutoForms()
+    const o = selected.inflectionOverrides ?? {}
+    const get = (k: string) => (((o as Record<string, string>)[k] as string | undefined) ?? '').trim() || auto[k as keyof typeof auto] || ''
+    return (
+      <div className="matrixWrap">
+        <table className="matrix">
+          <thead>
+            <tr>
+              <th></th>
+              {PP_COLS.map((col) => (
+                <th key={col}>{PP_COL_LABELS[col]}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {PP_ROWS.map((row) => (
+              <tr key={row}>
+                <td>{PP_ROW_LABELS[row]}</td>
+                {PP_COLS.map((col) => {
+                  const k = ppKey(row, col)
+                  return (
+                    <td key={`${row}-${col}`} className="mono greek">
+                      {get(k)}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
 
   if (selected.pos === 'verb') {
     const isB1 = (t?: Entry['inflectionType']) =>
@@ -583,8 +662,10 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   if (selected.pos === 'noun' && selected.nounGender === 'common_mf') {
     const tMasc = inferNounInflectionTypeFromLemma(lemma, 'masc')
     const tFem = inferNounInflectionTypeFromLemma(lemma, 'fem')
-    const nMasc = nounMatrix(lemma, tMasc)
-    const nFem = nounMatrix(lemma, tFem)
+    const o = selected.inflectionOverrides
+    const manual = nounMatrixFromOverrides(o)
+    const nMasc = nounMatrix(lemma, tMasc) ?? manual
+    const nFem = nounMatrix(lemma, tFem) ?? manual
     if (!nMasc && !nFem) return <span className="subtle">この活用タイプは未対応です。</span>
     const endsMasc = endingsByCell[tMasc] ?? undefined
     const endsFem = endingsByCell[tFem] ?? undefined
@@ -698,7 +779,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   }
 
   const nounType = resolveNounTypeForMatrix(selected, lemma)
-  const n = nounMatrix(lemma, nounType)
+  const n = nounMatrix(lemma, nounType) ?? nounMatrixFromOverrides(selected.inflectionOverrides)
   if (!n) return <span className="subtle">この活用タイプは未対応です。</span>
   const ends = endingsByCell[nounType] ?? undefined
   const g = selected.nounGender === 'fem' ? 'fem' : selected.nounGender === 'neut' ? 'neut' : 'masc'

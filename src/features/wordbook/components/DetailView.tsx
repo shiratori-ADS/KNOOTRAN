@@ -1,14 +1,20 @@
 import { useState } from 'react'
 import type { Entry } from '../../../db/types'
 import { InflectionSection } from './InflectionSection'
-import { displayForm, genderLabel, inflectionLabel, posLabel, verbInflectionShortLabel } from '../wordbookHelpers'
+import {
+  displayForm,
+  genderLabel,
+  inflectionLabel,
+  posLabel,
+  shouldShowInflectionSection,
+  verbInflectionShortLabel,
+} from '../wordbookHelpers'
 import { normalizeExamplePairs } from '../../../lib/examples'
 
 export function DetailView({
   selected,
   isMobile,
   status,
-  lookupStatus,
   onBackToList,
   onEdit,
   onDelete,
@@ -17,7 +23,6 @@ export function DetailView({
   selected: Entry
   isMobile: boolean
   status: string
-  lookupStatus: string
   onBackToList: () => void
   onEdit: () => void
   onDelete: () => void
@@ -38,12 +43,14 @@ export function DetailView({
         </div>
       )}
 
-      <div className="kv kvFull">
-        <div className="k">活用</div>
-        <div className="v">
-          <InflectionSection selected={selected} />
+      {shouldShowInflectionSection(selected) && (
+        <div className="kv kvFull">
+          <div className="k">活用</div>
+          <div className="v">
+            <InflectionSection selected={selected} />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="kv">
         <div className="k">例文</div>
@@ -74,7 +81,6 @@ export function DetailView({
                   </button>
                 ))}
               </div>
-              {lookupStatus && <div className="subtle">{lookupStatus}</div>}
             </>
           ) : (
             <span className="subtle">（なし）</span>

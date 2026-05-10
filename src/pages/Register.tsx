@@ -3,6 +3,7 @@ import { db, getSettings } from '../db/db'
 import type { Entry, InflectionType, NounGender, PartOfSpeech, Settings } from '../db/types'
 import { normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
+import { personalPronounAutoForms } from '../grammar/personalPronoun'
 import { nounGenderOptions, verbInflectionOptions } from '../features/wordbook/wordbookHelpers'
 import { parseExamplePairsText } from '../lib/examples'
 import { markLocalDirty } from '../lib/cloudAutoSync'
@@ -91,7 +92,18 @@ export function Register() {
             ? inferNounInflectionTypeFromLemma(lemmaNorm, nounGender)
             : 'none',
       foreignLemma: lemmaNorm ? lemmaNorm : undefined,
-      foreignForms: lemmaNorm ? [lemmaNorm] : [],
+      foreignForms: lemmaNorm
+        ? pos === 'pronoun_personal'
+          ? Array.from(
+              new Set([
+                lemmaNorm,
+                ...Object.values(personalPronounAutoForms())
+                  .map((x) => normalizeToken(x ?? ''))
+                  .filter(Boolean),
+              ]),
+            )
+          : [lemmaNorm]
+        : [],
       examples: parseExamplePairsText(examplesText),
       related: splitLines(relatedText),
       createdAt: now,
@@ -255,7 +267,7 @@ export function Register() {
 
         <div className="row">
           <button className="primary" onClick={onSave}>
-            登録する
+            登録
           </button>
           <div className="status" role="status" aria-live="polite">
             {status}

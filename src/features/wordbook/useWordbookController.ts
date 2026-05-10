@@ -5,7 +5,16 @@ import { stripGreekTonos } from '../../grammar/accent'
 import { inferNounInflectionTypeFromLemma } from '../../grammar/infer'
 import { normalizeToken } from '../../lib/normalize'
 import { formatExamplePairsText, parseExamplePairsText } from '../../lib/examples'
-import { adjectiveAutoForms, nounAutoForms, splitLines, verbAoristMatrix, verbImperativeForms, verbMatrix } from './wordbookHelpers'
+import {
+  adjectiveAutoForms,
+  interrogativeLemmaHasAdjectiveDeclension,
+  nounAutoForms,
+  personalPronounAutoForms,
+  splitLines,
+  verbAoristMatrix,
+  verbImperativeForms,
+  verbMatrix,
+} from './wordbookHelpers'
 import { markLocalDirty } from '../../lib/cloudAutoSync'
 
 export function useWordbookController() {
@@ -27,7 +36,6 @@ export function useWordbookController() {
   const [editTags, setEditTags] = useState<string[]>([])
   const [editMemo, setEditMemo] = useState('')
   const [status, setStatus] = useState('')
-  const [lookupStatus, setLookupStatus] = useState('')
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -66,11 +74,9 @@ export function useWordbookController() {
     if (!selected) {
       setIsEditing(false)
       setStatus('')
-      setLookupStatus('')
       return
     }
     setStatus('')
-    setLookupStatus('')
     setEditPos(selected.pos)
     setEditNounGender(selected.nounGender ?? 'masc')
     setEditInflectionType(selected.inflectionType ?? 'none')
@@ -121,8 +127,14 @@ export function useWordbookController() {
   const autoEditAdj = useMemo(() => {
     if (!(editPos === 'adjective' || editPos === 'pronoun_interrogative')) return null
     if (!editLemmaNorm) return null
+    if (editPos === 'pronoun_interrogative' && !interrogativeLemmaHasAdjectiveDeclension(editLemmaNorm)) return null
     return adjectiveAutoForms(editLemmaNorm)
   }, [editPos, editLemmaNorm])
+
+  const autoEditPp = useMemo(() => {
+    if (editPos !== 'pronoun_personal') return null
+    return personalPronounAutoForms()
+  }, [editPos])
 
   const tagOptions = useMemo(() => (settings?.tags ?? []).slice().sort((a, b) => a.localeCompare(b)), [settings?.tags])
 
@@ -269,13 +281,30 @@ export function useWordbookController() {
           if (cur && normEq(cur, (autoNoun as any)[k])) delete (o as any)[k]
         })
       }
+      if (editPos === 'pronoun_personal') {
+        const autoPp = personalPronounAutoForms()
+        for (const k of Object.keys(autoPp)) {
+          const kk = k as keyof typeof autoPp
+          const cur = (o as any)[kk]
+          if (cur && normEq(cur, autoPp[kk])) delete (o as any)[kk]
+        }
+      }
       return o
     })()
 
     const overrideForms = Object.values(editOverrides ?? {})
       .map((x) => normalizeToken(x ?? ''))
       .filter(Boolean)
-    const mergedForms = Array.from(new Set([lemmaNorm, ...overrideForms]))
+    const mergedFormsBase = Array.from(new Set([lemmaNorm, ...overrideForms]))
+    const mergedForms =
+      editPos === 'pronoun_personal'
+        ? Array.from(
+            new Set([
+              ...mergedFormsBase,
+              ...Object.values(personalPronounAutoForms()).map((x) => normalizeToken(x ?? '')).filter(Boolean),
+            ]),
+          )
+        : mergedFormsBase
 
     const updated: Entry = {
       ...selected,
@@ -304,7 +333,6 @@ export function useWordbookController() {
   }
 
   async function lookupRelated(termRaw: string) {
-    setLookupStatus('')
     const term = normalizeToken(termRaw)
     if (!term) return
 
@@ -323,7 +351,6 @@ export function useWordbookController() {
       setSelected(byMeaning)
       return
     }
-    setLookupStatus(`「${termRaw}」は単語帳に未登録です。`)
   }
 
   const list = {
@@ -344,7 +371,6 @@ export function useWordbookController() {
         selected,
         isMobile,
         status,
-        lookupStatus,
         onBackToList: () => setSelected(null),
         onEdit: () => setIsEditing(true),
         onDelete: () => {
@@ -374,6 +400,7 @@ export function useWordbookController() {
     autoEditImp,
     autoEditNoun,
     autoEditAdj,
+    autoEditPp,
     editExamplesText,
     setEditExamplesText,
     editRelatedText,
@@ -404,7 +431,6 @@ export function useWordbookController() {
       items,
       status,
       setStatus,
-      lookupStatus,
     } as const,
   }
 }

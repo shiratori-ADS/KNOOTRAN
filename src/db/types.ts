@@ -70,6 +70,24 @@ export type InflectionType =
   | 'noun_neut_-μο'
   | 'none'
 
+/** 人称代名詞マトリックスの行（一単…三中複） */
+export type PersonalPronounRow =
+  | '1sg'
+  | '2sg'
+  | '3m_sg'
+  | '3f_sg'
+  | '3n_sg'
+  | '1pl'
+  | '2pl'
+  | '3m_pl'
+  | '3f_pl'
+  | '3n_pl'
+
+/** 人称代名詞マトリックスの列（～は / ～の強弱 / ～を強弱） */
+export type PersonalPronounCol = 'wa' | 'no_kyo' | 'no_jaku' | 'wo_kyo' | 'wo_jaku'
+
+export type PersonalPronounInflectionKey = `pp_${PersonalPronounRow}_${PersonalPronounCol}`
+
 export type Entry = {
   id?: number
   pos: PartOfSpeech
@@ -88,6 +106,7 @@ export type Entry = {
    * - 形容詞（最小）:
    *   - 単数: a_m_nom_sg / a_m_gen_sg / a_m_acc_sg / a_f_nom_sg / a_f_gen_sg / a_f_acc_sg / a_n_nom_sg / a_n_gen_sg / a_n_acc_sg
    *   - 複数: a_m_nom_pl / a_m_gen_pl / a_m_acc_pl / a_f_nom_pl / a_f_gen_pl / a_f_acc_pl / a_n_nom_pl / a_n_gen_pl / a_n_acc_pl
+   * - 人称代名詞: pp_{行}_{列}（行: 1sg,2sg,3m_sg,… / 列: wa,no_kyo,no_jaku,wo_kyo,wo_jaku）
    */
   inflectionOverrides?: Partial<
     Record<
@@ -160,7 +179,8 @@ export type Entry = {
       | 'a_f_acc_pl'
       | 'a_n_nom_pl'
       | 'a_n_gen_pl'
-      | 'a_n_acc_pl',
+      | 'a_n_acc_pl'
+      | PersonalPronounInflectionKey,
       string
     >
   >

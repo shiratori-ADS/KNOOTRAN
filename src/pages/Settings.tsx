@@ -18,6 +18,8 @@ export function Settings() {
   const [excelErrors, setExcelErrors] = useState<Array<{ rowNumber: number; foreignLemma: string; message: string }> | null>(null)
   const [excelPendingEntries, setExcelPendingEntries] = useState<Entry[] | null>(null)
   const [excelDuplicates, setExcelDuplicates] = useState<Array<{ foreignLemma: string; existingId: number }> | null>(null)
+  /** Excel取り込みでタグ設定へ自動追加した内容の説明（同一画面に残す） */
+  const [excelImportTagNotice, setExcelImportTagNotice] = useState<string | null>(null)
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -34,6 +36,7 @@ export function Settings() {
     setStatus('')
     setIoStatus('')
     setExcelStatus('')
+    setExcelImportTagNotice(null)
   }
 
   async function restoreFromPayloadAndRefresh(raw: unknown) {
@@ -101,6 +104,28 @@ export function Settings() {
     return window.confirm(`タグ「${tag}」を削除しますか？\n\n（このタグは単語には使用されていません）\n\n続行しますか？`)
   }
 
+  /** Excel一括登録の各行タグのうち、タグ設定に無いものを設定へ追加。追加したタグ名を返す */
+  async function mergeTagsFromExcelEntries(entries: Entry[]): Promise<string[]> {
+    const current = settings ?? (await getSettings())
+    const existing = new Set((current.tags ?? []).map((t) => t.trim()).filter(Boolean))
+    const fromImport = new Set<string>()
+    for (const e of entries) {
+      for (const raw of e.tags ?? []) {
+        const x = String(raw).trim().replace(/\s+/g, ' ')
+        if (x) fromImport.add(x)
+      }
+    }
+    const missing = [...fromImport].filter((t) => !existing.has(t)).sort((a, b) => a.localeCompare(b))
+    if (missing.length === 0) return []
+
+    const nextTags = Array.from(new Set([...(current.tags ?? []), ...missing])).sort((a, b) => a.localeCompare(b))
+    const next: SettingsType = { ...current, tags: nextTags }
+    await db.settings.put(next)
+    setSettings(next)
+    markLocalDirty()
+    return missing
+  }
+
   async function onExportJson() {
     setIoStatus('')
     try {
@@ -146,6 +171,7 @@ export function Settings() {
     setExcelErrors(null)
     setExcelPendingEntries(null)
     setExcelDuplicates(null)
+    setExcelImportTagNotice(null)
 
     try {
       const buf = await file.arrayBuffer()
@@ -156,6 +182,14 @@ export function Settings() {
       }
 
       const entries = parsed.entries
+
+      const addedTags = await mergeTagsFromExcelEntries(entries)
+      const tagNoticeMsg =
+        addedTags.length > 0
+          ? `タグ設定にない名前がExcelのタグ欄に含まれていました。次のタグを追加しました：${addedTags.join('、')}`
+          : null
+      if (tagNoticeMsg) setExcelImportTagNotice(tagNoticeMsg)
+
       // 重複チェック（foreignLemmaの完全一致を基本とする。forms 側も将来拡張できるが、個人用の一括登録ではlemmaベースが扱いやすい）
       const existing = await db.entries.where('foreignLemma').anyOf(entries.map((e) => e.foreignLemma ?? '')).toArray()
       const existingByLemma = new Map(existing.filter((e) => e.id != null).map((e) => [e.foreignLemma ?? '', e.id!]))
@@ -174,6 +208,7 @@ export function Settings() {
       }
 
       // 重複なし → そのまま登録
+      if (tagNoticeMsg) setModalMessage(tagNoticeMsg)
       await db.entries.bulkAdd(entries)
       markLocalDirty()
       setExcelStatus(`一括登録しました（${entries.length}件）。`)
@@ -442,6 +477,11 @@ export function Settings() {
               {excelStatus}
             </div>
           </div>
+          {excelImportTagNotice ? (
+            <div className="help" style={{ marginTop: 10, whiteSpace: 'pre-wrap' }}>
+              {excelImportTagNotice}
+            </div>
+          ) : null}
           <div className="help">
             `word/noun/adjective/verb` シートを持つテンプレのExcelを想定します。名詞・形容詞/疑問詞・動詞は対応シートに行が無い場合エラーになります。
           </div>
@@ -491,7 +531,7 @@ export function Settings() {
           className="modalOverlay"
           role="dialog"
           aria-modal="true"
-          aria-label="重複lemmaの確認"
+          aria-label="重複単語の確認"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) {
               setExcelPendingEntries(null)
@@ -500,7 +540,12 @@ export function Settings() {
           }}
         >
           <div className="modalCard" onMouseDown={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>重複lemmaが見つかりました</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>重複単語が見つかりました</div>
+            {excelImportTagNotice ? (
+              <div className="help" style={{ marginBottom: 10, whiteSpace: 'pre-wrap' }}>
+                {excelImportTagNotice}
+              </div>
+            ) : null}
             <div className="help" style={{ marginBottom: 8 }}>
               既に単語帳に存在するlemmaです。上書き/スキップ/キャンセルを選んでください。
             </div>

@@ -2,10 +2,12 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { Entry, InflectionType, NounGender, PartOfSpeech } from '../../../db/types'
 
 import { AdjectiveOverridesEditor, type AdjectiveAutoForms } from './AdjectiveOverridesEditor'
+import { PersonalPronounOverridesEditor, type PersonalPronounAutoForms } from './PersonalPronounOverridesEditor'
 import { NounOverridesEditor, type NounAutoForms } from './NounOverridesEditor'
 import { TagChips } from './TagChips'
 import { VerbOverridesEditor, type VerbAorRow, type VerbRow } from './VerbOverridesEditor'
-import { nounGenderOptions, verbInflectionOptions } from '../wordbookHelpers'
+import { normalizeToken } from '../../../lib/normalize'
+import { interrogativeLemmaHasAdjectiveDeclension, nounGenderOptions, verbInflectionOptions } from '../wordbookHelpers'
 
 export function DetailEdit({
   editForeignLemma,
@@ -25,6 +27,7 @@ export function DetailEdit({
   autoEditImp,
   autoEditNoun,
   autoEditAdj,
+  autoEditPp,
   editExamplesText,
   setEditExamplesText,
   editRelatedText,
@@ -56,6 +59,7 @@ export function DetailEdit({
   autoEditImp: { pres2sg: string; pres2pl: string; aor2sg: string; aor2pl: string } | null
   autoEditNoun: NounAutoForms | null
   autoEditAdj: AdjectiveAutoForms | null
+  autoEditPp: PersonalPronounAutoForms | null
   editExamplesText: string
   setEditExamplesText: (v: string) => void
   editRelatedText: string
@@ -70,6 +74,8 @@ export function DetailEdit({
   onCancel: () => void
   posOptions: Array<{ value: PartOfSpeech; label: string }>
 }) {
+  const editLemmaNorm = editForeignLemma.trim() ? normalizeToken(editForeignLemma) : ''
+
   return (
     <>
       <label className="field">
@@ -137,9 +143,15 @@ export function DetailEdit({
               : '名詞は見出し語の語尾と性から活用タイプを推定します。上書き/手入力した語形は単語モード/文モードの照合にも反映されます。'
             : editPos === 'verb'
               ? '動詞は活用タイプからマトリックスを表示します。上書き/手入力した語形は単語モード/文モードの照合にも反映されます。'
-              : editPos === 'adjective' || editPos === 'pronoun_interrogative'
-                ? '形容詞/疑問詞は（最小対応）見出し語から活用形を推定します。必要なら下の欄で上書きしてください（入力した形は照合にも反映されます）。'
-                : '必要なら下の欄で語形（活用形）を手入力してください（入力した形は照合にも反映されます）。'}
+              : editPos === 'pronoun_personal'
+                ? '人称代名詞は共通の標準活用表を表示します。セルを上書きした語形は単語モード/文モードの照合にも反映されます。'
+                : editPos === 'adjective' ||
+                    (editPos === 'pronoun_interrogative' &&
+                      (!editForeignLemma.trim() || interrogativeLemmaHasAdjectiveDeclension(editLemmaNorm)))
+                  ? '形容詞/疑問詞は（最小対応）見出し語から活用形を推定します。必要なら下の欄で上書きしてください（入力した形は照合にも反映されます）。'
+                  : editPos === 'pronoun_interrogative'
+                    ? 'この疑問詞は形容詞型の活用表の対象外です（ποιός / πόσος のみ行列表示）。照合に必要な語形があれば下で個別に入力してください。'
+                    : '必要なら下の欄で語形（活用形）を手入力してください（入力した形は照合にも反映されます）。'}
         </div>
 
         {(editPos === 'noun' || editPos === 'verb') && (
@@ -158,10 +170,20 @@ export function DetailEdit({
           </div>
         )}
 
-        {(editPos === 'adjective' || editPos === 'pronoun_interrogative') && (
+        {(editPos === 'adjective' ||
+          (editPos === 'pronoun_interrogative' &&
+            (!editLemmaNorm || interrogativeLemmaHasAdjectiveDeclension(editLemmaNorm)))) && (
           <div className="matrixEdit">
             <AdjectiveOverridesEditor editOverrides={editOverrides} setEditOverrides={setEditOverrides} autoEditAdj={autoEditAdj} />
           </div>
+        )}
+
+        {editPos === 'pronoun_personal' && (
+          <PersonalPronounOverridesEditor
+            editOverrides={editOverrides}
+            setEditOverrides={setEditOverrides}
+            autoEditPp={autoEditPp}
+          />
         )}
       </div>
 

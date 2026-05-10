@@ -2,6 +2,30 @@ import type { Entry, InflectionType, NounGender, PartOfSpeech } from '../../db/t
 import {
   stripGreekTonos,
 } from '../../grammar/accent'
+import { normalizeToken } from '../../lib/normalize'
+
+/** 形容詞型の活用行列を持つのは ποιός / πόσος のみ。見出し未入力は編集・詳細で従来どおり扱うため true */
+export function interrogativeLemmaHasAdjectiveDeclension(lemmaNorm: string): boolean {
+  if (!lemmaNorm) return true
+  const plain = stripGreekTonos(lemmaNorm)
+  return plain === 'ποιος' || plain === 'ποσος'
+}
+
+/** 詳細の「活用」ブロックを出すか（τι・πού 等では行列ごと非表示） */
+export function shouldShowInflectionSection(selected: Entry): boolean {
+  if (
+    selected.pos !== 'verb' &&
+    selected.pos !== 'noun' &&
+    selected.pos !== 'adjective' &&
+    selected.pos !== 'pronoun_interrogative' &&
+    selected.pos !== 'pronoun_personal'
+  )
+    return false
+  if (selected.pos !== 'pronoun_interrogative') return true
+  const lemma = normalizeToken(selected.foreignLemma ?? '')
+  if (!lemma) return true
+  return interrogativeLemmaHasAdjectiveDeclension(lemma)
+}
 
 export { verbAoristMatrix, verbImperativeForms, verbMatrix } from '../../grammar/verb'
 
@@ -219,6 +243,14 @@ export const verbInflectionOptions: Array<{ value: InflectionType; label: string
 ]
 export { nounAutoForms } from '../../grammar/noun'
 export { adjectiveMatrix, adjectiveAutoForms } from '../../grammar/adjective'
+export {
+  PP_COLS,
+  PP_COL_LABELS,
+  PP_ROWS,
+  PP_ROW_LABELS,
+  personalPronounAutoForms,
+  ppKey,
+} from '../../grammar/personalPronoun'
 
 export { nounMatrix } from '../../grammar/noun'
 
