@@ -1,6 +1,6 @@
 import { db, getSettings } from '../db/db'
 import type { Entry, Settings as SettingsType } from '../db/types'
-import { normalizeToken } from './normalize'
+import { normalizeForeignStorage } from './normalize'
 
 export type BackupPayloadV1 = {
   kind: 'known-only-translate-backup'
@@ -37,9 +37,9 @@ export async function restoreFromPayload(raw: unknown): Promise<{ restoredCount:
   }
 
   const normalizedEntries: Entry[] = nextEntries.map((e) => {
-    const lemma = normalizeToken(e.foreignLemma ?? '')
+    const lemma = normalizeForeignStorage(e.foreignLemma ?? '')
     const forms = Array.isArray(e.foreignForms)
-      ? Array.from(new Set(e.foreignForms.map((f) => normalizeToken(f ?? '')).filter(Boolean)))
+      ? Array.from(new Set(e.foreignForms.map((f) => normalizeForeignStorage(f ?? '')).filter(Boolean)))
       : lemma
         ? [lemma]
         : []

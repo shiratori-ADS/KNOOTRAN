@@ -1,6 +1,6 @@
 import type { Entry } from '../../../db/types'
 import type { NounMatrix } from '../../../grammar/noun'
-import { normalizeToken } from '../../../lib/normalize'
+import { normalizeForeignStorage, normalizeToken } from '../../../lib/normalize'
 import { stripGreekTonos } from '../../../grammar/accent'
 import {
   adjectiveMatrix,
@@ -59,10 +59,11 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   )
     return null
 
-  const lemma = normalizeToken(selected.foreignLemma ?? '')
-  if (!lemma) return <span className="subtle">見出し語が未入力です。</span>
+  const lemmaRaw = normalizeForeignStorage(selected.foreignLemma ?? '')
+  const lemmaNorm = normalizeToken(lemmaRaw)
+  if (!lemmaNorm) return <span className="subtle">見出し語が未入力です。</span>
 
-  if (selected.pos === 'pronoun_interrogative' && !interrogativeLemmaHasAdjectiveDeclension(lemma)) return null
+  if (selected.pos === 'pronoun_interrogative' && !interrogativeLemmaHasAdjectiveDeclension(lemmaNorm)) return null
 
   if (selected.pos === 'pronoun_personal') {
     const auto = personalPronounAutoForms()
@@ -314,9 +315,9 @@ export function InflectionSection({ selected }: { selected: Entry }) {
       return ['ε', 'τε']
     }
     const o: any = selected.inflectionOverrides ?? {}
-    const m = verbMatrix(lemma, selected.inflectionType)
-    const a = verbAoristMatrix(lemma, selected.inflectionType)
-    const imp = verbImperativeForms(lemma, selected.inflectionType)
+    const m = verbMatrix(lemmaRaw, selected.inflectionType)
+    const a = verbAoristMatrix(lemmaRaw, selected.inflectionType)
+    const imp = verbImperativeForms(lemmaRaw, selected.inflectionType)
 
     // 活用タイプ未対応でも、手入力（上書き）分は表示できるようにする
     if (!m) {
@@ -545,7 +546,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   }
 
   if (selected.pos === 'adjective' || selected.pos === 'pronoun_interrogative') {
-    const a = adjectiveMatrix(lemma)
+    const a = adjectiveMatrix(lemmaRaw)
     const o = selected.inflectionOverrides ?? {}
     const hasOverrides = Object.keys(o).some((k) => k.startsWith('a_') && typeof (o as any)[k] === 'string' && (o as any)[k].trim())
     if (!a && !hasOverrides) return <span className="subtle">この形容詞/疑問詞タイプは未対応です。</span>
@@ -553,7 +554,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     const headers = a?.headers ?? ['男', '女', '中']
     const get = (k: keyof typeof o, fallback: string) => (((o as any)[k] as string | undefined) ?? fallback).toString()
     const row = (idx: number, col: number) => a?.rows?.[idx]?.cells?.[col] ?? ''
-    const lemmaPlain = stripGreekTonos(lemma)
+    const lemmaPlain = stripGreekTonos(lemmaNorm)
     const adjType =
       lemmaPlain === 'πολυς' ? 'adj_πολυς' : lemmaPlain.endsWith('υς') ? 'adj_-υς' : lemmaPlain.endsWith('ιος') ? 'adj_-ιος' : 'adj_-ος'
     const endingFor = (r: number, c: number): string => {
@@ -660,19 +661,22 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   }
 
   if (selected.pos === 'noun' && selected.nounGender === 'common_mf') {
-    const tMasc = inferNounInflectionTypeFromLemma(lemma, 'masc')
-    const tFem = inferNounInflectionTypeFromLemma(lemma, 'fem')
+    const tMasc = inferNounInflectionTypeFromLemma(lemmaRaw, 'masc')
+    const tFem = inferNounInflectionTypeFromLemma(lemmaRaw, 'fem')
     const o = selected.inflectionOverrides
     const manual = nounMatrixFromOverrides(o)
-    const nMasc = nounMatrix(lemma, tMasc) ?? manual
-    const nFem = nounMatrix(lemma, tFem) ?? manual
+    const nMasc = nounMatrix(lemmaRaw, tMasc) ?? manual
+    const nFem = nounMatrix(lemmaRaw, tFem) ?? manual
     if (!nMasc && !nFem) return <span className="subtle">この活用タイプは未対応です。</span>
     const endsMasc = endingsByCell[tMasc] ?? undefined
     const endsFem = endingsByCell[tFem] ?? undefined
 
     const article = (g: 'masc' | 'fem' | 'neut', num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
       if (kase === 'gen' && num === 'pl') return 'των'
-      if (g === 'neut') return num === 'sg' ? 'το' : 'τα'
+      if (g === 'neut') {
+        if (kase === 'gen') return num === 'sg' ? 'του' : 'των'
+        return num === 'sg' ? 'το' : 'τα'
+      }
       if (g === 'masc') {
         if (kase === 'nom') return num === 'sg' ? 'ο' : 'οι'
         if (kase === 'gen') return 'του'
@@ -707,6 +711,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
               : selected.inflectionOverrides?.n_acc_sg
 
       const form = ov ?? baseForm
+      if (!(form ?? '').trim()) return ''
       const display = `${article(g, num, kase)} ${form}`
       if (ov || !ends) return display
       if (kase === 'nom') return renderEndingRed(display, [num === 'pl' ? ends.nomPl : ends.nomSg])
@@ -778,14 +783,17 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     )
   }
 
-  const nounType = resolveNounTypeForMatrix(selected, lemma)
-  const n = nounMatrix(lemma, nounType) ?? nounMatrixFromOverrides(selected.inflectionOverrides)
+  const nounType = resolveNounTypeForMatrix(selected, lemmaRaw)
+  const n = nounMatrix(lemmaRaw, nounType) ?? nounMatrixFromOverrides(selected.inflectionOverrides)
   if (!n) return <span className="subtle">この活用タイプは未対応です。</span>
   const ends = endingsByCell[nounType] ?? undefined
   const g = selected.nounGender === 'fem' ? 'fem' : selected.nounGender === 'neut' ? 'neut' : 'masc'
   const article = (num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
     if (kase === 'gen' && num === 'pl') return 'των'
-    if (g === 'neut') return num === 'sg' ? 'το' : 'τα'
+    if (g === 'neut') {
+      if (kase === 'gen') return num === 'sg' ? 'του' : 'των'
+      return num === 'sg' ? 'το' : 'τα'
+    }
     if (g === 'masc') {
       if (kase === 'nom') return num === 'sg' ? 'ο' : 'οι'
       if (kase === 'gen') return 'του'
@@ -817,6 +825,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
 
           const cell = (kase: 'nom' | 'gen' | 'acc', form: string, ov?: string, ending?: string) => {
             const baseForm = ov ?? form
+            if (!(baseForm ?? '').trim()) return ''
             const display = `${article(num, kase)} ${baseForm}`
             if (ov || !ends || !ending) return display
             return renderEndingRed(display, [ending])

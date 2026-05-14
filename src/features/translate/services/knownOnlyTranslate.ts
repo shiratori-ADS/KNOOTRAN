@@ -1,4 +1,5 @@
 import { db } from '../../../db/db'
+import { findEntryByNormalizedForeignForm, findEntryByNormalizedForeignLemma } from '../../../lib/entryForeignLookup'
 import { normalizeToken } from '../../../lib/normalize'
 import { levenshtein } from '../../../lib/levenshtein'
 import type { Entry, InflectionType, NounGender } from '../../../db/types'
@@ -33,11 +34,11 @@ export type TranslateResult = {
 }
 
 async function findByForeignForm(norm: string): Promise<Entry | undefined> {
-  return db.entries.where('foreignForms').equals(norm).first()
+  return findEntryByNormalizedForeignForm(norm)
 }
 
 async function findByForeignLemma(norm: string): Promise<Entry | undefined> {
-  return db.entries.where('foreignLemma').equals(norm).first()
+  return findEntryByNormalizedForeignLemma(norm)
 }
 
 function verbMatchesToken(tokenNorm: string, entry: Entry): boolean {

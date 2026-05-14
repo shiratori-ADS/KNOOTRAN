@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import { normalizeToken } from './normalize'
+import { normalizeForeignStorage, normalizeToken } from './normalize'
 import type { Entry, InflectionType, NounGender, PartOfSpeech } from '../db/types'
 import { parseExamplePairsText } from './examples'
 import { nounAutoForms } from '../grammar/noun'
@@ -99,6 +99,7 @@ export function parseExcelImportB(arrayBuffer: ArrayBuffer): ImportBResult {
 
   for (const w of wordRows) {
     const lemmaNorm = normalizeToken(w.foreignLemma)
+    const lemmaStored = normalizeForeignStorage(w.foreignLemma)
     if (!lemmaNorm) {
       errors.push({ rowNumber: w.rowNumber, foreignLemma: '', message: 'foreignLemma が空です。' })
       continue
@@ -197,7 +198,7 @@ export function parseExcelImportB(arrayBuffer: ArrayBuffer): ImportBResult {
     // foreignForms は lemma + overrides 内の語形を集める（単語モード照合用）
     const overrideForms = Object.values(overrides).map((x) => normalizeToken(x ?? '')).filter(Boolean)
     const autoNorm = autoForms.map((x) => normalizeToken(x ?? '')).filter(Boolean)
-    const foreignForms = Array.from(new Set([lemmaNorm, ...overrideForms, ...autoNorm]))
+    const foreignForms = Array.from(new Set([lemmaStored, ...overrideForms, ...autoNorm]))
 
     entries.push({
       pos: w.pos,
@@ -208,7 +209,7 @@ export function parseExcelImportB(arrayBuffer: ArrayBuffer): ImportBResult {
       nounGender,
       inflectionType: w.pos === 'verb' ? inflectionType : 'none',
       inflectionOverrides: Object.keys(overrides).length ? overrides : {},
-      foreignLemma: lemmaNorm,
+      foreignLemma: lemmaStored,
       foreignForms,
       examples: parseExamplePairsText(normalizeExamplesCell(w.examples ?? '')),
       related,

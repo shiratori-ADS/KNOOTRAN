@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db, getSettings } from '../db/db'
 import type { Entry, InflectionType, NounGender, PartOfSpeech, Settings } from '../db/types'
-import { normalizeToken } from '../lib/normalize'
+import { findEntryByNormalizedForeign } from '../lib/entryForeignLookup'
+import { normalizeForeignStorage, normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
 import { personalPronounAutoForms } from '../grammar/personalPronoun'
 import { nounGenderOptions, verbInflectionOptions } from '../features/wordbook/wordbookHelpers'
@@ -70,10 +71,10 @@ export function Register() {
 
     const now = Date.now()
     const lemmaNorm = foreignLemma.trim() ? normalizeToken(foreignLemma) : ''
+    const lemmaStored = foreignLemma.trim() ? normalizeForeignStorage(foreignLemma) : ''
     if (lemmaNorm) {
-      const byLemma = await db.entries.where('foreignLemma').equals(lemmaNorm).first()
-      const byForm = await db.entries.where('foreignForms').equals(lemmaNorm).first()
-      if (byLemma?.id != null || byForm?.id != null) {
+      const exists = await findEntryByNormalizedForeign(lemmaNorm)
+      if (exists?.id != null) {
         setModalMessage(`「${foreignLemma.trim()}」は既に単語帳に登録されています。`)
         return
       }
@@ -91,18 +92,18 @@ export function Register() {
           : pos === 'noun'
             ? inferNounInflectionTypeFromLemma(lemmaNorm, nounGender)
             : 'none',
-      foreignLemma: lemmaNorm ? lemmaNorm : undefined,
-      foreignForms: lemmaNorm
+      foreignLemma: lemmaStored ? lemmaStored : undefined,
+      foreignForms: lemmaStored
         ? pos === 'pronoun_personal'
           ? Array.from(
               new Set([
-                lemmaNorm,
+                lemmaStored,
                 ...Object.values(personalPronounAutoForms())
                   .map((x) => normalizeToken(x ?? ''))
                   .filter(Boolean),
               ]),
             )
-          : [lemmaNorm]
+          : [lemmaStored]
         : [],
       examples: parseExamplePairsText(examplesText),
       related: splitLines(relatedText),
@@ -152,7 +153,11 @@ export function Register() {
       <div className="card">
         <label className="field">
           <span className="label">登録する単語（辞書形・基本形）</span>
-          <input value={foreignLemma} onChange={(e) => setForeignLemma(e.target.value)} placeholder="例：αγοράζω / μήλο" />
+          <input
+            value={foreignLemma}
+            onChange={(e) => setForeignLemma(e.target.value)}
+            placeholder="例：αγοράζω / μήλο"
+          />
         </label>
 
         <label className="field">

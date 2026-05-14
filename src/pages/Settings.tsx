@@ -4,6 +4,7 @@ import type { Entry, Settings as SettingsType } from '../db/types'
 import { parseExcelImportB } from '../lib/excelImportB'
 import { buildLocalPayload, restoreFromPayload } from '../lib/backupPayload'
 import { markLocalDirty } from '../lib/cloudAutoSync'
+import { normalizeToken } from '../lib/normalize'
 
 export function Settings() {
   const [view, setView] = useState<'home' | 'language' | 'tags' | 'bulkImport' | 'backup'>('home')
@@ -190,13 +191,24 @@ export function Settings() {
           : null
       if (tagNoticeMsg) setExcelImportTagNotice(tagNoticeMsg)
 
-      // 重複チェック（foreignLemmaの完全一致を基本とする。forms 側も将来拡張できるが、個人用の一括登録ではlemmaベースが扱いやすい）
-      const existing = await db.entries.where('foreignLemma').anyOf(entries.map((e) => e.foreignLemma ?? '')).toArray()
-      const existingByLemma = new Map(existing.filter((e) => e.id != null).map((e) => [e.foreignLemma ?? '', e.id!]))
+      // 重複チェック（正規化して同一語なら重複。見出しの大文字小文字の違いは同一とみなす）
+      const allExisting = await db.entries.toArray()
+      const normToId = new Map<string, number>()
+      for (const ex of allExisting) {
+        const id = ex.id
+        if (id == null) continue
+        const primary = normalizeToken(ex.foreignLemma ?? ex.foreignForms?.[0] ?? '')
+        if (primary) normToId.set(primary, id)
+        for (const f of ex.foreignForms ?? []) {
+          const fn = normalizeToken(f)
+          if (fn && !normToId.has(fn)) normToId.set(fn, id)
+        }
+      }
 
       const dups = entries
         .map((e) => {
-          const id = existingByLemma.get(e.foreignLemma ?? '')
+          const n = normalizeToken(e.foreignLemma ?? '')
+          const id = normToId.get(n)
           return id != null ? { foreignLemma: e.foreignLemma ?? '', existingId: id } : null
         })
         .filter(Boolean) as Array<{ foreignLemma: string; existingId: number }>

@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type { Entry, Settings } from './types'
-import { normalizeToken } from '../lib/normalize'
+import { normalizeForeignStorage, normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
 
 export class AppDB extends Dexie {
@@ -225,6 +225,30 @@ export class AppDB extends Dexie {
           e.examples = e.examples
             .filter((x: unknown): x is string => typeof x === 'string' && x.trim().length > 0)
             .map((x: string) => ({ foreign: x.normalize('NFC').trim(), ja: '' }))
+        })
+      })
+
+    // v12: 見出し語・別形は大文字小文字を保持（照合は従来どおり normalizeToken で行う）
+    this.version(12)
+      .stores({
+        entries:
+          '++id, pos, nounGender, inflectionType, meaningJaPrimary, *meaningJaVariants, *tags, memo, foreignLemma, *foreignForms, updatedAt',
+        settings: 'id',
+      })
+      .upgrade(async (tx) => {
+        const entries = tx.table('entries')
+        await entries.toCollection().modify((e) => {
+          if (!e) return
+          if (typeof e.foreignLemma === 'string') {
+            const s = normalizeForeignStorage(e.foreignLemma)
+            e.foreignLemma = s ? s : undefined
+          }
+          if (Array.isArray(e.foreignForms)) {
+            const forms = e.foreignForms
+              .map((x: unknown) => (typeof x === 'string' ? normalizeForeignStorage(x) : ''))
+              .filter(Boolean)
+            e.foreignForms = Array.from(new Set(forms))
+          }
         })
       })
   }

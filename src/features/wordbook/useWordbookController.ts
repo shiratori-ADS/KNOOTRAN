@@ -3,7 +3,8 @@ import { db, getSettings } from '../../db/db'
 import type { Entry, InflectionType, NounGender, PartOfSpeech, Settings } from '../../db/types'
 import { stripGreekTonos } from '../../grammar/accent'
 import { inferNounInflectionTypeFromLemma } from '../../grammar/infer'
-import { normalizeToken } from '../../lib/normalize'
+import { findEntryByNormalizedForeign } from '../../lib/entryForeignLookup'
+import { normalizeForeignStorage, normalizeToken } from '../../lib/normalize'
 import { formatExamplePairsText, parseExamplePairsText } from '../../lib/examples'
 import {
   adjectiveAutoForms,
@@ -90,6 +91,10 @@ export function useWordbookController() {
   }, [selected?.id])
 
   const editLemmaNorm = useMemo(() => (editForeignLemma.trim() ? normalizeToken(editForeignLemma) : ''), [editForeignLemma])
+  const editLemmaDisplay = useMemo(
+    () => (editForeignLemma.trim() ? normalizeForeignStorage(editForeignLemma) : ''),
+    [editForeignLemma],
+  )
 
   const inferredEditNounType = useMemo(() => {
     if (!(editPos === 'noun' && editLemmaNorm)) return 'none'
@@ -101,35 +106,35 @@ export function useWordbookController() {
   const autoEditVerb = useMemo(() => {
     if (editPos !== 'verb') return null
     if (!editLemmaNorm) return null
-    return verbMatrix(editLemmaNorm, editInflectionType)
-  }, [editPos, editLemmaNorm, editInflectionType])
+    return verbMatrix(editLemmaDisplay, editInflectionType)
+  }, [editPos, editLemmaNorm, editLemmaDisplay, editInflectionType])
 
   const autoEditAor = useMemo(() => {
     if (editPos !== 'verb') return null
     if (!editLemmaNorm) return null
-    return verbAoristMatrix(editLemmaNorm, editInflectionType)
-  }, [editPos, editLemmaNorm, editInflectionType])
+    return verbAoristMatrix(editLemmaDisplay, editInflectionType)
+  }, [editPos, editLemmaNorm, editLemmaDisplay, editInflectionType])
 
   const autoEditImp = useMemo(() => {
     if (editPos !== 'verb') return null
     if (!editLemmaNorm) return null
-    return verbImperativeForms(editLemmaNorm, editInflectionType)
-  }, [editPos, editLemmaNorm, editInflectionType])
+    return verbImperativeForms(editLemmaDisplay, editInflectionType)
+  }, [editPos, editLemmaNorm, editLemmaDisplay, editInflectionType])
 
   const autoEditNoun = useMemo(() => {
     if (editPos !== 'noun') return null
     if (!editLemmaNorm) return null
     // 通性（男/女）は推定が1つに定まらないため、編集欄では代表として男性側を使う
     const g = editNounGender === 'common_mf' ? 'masc' : editNounGender
-    return nounAutoForms(editLemmaNorm, g, inferredEditNounType)
-  }, [editPos, editLemmaNorm, editNounGender, inferredEditNounType])
+    return nounAutoForms(editLemmaDisplay, g, inferredEditNounType)
+  }, [editPos, editLemmaNorm, editLemmaDisplay, editNounGender, inferredEditNounType])
 
   const autoEditAdj = useMemo(() => {
     if (!(editPos === 'adjective' || editPos === 'pronoun_interrogative')) return null
     if (!editLemmaNorm) return null
     if (editPos === 'pronoun_interrogative' && !interrogativeLemmaHasAdjectiveDeclension(editLemmaNorm)) return null
-    return adjectiveAutoForms(editLemmaNorm)
-  }, [editPos, editLemmaNorm])
+    return adjectiveAutoForms(editLemmaDisplay)
+  }, [editPos, editLemmaNorm, editLemmaDisplay])
 
   const autoEditPp = useMemo(() => {
     if (editPos !== 'pronoun_personal') return null
@@ -214,6 +219,7 @@ export function useWordbookController() {
     }
 
     const lemmaNorm = editForeignLemma.trim() ? normalizeToken(editForeignLemma) : ''
+    const lemmaStored = editForeignLemma.trim() ? normalizeForeignStorage(editForeignLemma) : ''
     if (lemmaNorm === '') {
       setStatus('「登録する単語」は必須です。')
       return
@@ -295,7 +301,7 @@ export function useWordbookController() {
     const overrideForms = Object.values(editOverrides ?? {})
       .map((x) => normalizeToken(x ?? ''))
       .filter(Boolean)
-    const mergedFormsBase = Array.from(new Set([lemmaNorm, ...overrideForms]))
+    const mergedFormsBase = Array.from(new Set([lemmaStored, ...overrideForms]))
     const mergedForms =
       editPos === 'pronoun_personal'
         ? Array.from(
@@ -316,7 +322,7 @@ export function useWordbookController() {
       meaningJaVariants: meanings,
       tags: editTags ?? [],
       memo: editMemo ?? '',
-      foreignLemma: lemmaNorm ? lemmaNorm : undefined,
+      foreignLemma: lemmaStored ? lemmaStored : undefined,
       foreignForms: mergedForms,
       examples: parseExamplePairsText(editExamplesText),
       related: splitLines(editRelatedText),
@@ -336,14 +342,9 @@ export function useWordbookController() {
     const term = normalizeToken(termRaw)
     if (!term) return
 
-    const byLemma = await db.entries.where('foreignLemma').equals(term).first()
+    const byLemma = await findEntryByNormalizedForeign(term)
     if (byLemma?.id != null) {
       setSelected(byLemma)
-      return
-    }
-    const byForm = await db.entries.where('foreignForms').equals(term).first()
-    if (byForm?.id != null) {
-      setSelected(byForm)
       return
     }
     const byMeaning = await db.entries.where('meaningJaVariants').equals(term).first()
