@@ -362,11 +362,22 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px 12px;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 12px max(12px, env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .modalCard {
   width: min(720px, 100%);
+  /* スマホでフィルター等の縦長コンテンツが画面外にはみ出さないようスクロール可能に */
+  max-height: calc(100svh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  flex-shrink: 0;
   border: 1px solid var(--border);
   background: color-mix(in oklab, var(--bg) 96%, black);
   border-radius: 12px;

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Entry, NounGender, PartOfSpeech } from '../../../db/types'
 import {
   displayForm,
@@ -162,6 +163,204 @@ export function ListPane({
     if (v !== 'verb') setDraftVerbFamilies([])
   }
 
+  useEffect(() => {
+    if (!isFilterOpen) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [isFilterOpen])
+
+  const filterModal =
+    isFilterOpen &&
+    createPortal(
+      <div
+        className="modalOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="フィルター"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) applyAndClose()
+        }}
+      >
+        <div className="modalCard" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="row wrap" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>フィルター</h3>
+            <button
+              type="button"
+              className="iconButton"
+              onClick={applyAndClose}
+              aria-label="閉じる"
+              title="閉じる"
+            >
+              <CloseIcon />
+            </button>
+          </div>
+
+          <div className="twoCol">
+            <label className="field" style={{ margin: 0 }}>
+              <span className="label">品詞</span>
+              <select value={draftPos} onChange={(e) => onDraftPosChange(e.target.value as PartOfSpeech | 'all')}>
+                <option value="all">すべて</option>
+                {posOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field" style={{ margin: 0 }}>
+              <span className="label">タグ</span>
+              <select value={draftTag} onChange={(e) => setDraftTag(e.target.value as string | 'all')}>
+                <option value="all">すべて</option>
+                {tagOptions.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {draftPos === 'noun' && (
+            <div className="field" style={{ marginBottom: 0 }}>
+              <span className="label">性別</span>
+              <div className="chips">
+                <button
+                  type="button"
+                  className="chipButton"
+                  aria-pressed={draftNounGenders.length === 0}
+                  onClick={() => setDraftNounGenders([])}
+                  style={{
+                    borderColor: draftNounGenders.length === 0 ? 'var(--accent-border)' : undefined,
+                    background: draftNounGenders.length === 0 ? 'var(--accent-bg)' : undefined,
+                  }}
+                >
+                  すべて
+                </button>
+                {nounGenderOptions.map((o) => {
+                  const selected = draftNounGenders.includes(o.value)
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      className="chipButton"
+                      aria-pressed={selected}
+                      onClick={() => toggleDraftNounGender(o.value)}
+                      style={{
+                        borderColor: selected ? 'var(--accent-border)' : undefined,
+                        background: selected ? 'var(--accent-bg)' : undefined,
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {draftPos === 'verb' && (
+            <div className="field" style={{ marginBottom: 0 }}>
+              <span className="label">タイプ</span>
+              <div className="chips">
+                <button
+                  type="button"
+                  className="chipButton mono"
+                  aria-pressed={draftVerbFamilies.length === 0}
+                  onClick={() => setDraftVerbFamilies([])}
+                  style={{
+                    borderColor: draftVerbFamilies.length === 0 ? 'var(--accent-border)' : undefined,
+                    background: draftVerbFamilies.length === 0 ? 'var(--accent-bg)' : undefined,
+                  }}
+                >
+                  すべて
+                </button>
+                {verbInflectionFamilyOptions.map((o) => {
+                  const selected = draftVerbFamilies.includes(o.value)
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      className="chipButton mono"
+                      aria-pressed={selected}
+                      onClick={() => toggleDraftVerbFamily(o.value)}
+                      style={{
+                        borderColor: selected ? 'var(--accent-border)' : undefined,
+                        background: selected ? 'var(--accent-bg)' : undefined,
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="field" style={{ marginBottom: 0 }}>
+            <span className="label">アルファベット</span>
+            <div className="chips">
+              <button
+                type="button"
+                className="chipButton mono"
+                aria-pressed={draftAlphas.length === 0}
+                onClick={() => setDraftAlphas([])}
+                style={{
+                  borderColor: draftAlphas.length === 0 ? 'var(--accent-border)' : undefined,
+                  background: draftAlphas.length === 0 ? 'var(--accent-bg)' : undefined,
+                }}
+              >
+                すべて
+              </button>
+              {alphaOptions.map((a) => {
+                const selected = draftAlphas.includes(a)
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    className="chipButton mono"
+                    aria-pressed={selected}
+                    onClick={() => toggleDraftAlpha(a)}
+                    style={{
+                      borderColor: selected ? 'var(--accent-border)' : undefined,
+                      background: selected ? 'var(--accent-bg)' : undefined,
+                    }}
+                    title={a === '#' ? 'Α〜Ω以外' : a}
+                  >
+                    {a}
+                  </button>
+                )
+              })}
+            </div>
+            <span className="help">「#」は Α〜Ω 以外（数字・記号など）です。トノス（ά等）は無視して判定します。</span>
+          </div>
+
+          <div className="row wrap" style={{ justifyContent: 'space-between', marginTop: 10 }}>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                setDraftPos('all')
+                setDraftTag('all')
+                setDraftAlphas([])
+                setDraftNounGenders([])
+                setDraftVerbFamilies([])
+              }}
+            >
+              クリア
+            </button>
+            <button type="button" className="primary" onClick={applyAndClose}>
+              適用
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    )
+
   return (
     <div className="card listPane">
       <div className="row wrap" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
@@ -179,191 +378,8 @@ export function ListPane({
         </button>
       </div>
 
-      {isFilterOpen && (
-        <div
-          className="modalOverlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="フィルター"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) applyAndClose()
-          }}
-        >
-          <div className="modalCard" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="row wrap" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0 }}>フィルター</h3>
-              <button
-                type="button"
-                className="iconButton"
-                onClick={applyAndClose}
-                aria-label="閉じる"
-                title="閉じる"
-              >
-                <CloseIcon />
-              </button>
-            </div>
+      {filterModal}
 
-            <div className="twoCol">
-              <label className="field" style={{ margin: 0 }}>
-                <span className="label">品詞</span>
-                <select value={draftPos} onChange={(e) => onDraftPosChange(e.target.value as PartOfSpeech | 'all')}>
-                  <option value="all">すべて</option>
-                  {posOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="field" style={{ margin: 0 }}>
-                <span className="label">タグ</span>
-                <select value={draftTag} onChange={(e) => setDraftTag(e.target.value as string | 'all')}>
-                  <option value="all">すべて</option>
-                  {tagOptions.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {draftPos === 'noun' && (
-              <div className="field" style={{ marginBottom: 0 }}>
-                <span className="label">性別</span>
-                <div className="chips">
-                  <button
-                    type="button"
-                    className="chipButton"
-                    aria-pressed={draftNounGenders.length === 0}
-                    onClick={() => setDraftNounGenders([])}
-                    style={{
-                      borderColor: draftNounGenders.length === 0 ? 'var(--accent-border)' : undefined,
-                      background: draftNounGenders.length === 0 ? 'var(--accent-bg)' : undefined,
-                    }}
-                  >
-                    すべて
-                  </button>
-                  {nounGenderOptions.map((o) => {
-                    const selected = draftNounGenders.includes(o.value)
-                    return (
-                      <button
-                        key={o.value}
-                        type="button"
-                        className="chipButton"
-                        aria-pressed={selected}
-                        onClick={() => toggleDraftNounGender(o.value)}
-                        style={{
-                          borderColor: selected ? 'var(--accent-border)' : undefined,
-                          background: selected ? 'var(--accent-bg)' : undefined,
-                        }}
-                      >
-                        {o.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {draftPos === 'verb' && (
-              <div className="field" style={{ marginBottom: 0 }}>
-                <span className="label">タイプ</span>
-                <div className="chips">
-                  <button
-                    type="button"
-                    className="chipButton mono"
-                    aria-pressed={draftVerbFamilies.length === 0}
-                    onClick={() => setDraftVerbFamilies([])}
-                    style={{
-                      borderColor: draftVerbFamilies.length === 0 ? 'var(--accent-border)' : undefined,
-                      background: draftVerbFamilies.length === 0 ? 'var(--accent-bg)' : undefined,
-                    }}
-                  >
-                    すべて
-                  </button>
-                  {verbInflectionFamilyOptions.map((o) => {
-                    const selected = draftVerbFamilies.includes(o.value)
-                    return (
-                      <button
-                        key={o.value}
-                        type="button"
-                        className="chipButton mono"
-                        aria-pressed={selected}
-                        onClick={() => toggleDraftVerbFamily(o.value)}
-                        style={{
-                          borderColor: selected ? 'var(--accent-border)' : undefined,
-                          background: selected ? 'var(--accent-bg)' : undefined,
-                        }}
-                      >
-                        {o.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="field" style={{ marginBottom: 0 }}>
-              <span className="label">アルファベット</span>
-              <div className="chips">
-                <button
-                  type="button"
-                  className="chipButton mono"
-                  aria-pressed={draftAlphas.length === 0}
-                  onClick={() => setDraftAlphas([])}
-                  style={{
-                    borderColor: draftAlphas.length === 0 ? 'var(--accent-border)' : undefined,
-                    background: draftAlphas.length === 0 ? 'var(--accent-bg)' : undefined,
-                  }}
-                >
-                  すべて
-                </button>
-                {alphaOptions.map((a) => {
-                  const selected = draftAlphas.includes(a)
-                  return (
-                    <button
-                      key={a}
-                      type="button"
-                      className="chipButton mono"
-                      aria-pressed={selected}
-                      onClick={() => toggleDraftAlpha(a)}
-                      style={{
-                        borderColor: selected ? 'var(--accent-border)' : undefined,
-                        background: selected ? 'var(--accent-bg)' : undefined,
-                      }}
-                      title={a === '#' ? 'Α〜Ω以外' : a}
-                    >
-                      {a}
-                    </button>
-                  )
-                })}
-              </div>
-              <span className="help">「#」は Α〜Ω 以外（数字・記号など）です。トノス（ά等）は無視して判定します。</span>
-            </div>
-
-            <div className="row wrap" style={{ justifyContent: 'space-between', marginTop: 10 }}>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  setDraftPos('all')
-                  setDraftTag('all')
-                  setDraftAlphas([])
-                  setDraftNounGenders([])
-                  setDraftVerbFamilies([])
-                }}
-              >
-                クリア
-              </button>
-              <button type="button" className="primary" onClick={applyAndClose}>
-                適用
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {sorted.length === 0 ? (
         <p className="subtle">まだ単語がありません。まずは「登録」から追加してください。</p>
