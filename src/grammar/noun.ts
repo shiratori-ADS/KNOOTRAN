@@ -285,11 +285,15 @@ export function nounMatrix(lemmaNorm: string, t?: InflectionType): NounMatrix | 
   }
   if (t === 'noun_2nd_neut_-ο') {
     if (!lemmaPlain.endsWith('ο')) return null
-    const stem = lemmaNorm.slice(0, -1)
+    const stem = stripGreekTonos(lemmaNorm.slice(0, -1))
+    const nomSg = applyLikeLemma(`${stem}ο`)
+    const genSg = applyLikeLemma(`${stem}ου`)
+    const nomPl = applyLikeLemma(`${stem}α`)
+    const genPl = applyLikeLemma(`${stem}ων`)
     return {
       rows: [
-        { number: 'sg', forms: { nom: `${stem}ο`, gen: `${stem}ου`, acc: `${stem}ο` } },
-        { number: 'pl', forms: { nom: `${stem}α`, gen: `${stem}ων`, acc: `${stem}α` } },
+        { number: 'sg', forms: { nom: nomSg, gen: genSg, acc: nomSg } },
+        { number: 'pl', forms: { nom: nomPl, gen: genPl, acc: nomPl } },
       ],
     }
   }
