@@ -16,18 +16,22 @@
 .topBarInner {
   padding: 12px 14px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   max-width: 980px;
   margin: 0 auto;
 }
 
-.brand {
-  font-family: var(--heading);
-  color: var(--text-h);
-  font-weight: 600;
-  letter-spacing: -0.2px;
+.brandLogo {
+  display: block;
+  height: 28px;
+  width: auto;
+}
+
+.brandLogoLogin {
+  height: 44px;
+  margin: 0 auto;
 }
 
 .hint {
@@ -99,9 +103,6 @@
 
 .loginTitle {
   margin: 0 0 24px;
-  font-family: var(--heading);
-  font-size: 28px;
-  color: var(--text-h);
   text-align: center;
 }
 

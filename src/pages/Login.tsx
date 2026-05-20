@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { BrandLogo } from '../components/BrandLogo'
 
 const POST_LOGIN_PATH = '/wordbook'
 
@@ -63,7 +64,9 @@ export function Login() {
     return (
       <div className="loginShell">
         <div className="loginCard card">
-          <h1 className="loginTitle">KNOOTRAN</h1>
+          <h1 className="loginTitle">
+            <BrandLogo variant="login" />
+          </h1>
           <p className="help">
             クラウドログインは未設定です（<code>VITE_SUPABASE_URL</code> / <code>VITE_SUPABASE_ANON_KEY</code>）。
             開発中はローカル保存のみで利用できます。
@@ -79,7 +82,9 @@ export function Login() {
   return (
     <div className="loginShell">
       <div className="loginCard card">
-        <h1 className="loginTitle">KNOOTRAN</h1>
+        <h1 className="loginTitle">
+          <BrandLogo variant="login" />
+        </h1>
         <div className="loginTabs" role="tablist" aria-label="ログインまたは新規登録">
           <button
             type="button"

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { startCloudAutoSync } from '../lib/cloudAutoSync'
+import { BrandLogo } from './BrandLogo'
 
 function LogoutIcon() {
   return (
@@ -45,7 +46,7 @@ export function Layout() {
     <div className="appShell">
       <header className="topBar">
         <div className="topBarInner">
-          <div className="brand">KNOOTRAN</div>
+          <BrandLogo />
           {cloudAuthEnabled && email ? (
             <div className="topBarAccount">
               <span className="hint mono" title={email}>
