@@ -27,7 +27,7 @@ function LogoutIcon() {
 }
 
 export function Layout() {
-  const { email, cloudAuthEnabled, signOut } = useAuth()
+  const { cloudAuthEnabled, isAuthenticated, signOut } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -47,21 +47,16 @@ export function Layout() {
       <header className="topBar">
         <div className="topBarInner">
           <BrandLogo />
-          {cloudAuthEnabled && email ? (
-            <div className="topBarAccount">
-              <span className="hint mono" title={email}>
-                {email}
-              </span>
-              <button
-                type="button"
-                className="iconButton"
-                onClick={() => void onSignOut()}
-                aria-label="ログアウト"
-                title="ログアウト"
-              >
-                <LogoutIcon />
-              </button>
-            </div>
+          {cloudAuthEnabled && isAuthenticated ? (
+            <button
+              type="button"
+              className="iconButton"
+              onClick={() => void onSignOut()}
+              aria-label="ログアウト"
+              title="ログアウト"
+            >
+              <LogoutIcon />
+            </button>
           ) : null}
         </div>
       </header>

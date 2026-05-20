@@ -152,20 +152,6 @@
   font-size: 14px;
 }
 
-.topBarAccount {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.topBarAccount .hint {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: min(42vw, 220px);
-}
-
 .iconButton {
   flex-shrink: 0;
   display: inline-flex;
