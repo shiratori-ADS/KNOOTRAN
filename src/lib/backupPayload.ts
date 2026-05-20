@@ -55,7 +55,12 @@ export async function restoreFromPayload(raw: unknown): Promise<{ restoredCount:
     await db.settings.clear()
     const patchedSettings: SettingsType = {
       id: 'singleton',
-      uiLanguage: r.settings?.uiLanguage === 'en' ? 'en' : 'ja',
+      uiLanguage:
+        r.settings?.uiLanguage === 'en'
+          ? 'en'
+          : r.settings?.uiLanguage === 'el'
+            ? 'el'
+            : 'ja',
       tags: Array.isArray(r.settings?.tags) ? r.settings.tags : [],
     }
     await db.settings.put(patchedSettings)

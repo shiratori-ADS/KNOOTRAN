@@ -14,8 +14,10 @@ import {
   splitLines,
   verbAoristMatrix,
   verbImperativeForms,
+  verbInflectionFamily,
   verbMatrix,
 } from './wordbookHelpers'
+import type { VerbInflectionFamily } from './wordbookHelpers'
 import { markLocalDirty } from '../../lib/cloudAutoSync'
 
 export function useWordbookController() {
@@ -25,7 +27,12 @@ export function useWordbookController() {
   const [isEditing, setIsEditing] = useState(false)
   const [filterPos, setFilterPos] = useState<PartOfSpeech | 'all'>('all')
   const [filterTag, setFilterTag] = useState<string | 'all'>('all')
-  const [filterAlpha, setFilterAlpha] = useState<string | 'all'>('all')
+  /** 空配列＝すべて。例: ['Α','Β'] は Α または Β で始まる語のみ */
+  const [filterAlphas, setFilterAlphas] = useState<string[]>([])
+  /** 品詞が名詞のときのみ有効。空配列＝すべて */
+  const [filterNounGenders, setFilterNounGenders] = useState<NounGender[]>([])
+  /** 品詞が動詞のときのみ有効。空配列＝すべて */
+  const [filterVerbFamilies, setFilterVerbFamilies] = useState<VerbInflectionFamily[]>([])
   const [editPos, setEditPos] = useState<PartOfSpeech>('noun')
   const [editNounGender, setEditNounGender] = useState<NounGender>('masc')
   const [editInflectionType, setEditInflectionType] = useState<InflectionType>('none')
@@ -193,12 +200,19 @@ export function useWordbookController() {
     const copy = [...items].filter((x) => {
       if (filterPos !== 'all' && x.pos !== filterPos) return false
       if (filterTag !== 'all' && !(x.tags ?? []).includes(filterTag)) return false
-      if (filterAlpha !== 'all' && alphaKeyForEntry(x) !== filterAlpha) return false
+      if (filterAlphas.length > 0 && !filterAlphas.includes(alphaKeyForEntry(x))) return false
+      if (filterPos === 'noun' && filterNounGenders.length > 0) {
+        if (!x.nounGender || !filterNounGenders.includes(x.nounGender)) return false
+      }
+      if (filterPos === 'verb' && filterVerbFamilies.length > 0) {
+        const fam = verbInflectionFamily(x.inflectionType)
+        if (!fam || !filterVerbFamilies.includes(fam)) return false
+      }
       return true
     })
     copy.sort((a, b) => (a.foreignLemma ?? '').localeCompare(b.foreignLemma ?? ''))
     return copy
-  }, [items, filterPos, filterTag, filterAlpha])
+  }, [items, filterPos, filterTag, filterAlphas, filterNounGenders, filterVerbFamilies])
 
   async function onDelete(id?: number) {
     if (!id) return
@@ -359,8 +373,12 @@ export function useWordbookController() {
     setFilterPos,
     filterTag,
     setFilterTag,
-    filterAlpha,
-    setFilterAlpha,
+    filterAlphas,
+    setFilterAlphas,
+    filterNounGenders,
+    setFilterNounGenders,
+    filterVerbFamilies,
+    setFilterVerbFamilies,
     tagOptions,
     sorted,
     totalCount: items.length,

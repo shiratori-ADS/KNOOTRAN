@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db, getSettings } from '../db/db'
-import type { Entry, Settings as SettingsType } from '../db/types'
+import type { Entry, Settings as SettingsType, UiLanguage } from '../db/types'
 import { parseExcelImportB } from '../lib/excelImportB'
-import { buildLocalPayload, restoreFromPayload } from '../lib/backupPayload'
 import { markLocalDirty } from '../lib/cloudAutoSync'
 import { normalizeToken } from '../lib/normalize'
+import { CloudSyncPanel } from '../components/CloudSyncPanel'
 
 export function Settings() {
-  const [view, setView] = useState<'home' | 'language' | 'tags' | 'bulkImport' | 'backup'>('home')
+  const [view, setView] = useState<'home' | 'language' | 'tags' | 'bulkImport' | 'cloud'>('home')
   const [settings, setSettings] = useState<SettingsType | null>(null)
-  const [uiLanguage, setUiLanguage] = useState<'ja' | 'en'>('ja')
+  const [uiLanguage, setUiLanguage] = useState<UiLanguage>('ja')
   const [tagsText, setTagsText] = useState('')
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [modalMessage, setModalMessage] = useState<string | null>(null)
   const [status, setStatus] = useState('')
-  const [ioStatus, setIoStatus] = useState('')
   const [excelStatus, setExcelStatus] = useState('')
   const [excelErrors, setExcelErrors] = useState<Array<{ rowNumber: number; foreignLemma: string; message: string }> | null>(null)
   const [excelPendingEntries, setExcelPendingEntries] = useState<Entry[] | null>(null)
@@ -35,18 +34,8 @@ export function Settings() {
 
   function resetStatuses() {
     setStatus('')
-    setIoStatus('')
     setExcelStatus('')
     setExcelImportTagNotice(null)
-  }
-
-  async function restoreFromPayloadAndRefresh(raw: unknown) {
-    const { restoredCount } = await restoreFromPayload(raw)
-    const s = await getSettings()
-    setSettings(s)
-    setUiLanguage(s.uiLanguage)
-    markLocalDirty()
-    return restoredCount
   }
 
   async function onSave() {
@@ -125,45 +114,6 @@ export function Settings() {
     setSettings(next)
     markLocalDirty()
     return missing
-  }
-
-  async function onExportJson() {
-    setIoStatus('')
-    try {
-      const payload = await buildLocalPayload()
-
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      const ts = new Date().toISOString().replace(/[:.]/g, '-')
-      a.href = url
-      a.download = `known-only-translate-backup-${ts}.json`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-      setIoStatus(`エクスポートしました（${payload.entries.length}件）。`)
-    } catch (e: any) {
-      setIoStatus(`エクスポートに失敗しました: ${e?.message ?? String(e)}`)
-    }
-  }
-
-  async function onImportJson(file: File | null) {
-    if (!file) return
-    setIoStatus('')
-    try {
-      const text = await file.text()
-      const raw = JSON.parse(text)
-      const nextEntries: Entry[] = Array.isArray(raw?.entries) ? (raw.entries as Entry[]) : []
-      const ok = window.confirm(
-        `インポートすると現在の単語帳データを全て上書きします（削除→復元）。\n\nインポート件数: ${nextEntries.length}\n\n続行しますか？`,
-      )
-      if (!ok) return
-      const n = await restoreFromPayloadAndRefresh(raw)
-      setIoStatus(`インポートしました（${n}件）。`)
-    } catch (e: any) {
-      setIoStatus(`インポートに失敗しました: ${e?.message ?? String(e)}`)
-    }
   }
 
   async function onImportExcelB(file: File | null) {
@@ -327,10 +277,10 @@ export function Settings() {
               className="secondary"
               onClick={() => {
                 resetStatuses()
-                setView('backup')
+                setView('cloud')
               }}
             >
-              バックアップ
+              クラウド同期
             </button>
           </div>
         </div>
@@ -355,9 +305,10 @@ export function Settings() {
           <h3>表示言語</h3>
           <label className="field">
             <span className="label">アプリの表示言語</span>
-            <select value={uiLanguage} onChange={(e) => setUiLanguage(e.target.value as 'ja' | 'en')}>
+            <select value={uiLanguage} onChange={(e) => setUiLanguage(e.target.value as UiLanguage)}>
               <option value="ja">日本語</option>
               <option value="en">English</option>
+              <option value="el">Ελληνικά</option>
             </select>
           </label>
 
@@ -431,31 +382,20 @@ export function Settings() {
         </div>
       )}
 
-      {view === 'backup' && (
+      {view === 'cloud' && (
         <div className="card">
-          <h3>バックアップ（JSON）</h3>
-          <div className="row wrap">
-            <button className="primary" onClick={onExportJson}>
-              エクスポート
-            </button>
-            <label className="chipButton mono" style={{ cursor: 'pointer' }}>
-              インポート（上書き）
-              <input
-                type="file"
-                accept="application/json"
-                style={{ display: 'none' }}
-                onChange={(e) => onImportJson(e.target.files?.[0] ?? null)}
-              />
-            </label>
-            <div className="status" role="status" aria-live="polite">
-              {ioStatus}
-            </div>
-          </div>
-          <div className="help">
-            エクスポートは「単語帳（entries）」と「設定（settings: タグ/表示言語名）」を1つのJSONに保存します。インポートは既存データを削除して復元します。
-          </div>
+          <h3>クラウド同期</h3>
+          <CloudSyncPanel
+            onDataRestored={() => {
+              void getSettings().then((s) => {
+                setSettings(s)
+                setUiLanguage(s.uiLanguage)
+              })
+            }}
+          />
         </div>
       )}
+
 
       {view === 'bulkImport' && (
         <div className="card">

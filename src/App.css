@@ -76,6 +76,125 @@
   font-size: 22px;
 }
 
+.authGate {
+  min-height: 60svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.loginShell {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background: color-mix(in oklab, var(--bg) 94%, var(--accent-bg));
+}
+
+.loginCard {
+  width: min(420px, 100%);
+  margin: 0;
+}
+
+.loginTitle {
+  margin: 0 0 24px;
+  font-family: var(--heading);
+  font-size: 28px;
+  color: var(--text-h);
+  text-align: center;
+}
+
+.loginLead {
+  margin: 0 0 18px;
+  text-align: center;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.loginTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.loginTab {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.loginTab.active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.loginSubmit {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.loginError {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, #c44 40%, var(--border));
+  background: color-mix(in oklab, #c44 12%, var(--bg));
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.topBarAccount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.topBarAccount .hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(42vw, 220px);
+}
+
+.iconButton {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--bg) 96%, black);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.iconButton--active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text-h);
+}
+
+.iconButtonIcon {
+  display: block;
+}
+
 .subtle {
   color: var(--text);
   opacity: 0.9;

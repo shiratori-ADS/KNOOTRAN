@@ -192,10 +192,12 @@ export type Entry = {
   updatedAt: number
 }
 
+export type UiLanguage = 'ja' | 'en' | 'el'
+
 export type Settings = {
   id: 'singleton'
   /** アプリUIの表示言語（いまは保存のみ。翻訳対象はギリシャ語固定） */
-  uiLanguage: 'ja' | 'en'
+  uiLanguage: UiLanguage
   tags: string[]
 }
 

@@ -1,14 +1,68 @@
 import { useMemo, useState } from 'react'
-import type { Entry, PartOfSpeech } from '../../../db/types'
-import { displayForm, genderLabel, posLabel, posOptions, verbInflectionShortLabel } from '../wordbookHelpers'
+import type { Entry, NounGender, PartOfSpeech } from '../../../db/types'
+import {
+  displayForm,
+  genderLabel,
+  nounGenderOptions,
+  posLabel,
+  posOptions,
+  verbInflectionFamilyOptions,
+  verbInflectionShortLabel,
+  type VerbInflectionFamily,
+} from '../wordbookHelpers'
+
+function FilterIcon() {
+  return (
+    <svg
+      className="iconButtonIcon"
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      className="iconButtonIcon"
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
 
 export function ListPane({
   filterPos,
   setFilterPos,
   filterTag,
   setFilterTag,
-  filterAlpha,
-  setFilterAlpha,
+  filterAlphas,
+  setFilterAlphas,
+  filterNounGenders,
+  setFilterNounGenders,
+  filterVerbFamilies,
+  setFilterVerbFamilies,
   tagOptions,
   sorted,
   totalCount,
@@ -18,8 +72,12 @@ export function ListPane({
   setFilterPos: (v: PartOfSpeech | 'all') => void
   filterTag: string | 'all'
   setFilterTag: (v: string | 'all') => void
-  filterAlpha: string | 'all'
-  setFilterAlpha: (v: string | 'all') => void
+  filterAlphas: string[]
+  setFilterAlphas: (v: string[]) => void
+  filterNounGenders: NounGender[]
+  setFilterNounGenders: (v: NounGender[]) => void
+  filterVerbFamilies: VerbInflectionFamily[]
+  setFilterVerbFamilies: (v: VerbInflectionFamily[]) => void
   tagOptions: string[]
   sorted: Entry[]
   totalCount: number
@@ -28,7 +86,9 @@ export function ListPane({
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [draftPos, setDraftPos] = useState<PartOfSpeech | 'all'>(filterPos)
   const [draftTag, setDraftTag] = useState<string | 'all'>(filterTag)
-  const [draftAlpha, setDraftAlpha] = useState<string | 'all'>(filterAlpha)
+  const [draftAlphas, setDraftAlphas] = useState<string[]>(filterAlphas)
+  const [draftNounGenders, setDraftNounGenders] = useState<NounGender[]>(filterNounGenders)
+  const [draftVerbFamilies, setDraftVerbFamilies] = useState<VerbInflectionFamily[]>(filterVerbFamilies)
 
   const alphaOptions = useMemo(() => {
     const letters = [
@@ -63,15 +123,43 @@ export function ListPane({
   function openFilter() {
     setDraftPos(filterPos)
     setDraftTag(filterTag)
-    setDraftAlpha(filterAlpha)
+    setDraftAlphas([...filterAlphas])
+    setDraftNounGenders([...filterNounGenders])
+    setDraftVerbFamilies([...filterVerbFamilies])
     setIsFilterOpen(true)
   }
 
   function applyAndClose() {
     setFilterPos(draftPos)
     setFilterTag(draftTag)
-    setFilterAlpha(draftAlpha)
+    setFilterAlphas([...draftAlphas])
+    setFilterNounGenders(draftPos === 'noun' ? [...draftNounGenders] : [])
+    setFilterVerbFamilies(draftPos === 'verb' ? [...draftVerbFamilies] : [])
     setIsFilterOpen(false)
+  }
+
+  const hasPosSubFilter =
+    (filterPos === 'noun' && filterNounGenders.length > 0) ||
+    (filterPos === 'verb' && filterVerbFamilies.length > 0)
+  const hasActiveFilter =
+    filterPos !== 'all' || filterTag !== 'all' || filterAlphas.length > 0 || hasPosSubFilter
+
+  function toggleDraftAlpha(letter: string) {
+    setDraftAlphas((prev) => (prev.includes(letter) ? prev.filter((x) => x !== letter) : [...prev, letter]))
+  }
+
+  function toggleDraftNounGender(g: NounGender) {
+    setDraftNounGenders((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]))
+  }
+
+  function toggleDraftVerbFamily(f: VerbInflectionFamily) {
+    setDraftVerbFamilies((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]))
+  }
+
+  function onDraftPosChange(v: PartOfSpeech | 'all') {
+    setDraftPos(v)
+    if (v !== 'noun') setDraftNounGenders([])
+    if (v !== 'verb') setDraftVerbFamilies([])
   }
 
   return (
@@ -80,8 +168,14 @@ export function ListPane({
         <div className="subtle">
           表示件数: {sorted.length}/{totalCount}
         </div>
-        <button type="button" className="secondary" onClick={openFilter}>
-          フィルター
+        <button
+          type="button"
+          className={hasActiveFilter ? 'iconButton iconButton--active' : 'iconButton'}
+          onClick={openFilter}
+          aria-label="フィルター"
+          title="フィルター"
+        >
+          <FilterIcon />
         </button>
       </div>
 
@@ -96,17 +190,23 @@ export function ListPane({
           }}
         >
           <div className="modalCard" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="row wrap" style={{ justifyContent: 'space-between' }}>
+            <div className="row wrap" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0 }}>フィルター</h3>
-              <button type="button" className="secondary" onClick={applyAndClose}>
-                閉じる
+              <button
+                type="button"
+                className="iconButton"
+                onClick={applyAndClose}
+                aria-label="閉じる"
+                title="閉じる"
+              >
+                <CloseIcon />
               </button>
             </div>
 
             <div className="twoCol">
               <label className="field" style={{ margin: 0 }}>
                 <span className="label">品詞</span>
-                <select value={draftPos} onChange={(e) => setDraftPos(e.target.value as PartOfSpeech | 'all')}>
+                <select value={draftPos} onChange={(e) => onDraftPosChange(e.target.value as PartOfSpeech | 'all')}>
                   <option value="all">すべて</option>
                   {posOptions.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -129,30 +229,106 @@ export function ListPane({
               </label>
             </div>
 
+            {draftPos === 'noun' && (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <span className="label">性別</span>
+                <div className="chips">
+                  <button
+                    type="button"
+                    className="chipButton"
+                    aria-pressed={draftNounGenders.length === 0}
+                    onClick={() => setDraftNounGenders([])}
+                    style={{
+                      borderColor: draftNounGenders.length === 0 ? 'var(--accent-border)' : undefined,
+                      background: draftNounGenders.length === 0 ? 'var(--accent-bg)' : undefined,
+                    }}
+                  >
+                    すべて
+                  </button>
+                  {nounGenderOptions.map((o) => {
+                    const selected = draftNounGenders.includes(o.value)
+                    return (
+                      <button
+                        key={o.value}
+                        type="button"
+                        className="chipButton"
+                        aria-pressed={selected}
+                        onClick={() => toggleDraftNounGender(o.value)}
+                        style={{
+                          borderColor: selected ? 'var(--accent-border)' : undefined,
+                          background: selected ? 'var(--accent-bg)' : undefined,
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {draftPos === 'verb' && (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <span className="label">タイプ</span>
+                <div className="chips">
+                  <button
+                    type="button"
+                    className="chipButton mono"
+                    aria-pressed={draftVerbFamilies.length === 0}
+                    onClick={() => setDraftVerbFamilies([])}
+                    style={{
+                      borderColor: draftVerbFamilies.length === 0 ? 'var(--accent-border)' : undefined,
+                      background: draftVerbFamilies.length === 0 ? 'var(--accent-bg)' : undefined,
+                    }}
+                  >
+                    すべて
+                  </button>
+                  {verbInflectionFamilyOptions.map((o) => {
+                    const selected = draftVerbFamilies.includes(o.value)
+                    return (
+                      <button
+                        key={o.value}
+                        type="button"
+                        className="chipButton mono"
+                        aria-pressed={selected}
+                        onClick={() => toggleDraftVerbFamily(o.value)}
+                        style={{
+                          borderColor: selected ? 'var(--accent-border)' : undefined,
+                          background: selected ? 'var(--accent-bg)' : undefined,
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="field" style={{ marginBottom: 0 }}>
               <span className="label">アルファベット</span>
               <div className="chips">
                 <button
                   type="button"
                   className="chipButton mono"
-                  aria-pressed={draftAlpha === 'all'}
-                  onClick={() => setDraftAlpha('all')}
+                  aria-pressed={draftAlphas.length === 0}
+                  onClick={() => setDraftAlphas([])}
                   style={{
-                    borderColor: draftAlpha === 'all' ? 'var(--accent-border)' : undefined,
-                    background: draftAlpha === 'all' ? 'var(--accent-bg)' : undefined,
+                    borderColor: draftAlphas.length === 0 ? 'var(--accent-border)' : undefined,
+                    background: draftAlphas.length === 0 ? 'var(--accent-bg)' : undefined,
                   }}
                 >
                   すべて
                 </button>
                 {alphaOptions.map((a) => {
-                  const selected = draftAlpha === a
+                  const selected = draftAlphas.includes(a)
                   return (
                     <button
                       key={a}
                       type="button"
                       className="chipButton mono"
                       aria-pressed={selected}
-                      onClick={() => setDraftAlpha(a)}
+                      onClick={() => toggleDraftAlpha(a)}
                       style={{
                         borderColor: selected ? 'var(--accent-border)' : undefined,
                         background: selected ? 'var(--accent-bg)' : undefined,
@@ -174,7 +350,9 @@ export function ListPane({
                 onClick={() => {
                   setDraftPos('all')
                   setDraftTag('all')
-                  setDraftAlpha('all')
+                  setDraftAlphas([])
+                  setDraftNounGenders([])
+                  setDraftVerbFamilies([])
                 }}
               >
                 クリア

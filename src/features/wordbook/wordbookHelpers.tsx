@@ -192,6 +192,26 @@ export function inflectionLabel(t?: InflectionType) {
   }
 }
 
+/** フィルター用：動詞の活用タイプ（Α / Β1 / Β2 / ΑΒ / Γ1 / Γ2） */
+export type VerbInflectionFamily = 'Α' | 'Β1' | 'Β2' | 'ΑΒ' | 'Γ1' | 'Γ2'
+
+export const verbInflectionFamilyOptions: Array<{ value: VerbInflectionFamily; label: string }> = [
+  { value: 'Α', label: 'Α' },
+  { value: 'Β1', label: 'Β1' },
+  { value: 'Β2', label: 'Β2' },
+  { value: 'ΑΒ', label: 'ΑΒ' },
+  { value: 'Γ1', label: 'Γ1' },
+  { value: 'Γ2', label: 'Γ2' },
+]
+
+export function verbInflectionFamily(t?: InflectionType): VerbInflectionFamily | null {
+  const short = verbInflectionShortLabel(t)
+  if (short === 'Α' || short === 'Β1' || short === 'Β2' || short === 'ΑΒ' || short === 'Γ1' || short === 'Γ2') {
+    return short
+  }
+  return null
+}
+
 export function verbInflectionShortLabel(t?: InflectionType): string | null {
   if (!t) return null
   switch (t) {

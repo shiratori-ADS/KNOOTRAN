@@ -37,6 +37,162 @@ function saveMeta(userId: string, patch: Partial<CloudMeta>) {
 
 export function markLocalDirty() {
   dirtySince = dirtySince ?? Date.now()
+  notifySyncListeners()
+}
+
+export function isCloudConfigured(): boolean {
+  return supabase != null
+}
+
+export type CloudSyncStatus = {
+  configured: boolean
+  loggedIn: boolean
+  email: string | null
+  hasLocalChanges: boolean
+  localEntryCount: number
+  cloudEntryCount: number | null
+  cloudUpdatedAt: string | null
+  lastPushedAt: number | null
+  lastPulledAt: number | null
+}
+
+export type CloudPullConflict = {
+  localEntryCount: number
+  cloudEntryCount: number
+  cloudUpdatedAt: string | null
+}
+
+type SyncListener = () => void
+const syncListeners = new Set<SyncListener>()
+
+export function subscribeCloudSync(listener: SyncListener): () => void {
+  syncListeners.add(listener)
+  return () => syncListeners.delete(listener)
+}
+
+function notifySyncListeners() {
+  for (const fn of syncListeners) fn()
+}
+
+async function requireUserId(): Promise<string> {
+  if (!supabase) throw new Error('クラウド同期が未設定です（.env に Supabase の URL/キーが必要です）。')
+  const { data, error } = await supabase.auth.getSession()
+  if (error) throw error
+  const userId = data.session?.user?.id
+  if (!userId) throw new Error('ログインしていません。')
+  return userId
+}
+
+export async function getCloudSyncStatus(): Promise<CloudSyncStatus> {
+  if (!supabase) {
+    const local = await localSnapshotSummary()
+    return {
+      configured: false,
+      loggedIn: false,
+      email: null,
+      hasLocalChanges: dirtySince != null,
+      localEntryCount: local.entryCount,
+      cloudEntryCount: null,
+      cloudUpdatedAt: null,
+      lastPushedAt: null,
+      lastPulledAt: null,
+    }
+  }
+
+  const { data } = await supabase.auth.getSession()
+  const userId = data.session?.user?.id ?? null
+  const email = data.session?.user?.email ?? null
+  const local = await localSnapshotSummary()
+  const meta = userId ? loadMeta(userId) : {}
+
+  let cloudEntryCount: number | null = null
+  let cloudUpdatedAt: string | null = null
+  if (userId) {
+    try {
+      const cloud = await fetchCloud(userId)
+      if (cloud) {
+        cloudUpdatedAt = cloud.updated_at
+        cloudEntryCount = Array.isArray(cloud.data.entries) ? cloud.data.entries.length : 0
+      }
+    } catch {
+      // オフライン等
+    }
+  }
+
+  return {
+    configured: true,
+    loggedIn: !!userId,
+    email,
+    hasLocalChanges: dirtySince != null,
+    localEntryCount: local.entryCount,
+    cloudEntryCount,
+    cloudUpdatedAt,
+    lastPushedAt: meta.lastPushedAt ?? null,
+    lastPulledAt: meta.lastPulledAt ?? null,
+  }
+}
+
+export async function detectCloudPullConflict(): Promise<CloudPullConflict | null> {
+  if (!supabase) return null
+  const userId = await requireUserId()
+  if (dirtySince == null) return null
+
+  const cloud = await fetchCloud(userId)
+  if (!cloud) return null
+
+  const meta = loadMeta(userId)
+  if (cloud.updated_at && meta.lastAppliedRemoteUpdatedAt === cloud.updated_at) return null
+
+  const cloudEntries = Array.isArray(cloud.data.entries) ? cloud.data.entries : []
+  const local = await localSnapshotSummary()
+  if (local.entryCount === 0) return null
+  if (cloudEntries.length === 0) return null
+
+  return {
+    localEntryCount: local.entryCount,
+    cloudEntryCount: cloudEntries.length,
+    cloudUpdatedAt: cloud.updated_at,
+  }
+}
+
+export async function signInWithPassword(email: string, password: string) {
+  if (!supabase) throw new Error('クラウド同期が未設定です。')
+  const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+  if (error) throw error
+  notifySyncListeners()
+}
+
+export async function signUpWithPassword(email: string, password: string) {
+  if (!supabase) throw new Error('クラウド同期が未設定です。')
+  const { error } = await supabase.auth.signUp({ email: email.trim(), password })
+  if (error) throw error
+  notifySyncListeners()
+}
+
+export async function signOutCloud() {
+  if (!supabase) return
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
+  notifySyncListeners()
+}
+
+export async function pushToCloudNow(): Promise<void> {
+  const userId = await requireUserId()
+  await pushCloud(userId)
+  notifySyncListeners()
+}
+
+export async function pullFromCloudNow(): Promise<void> {
+  const userId = await requireUserId()
+  const cloud = await fetchCloud(userId)
+  if (!cloud) throw new Error('クラウドに保存データがありません。')
+  const cloudEntries = Array.isArray(cloud.data.entries) ? cloud.data.entries : []
+  if (cloudEntries.length === 0) throw new Error('クラウドに保存データがありません。')
+
+  await restoreFromPayload(cloud.data)
+  saveMeta(userId, { lastPulledAt: Date.now(), lastAppliedRemoteUpdatedAt: cloud.updated_at ?? undefined })
+  dirtySince = null
+  notifySyncListeners()
 }
 
 async function localSnapshotSummary(): Promise<{ entryCount: number; maxEntryUpdatedAt: number }> {
@@ -62,6 +218,7 @@ async function pushCloud(userId: string) {
   if (error) throw error
   dirtySince = null
   saveMeta(userId, { lastPushedAt: Date.now() })
+  notifySyncListeners()
 }
 
 async function pullIfSafe(userId: string) {
@@ -80,6 +237,7 @@ async function pullIfSafe(userId: string) {
     await restoreFromPayload(cloud.data)
     saveMeta(userId, { lastPulledAt: Date.now(), lastAppliedRemoteUpdatedAt: cloud.updated_at ?? undefined })
     dirtySince = null
+    notifySyncListeners()
     return
   }
 
@@ -92,6 +250,7 @@ async function pullIfSafe(userId: string) {
   await restoreFromPayload(cloud.data)
   saveMeta(userId, { lastPulledAt: Date.now(), lastAppliedRemoteUpdatedAt: cloud.updated_at ?? undefined })
   dirtySince = null
+  notifySyncListeners()
 }
 
 function schedulePush(userId: string) {
@@ -102,6 +261,7 @@ function schedulePush(userId: string) {
         // 変更が無ければpushしない
         if (dirtySince == null) return
         await pushCloud(userId)
+        notifySyncListeners()
       } catch {
         // 通信失敗等は次のループでリトライ
       }
@@ -123,6 +283,7 @@ export function startCloudAutoSync() {
     // 起動時は「安全にpullできるならpull」
     try {
       await pullIfSafe(userId)
+      notifySyncListeners()
     } catch {
       // 無視（オフライン等）
     }
@@ -138,6 +299,7 @@ export function startCloudAutoSync() {
         try {
           if (dirtySince != null) return
           await pullIfSafe(currentUserId!)
+          notifySyncListeners()
         } catch {
           // 無視
         }
@@ -152,10 +314,10 @@ export function startCloudAutoSync() {
     if (!currentUserId) {
       if (loopTimer != null) window.clearInterval(loopTimer)
       loopTimer = null
-      dirtySince = null
       return
     }
     void startForSession()
+    notifySyncListeners()
   })
 
   return () => {

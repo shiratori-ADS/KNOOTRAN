@@ -261,7 +261,8 @@ export async function getSettings(): Promise<Settings> {
   if (existing) {
     const tags = Array.isArray(existing.tags) ? existing.tags : []
     const ex = existing as unknown as { uiLanguage?: unknown; tags?: unknown; id?: unknown }
-    const uiLanguage = ex.uiLanguage === 'en' ? 'en' : 'ja'
+    const uiLanguage =
+      ex.uiLanguage === 'en' ? 'en' : ex.uiLanguage === 'el' ? 'el' : 'ja'
     const patched: Settings = { id: 'singleton', uiLanguage, tags }
     // 旧フィールド foreignLanguageLabel は互換のため読み捨てる（翻訳対象はギリシャ語固定）
     if (ex.uiLanguage !== uiLanguage || ex.tags !== tags || ex.id !== 'singleton') {

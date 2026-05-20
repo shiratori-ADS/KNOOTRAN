@@ -102,33 +102,70 @@ export function accentPositionFromEnd(word: string): AccentPositionFromEnd {
  * アクセント位置（後ろから last/penult/antepenult）を返す。
  *
  * NOTE:
- * - 二重母音は後ろ側の母音にトノスが乗る前提で index を数える
+ * - 二重母音は通常後ろ側の母音にトノス（ου 等）。ια/ιε/ιο は前側にもあり得る（例: τραπεζαρία）
+ * - -ίας の ια は分離し、属格のアクセント（-άς）に対応
  */
+/** 母音ユニット1つ分（語幹上の開始位置と、トノスを載せる文字 index） */
+type VowelUnitSpan = { start: number; accentAt: number }
+
+/** ια/ιε/ιο を1ユニットにまとめるか（-ίας は分離して属格のアクセントに対応） */
+function mergeAsVowelUnit(two: string, plain: string, i: number): boolean {
+  if (!VOWEL_UNITS_2.has(two)) return false
+  if (two === 'ιε') return true
+  if (two === 'ια' || two === 'ιο') {
+    const next = plain[i + 2] ?? ''
+    return next !== 'ς' && next !== 'σ'
+  }
+  return true
+}
+
+function collectVowelUnitSpans(plain: string, accentedWord: string): VowelUnitSpan[] {
+  const chars = [...accentedWord]
+  const units: VowelUnitSpan[] = []
+
+  for (let i = 0; i < plain.length; i++) {
+    const two = plain.slice(i, i + 2)
+    if (two.length === 2 && mergeAsVowelUnit(two, plain, i)) {
+      const accentedOnFirst = ACCENTED_VOWELS.has(chars[i] ?? '')
+      const accentedOnSecond = ACCENTED_VOWELS.has(chars[i + 1] ?? '')
+      // 検出時: どちらかにトノスがあればその位置。なければ後ろ母音（ου 等の既定）
+      const accentAt = accentedOnFirst ? i : accentedOnSecond ? i + 1 : i + 1
+      units.push({ start: i, accentAt })
+      i++
+      continue
+    }
+    if (isVowel(plain[i] ?? '')) {
+      units.push({ start: i, accentAt: i })
+    }
+  }
+  return units
+}
+
+function accentedVowelUnitIndex(units: VowelUnitSpan[], accentedWord: string): number {
+  const chars = [...accentedWord]
+  const plain = stripGreekTonos(accentedWord)
+  for (let u = 0; u < units.length; u++) {
+    const { start } = units[u]!
+    const two = plain.slice(start, start + 2)
+    if (two.length === 2 && mergeAsVowelUnit(two, plain, start)) {
+      if (ACCENTED_VOWELS.has(chars[start] ?? '') || ACCENTED_VOWELS.has(chars[start + 1] ?? '')) return u
+      continue
+    }
+    if (ACCENTED_VOWELS.has(chars[start] ?? '')) return u
+  }
+  return -1
+}
+
 export function accentPositionFromEndByVowelUnit(word: string): AccentPositionFromEnd {
   if (!word) return 'none'
   const plain = stripGreekTonos(word)
   if (!plain) return 'none'
 
-  const targets: number[] = []
-  let accentedTargetIdx = -1
+  const units = collectVowelUnitSpans(plain, word)
+  const accentedUnitIdx = accentedVowelUnitIndex(units, word)
+  if (accentedUnitIdx === -1) return 'none'
 
-  for (let i = 0; i < plain.length; i++) {
-    const two = plain.slice(i, i + 2)
-    if (two.length === 2 && VOWEL_UNITS_2.has(two)) {
-      const idx = i + 1
-      targets.push(idx)
-      if (ACCENTED_VOWELS.has([...word][idx] ?? '')) accentedTargetIdx = targets.length - 1
-      i++
-      continue
-    }
-    if (isVowel(plain[i] ?? '')) {
-      targets.push(i)
-      if (ACCENTED_VOWELS.has([...word][i] ?? '')) accentedTargetIdx = targets.length - 1
-    }
-  }
-
-  if (accentedTargetIdx === -1) return 'none'
-  const fromEnd = targets.length - accentedTargetIdx
+  const fromEnd = units.length - accentedUnitIdx
   if (fromEnd === 1) return 'last'
   if (fromEnd === 2) return 'penult'
   if (fromEnd === 3) return 'antepenult'
@@ -165,30 +202,42 @@ export function addTonosOnNthFromEndVowel(word: string, n: 1 | 2 | 3): string {
  *
  * NOTE:
  * - 既存トノスは stripGreekTonos で除去して付け直す
- * - 二重母音は後ろ側の母音にトノス（例: ου→ού, ευ→εύ）
+ * - 二重母音は既定で後ろ側の母音（例: ου→ού）。sourceAccentWord を渡すと、
+ *   その語の同じ母音ユニット内の前後どちらにトノスがあったかを写す（例: τραπεζαρία の ι）
  */
-export function addTonosOnNthFromEndVowelUnit(word: string, n: 1 | 2 | 3): string {
+export function addTonosOnNthFromEndVowelUnit(
+  word: string,
+  n: 1 | 2 | 3,
+  sourceAccentWord?: string,
+): string {
   const plain = stripGreekTonos(word)
   if (!plain) return word
 
-  const targets: number[] = []
-  for (let i = 0; i < plain.length; i++) {
-    const two = plain.slice(i, i + 2)
-    if (two.length === 2 && VOWEL_UNITS_2.has(two)) {
-      targets.push(i + 1)
-      i++
-      continue
-    }
-    if (isVowel(plain[i] ?? '')) targets.push(i)
-  }
-  if (targets.length < n) return word
+  const targetUnits = collectVowelUnitSpans(plain, plain)
+  if (targetUnits.length < n) return word
 
-  const idx = targets[targets.length - n]!
+  const targetUnit = targetUnits[targetUnits.length - n]!
+  let accentAt = targetUnit.accentAt
+
+  if (sourceAccentWord) {
+    const sourcePlain = stripGreekTonos(sourceAccentWord)
+    const sourceUnits = collectVowelUnitSpans(sourcePlain, sourceAccentWord)
+    const sourceUnit = sourceUnits[sourceUnits.length - n]
+    if (sourceUnit) {
+      const offset = sourceUnit.accentAt - sourceUnit.start
+      const two = plain.slice(targetUnit.start, targetUnit.start + 2)
+      accentAt =
+        two.length === 2 && mergeAsVowelUnit(two, plain, targetUnit.start)
+          ? targetUnit.start + Math.min(offset, 1)
+          : targetUnit.start
+    }
+  }
+
   const chars = [...plain]
-  const ch = chars[idx] ?? ''
+  const ch = chars[accentAt] ?? ''
   const accented = VOWEL_MAP[ch]
   if (!accented) return word
-  chars[idx] = accented
+  chars[accentAt] = accented
   return chars.join('')
 }
 
@@ -237,9 +286,9 @@ export function applyAccentFrom(word: string, source: string): string {
 
 export function applyAccentFromByVowelUnit(word: string, source: string): string {
   const pos = accentPositionFromEndByVowelUnit(source)
-  if (pos === 'none') return word
-  if (pos === 'last') return addTonosOnNthFromEndVowelUnit(word, 1)
-  if (pos === 'penult') return addTonosOnNthFromEndVowelUnit(word, 2)
-  return addTonosOnNthFromEndVowelUnit(word, 3)
+  if (pos === 'none') return applyAccentFrom(word, source)
+  if (pos === 'last') return addTonosOnNthFromEndVowelUnit(word, 1, source)
+  if (pos === 'penult') return addTonosOnNthFromEndVowelUnit(word, 2, source)
+  return addTonosOnNthFromEndVowelUnit(word, 3, source)
 }
 
