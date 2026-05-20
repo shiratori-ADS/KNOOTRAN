@@ -184,20 +184,23 @@ export function ListPane({
           if (e.target === e.currentTarget) applyAndClose()
         }}
       >
-        <div className="modalCard" onMouseDown={(e) => e.stopPropagation()}>
-          <div className="row wrap" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0 }}>フィルター</h3>
-            <button
-              type="button"
-              className="iconButton"
-              onClick={applyAndClose}
-              aria-label="閉じる"
-              title="閉じる"
-            >
-              <CloseIcon />
-            </button>
+        <div className="modalCard modalCard--stacked" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="modalCardHeader">
+            <div className="row wrap" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0 }}>フィルター</h3>
+              <button
+                type="button"
+                className="iconButton"
+                onClick={applyAndClose}
+                aria-label="閉じる"
+                title="閉じる"
+              >
+                <CloseIcon />
+              </button>
+            </div>
           </div>
 
+          <div className="modalCardBody">
           <div className="twoCol">
             <label className="field" style={{ margin: 0 }}>
               <span className="label">品詞</span>
@@ -337,24 +340,27 @@ export function ListPane({
             </div>
             <span className="help">「#」は Α〜Ω 以外（数字・記号など）です。トノス（ά等）は無視して判定します。</span>
           </div>
+          </div>
 
-          <div className="row wrap" style={{ justifyContent: 'space-between', marginTop: 10 }}>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => {
-                setDraftPos('all')
-                setDraftTag('all')
-                setDraftAlphas([])
-                setDraftNounGenders([])
-                setDraftVerbFamilies([])
-              }}
-            >
-              クリア
-            </button>
-            <button type="button" className="primary" onClick={applyAndClose}>
-              適用
-            </button>
+          <div className="modalCardFooter">
+            <div className="row wrap" style={{ justifyContent: 'space-between', margin: 0 }}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  setDraftPos('all')
+                  setDraftTag('all')
+                  setDraftAlphas([])
+                  setDraftNounGenders([])
+                  setDraftVerbFamilies([])
+                }}
+              >
+                クリア
+              </button>
+              <button type="button" className="primary" onClick={applyAndClose}>
+                適用
+              </button>
+            </div>
           </div>
         </div>
       </div>,
