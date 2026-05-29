@@ -11,7 +11,7 @@ export type PartOfSpeech =
   | 'adverb'
   | 'other'
 
-export type NounGender = 'masc' | 'fem' | 'neut' | 'common_mf'
+export type NounGender = 'masc' | 'fem' | 'neut' | 'common_mf' | 'tri_gender'
 
 // とりあえず最小の活用タイプ（後で増やす前提で string に寄せる）
 export type InflectionType =
@@ -103,6 +103,9 @@ export type Entry = {
    * - 名詞:
    *   - 単数: n_nom_sg / n_gen_sg / n_acc_sg
    *   - 複数: n_nom_pl / n_gen_pl / n_acc_pl
+   * - 名詞（男・女・中）:
+   *   - 単数: n_m_nom_sg … / n_f_* / n_n_*
+   *   - 複数: n_m_nom_pl … / n_f_* / n_n_*
    * - 形容詞（最小）:
    *   - 単数: a_m_nom_sg / a_m_gen_sg / a_m_acc_sg / a_f_nom_sg / a_f_gen_sg / a_f_acc_sg / a_n_nom_sg / a_n_gen_sg / a_n_acc_sg
    *   - 複数: a_m_nom_pl / a_m_gen_pl / a_m_acc_pl / a_f_nom_pl / a_f_gen_pl / a_f_acc_pl / a_n_nom_pl / a_n_gen_pl / a_n_acc_pl
@@ -162,6 +165,24 @@ export type Entry = {
       | 'n_nom_pl'
       | 'n_gen_pl'
       | 'n_acc_pl'
+      | 'n_m_nom_sg'
+      | 'n_m_gen_sg'
+      | 'n_m_acc_sg'
+      | 'n_f_nom_sg'
+      | 'n_f_gen_sg'
+      | 'n_f_acc_sg'
+      | 'n_n_nom_sg'
+      | 'n_n_gen_sg'
+      | 'n_n_acc_sg'
+      | 'n_m_nom_pl'
+      | 'n_m_gen_pl'
+      | 'n_m_acc_pl'
+      | 'n_f_nom_pl'
+      | 'n_f_gen_pl'
+      | 'n_f_acc_pl'
+      | 'n_n_nom_pl'
+      | 'n_n_gen_pl'
+      | 'n_n_acc_pl'
       | 'a_m_nom_sg'
       | 'a_m_gen_sg'
       | 'a_m_acc_sg'

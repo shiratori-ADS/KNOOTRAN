@@ -45,7 +45,14 @@ export class AppDB extends Dexie {
             delete e.nounGender
             return
           }
-          if (e.nounGender === 'masc' || e.nounGender === 'fem' || e.nounGender === 'neut' || e.nounGender === 'common_mf') return
+          if (
+            e.nounGender === 'masc' ||
+            e.nounGender === 'fem' ||
+            e.nounGender === 'neut' ||
+            e.nounGender === 'common_mf' ||
+            e.nounGender === 'tri_gender'
+          )
+            return
           // 未設定は空のまま（UIで選べるようにする）
           delete e.nounGender
         })

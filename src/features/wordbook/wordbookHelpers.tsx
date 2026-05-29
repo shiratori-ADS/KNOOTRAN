@@ -71,6 +71,7 @@ export const nounGenderOptions: Array<{ value: NounGender; label: string }> = [
   { value: 'fem', label: '女性' },
   { value: 'common_mf', label: '男性/女性' },
   { value: 'neut', label: '中性' },
+  { value: 'tri_gender', label: '男性/女性/中性' },
 ]
 
 export function splitLines(s: string): string[] {
@@ -90,6 +91,8 @@ export function genderLabel(g?: NounGender) {
       return '男/女'
     case 'neut':
       return '中'
+    case 'tri_gender':
+      return '男/女/中'
     default:
       return '—'
   }

@@ -35,7 +35,7 @@ export function inferNounInflectionTypeFromLemma(rawLemma: string, nounGender?: 
   const accentPos = accentPositionFromEnd(lemmaRaw)
   const vCount = vowelCount(lemmaRaw)
   // 通性（男/女）は推定結果が1つに定まらないため、呼び出し側で masc/fem を別々に推定する
-  if (nounGender === 'common_mf') return 'none'
+  if (nounGender === 'common_mf' || nounGender === 'tri_gender') return 'none'
   if (lemma.endsWith('μο')) return 'noun_neut_-μο'
   if (lemma.endsWith('μα')) return vCount <= 2 ? 'noun_neut_-μα_2syll' : 'noun_neut_-μα_3plus'
   if (lemma.endsWith('ος')) {

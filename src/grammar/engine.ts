@@ -313,6 +313,20 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
   gen: string[]
 } | null {
   const o = entry.inflectionOverrides
+  if (entry.nounGender === 'tri_gender' && o) {
+    const nom = ['n_m_nom_sg', 'n_f_nom_sg', 'n_n_nom_sg', 'n_m_nom_pl', 'n_f_nom_pl', 'n_n_nom_pl']
+      .map((k) => normalizeToken((o as Record<string, string>)[k] ?? ''))
+      .filter(Boolean)
+    const acc = ['n_m_acc_sg', 'n_f_acc_sg', 'n_n_acc_sg', 'n_m_acc_pl', 'n_f_acc_pl', 'n_n_acc_pl']
+      .map((k) => normalizeToken((o as Record<string, string>)[k] ?? ''))
+      .filter(Boolean)
+    const gen = ['n_m_gen_sg', 'n_f_gen_sg', 'n_n_gen_sg', 'n_m_gen_pl', 'n_f_gen_pl', 'n_n_gen_pl']
+      .map((k) => normalizeToken((o as Record<string, string>)[k] ?? ''))
+      .filter(Boolean)
+    if (nom.length || acc.length || gen.length) {
+      return { nom, acc, gen }
+    }
+  }
   if (
     o?.n_nom_sg ||
     o?.n_acc_sg ||

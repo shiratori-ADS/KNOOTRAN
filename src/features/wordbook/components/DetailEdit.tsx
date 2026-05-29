@@ -4,6 +4,7 @@ import type { Entry, InflectionType, NounGender, PartOfSpeech } from '../../../d
 import { AdjectiveOverridesEditor, type AdjectiveAutoForms } from './AdjectiveOverridesEditor'
 import { PersonalPronounOverridesEditor, type PersonalPronounAutoForms } from './PersonalPronounOverridesEditor'
 import { NounOverridesEditor, type NounAutoForms } from './NounOverridesEditor'
+import { NounTriGenderOverridesEditor } from './NounTriGenderOverridesEditor'
 import { TagChips } from './TagChips'
 import { VerbOverridesEditor, type VerbAorRow, type VerbRow } from './VerbOverridesEditor'
 import { normalizeToken } from '../../../lib/normalize'
@@ -138,9 +139,11 @@ export function DetailEdit({
         <span className="label">活用</span>
         <div className="help">
           {editPos === 'noun'
-            ? !autoEditNoun
-              ? 'この語形の活用タイプは未対応です。下の欄で活用形を手入力してください（入力した形は照合にも反映されます）。'
-              : '名詞は見出し語の語尾と性から活用タイプを推定します。上書き/手入力した語形は単語モード/文モードの照合にも反映されます。'
+            ? editNounGender === 'tri_gender'
+              ? '男性・女性・中性の各形を入力してください（数詞・通性名詞など）。入力した形は単語モード/文モードの照合にも反映されます。'
+              : !autoEditNoun
+                ? 'この語形の活用タイプは未対応です。下の欄で活用形を手入力してください（入力した形は照合にも反映されます）。'
+                : '名詞は見出し語の語尾と性から活用タイプを推定します。上書き/手入力した語形は単語モード/文モードの照合にも反映されます。'
             : editPos === 'verb'
               ? '動詞は活用タイプからマトリックスを表示します。上書き/手入力した語形は単語モード/文モードの照合にも反映されます。'
               : editPos === 'pronoun_personal'
@@ -164,6 +167,8 @@ export function DetailEdit({
                 autoEditAor={autoEditAor}
                 autoEditImp={autoEditImp}
               />
+            ) : editNounGender === 'tri_gender' ? (
+              <NounTriGenderOverridesEditor editOverrides={editOverrides} setEditOverrides={setEditOverrides} />
             ) : (
               <NounOverridesEditor editOverrides={editOverrides} setEditOverrides={setEditOverrides} autoEditNoun={autoEditNoun} />
             )}

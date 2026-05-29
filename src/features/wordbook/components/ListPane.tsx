@@ -139,6 +139,10 @@ export function ListPane({
     setIsFilterOpen(false)
   }
 
+  function cancelAndClose() {
+    setIsFilterOpen(false)
+  }
+
   const hasPosSubFilter =
     (filterPos === 'noun' && filterNounGenders.length > 0) ||
     (filterPos === 'verb' && filterVerbFamilies.length > 0)
@@ -181,7 +185,7 @@ export function ListPane({
         aria-modal="true"
         aria-label="フィルター"
         onMouseDown={(e) => {
-          if (e.target === e.currentTarget) applyAndClose()
+          if (e.target === e.currentTarget) cancelAndClose()
         }}
       >
         <div className="modalCard modalCard--stacked" onMouseDown={(e) => e.stopPropagation()}>
@@ -191,9 +195,9 @@ export function ListPane({
               <button
                 type="button"
                 className="iconButton"
-                onClick={applyAndClose}
-                aria-label="閉じる"
-                title="閉じる"
+                onClick={cancelAndClose}
+                aria-label="キャンセル"
+                title="キャンセル"
               >
                 <CloseIcon />
               </button>

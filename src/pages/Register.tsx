@@ -5,6 +5,8 @@ import { findEntryByNormalizedForeign } from '../lib/entryForeignLookup'
 import { normalizeForeignStorage, normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
 import { personalPronounAutoForms } from '../grammar/personalPronoun'
+import { collectNounTriGenderForms } from '../grammar/nounTriGender'
+import { NounTriGenderOverridesEditor } from '../features/wordbook/components/NounTriGenderOverridesEditor'
 import { nounGenderOptions, verbInflectionOptions } from '../features/wordbook/wordbookHelpers'
 import { parseExamplePairsText } from '../lib/examples'
 import { markLocalDirty } from '../lib/cloudAutoSync'
@@ -39,6 +41,7 @@ export function Register() {
   const [examplesText, setExamplesText] = useState('')
   const [relatedText, setRelatedText] = useState('')
   const [memo, setMemo] = useState('')
+  const [inflectionOverrides, setInflectionOverrides] = useState<Entry['inflectionOverrides']>({})
   const [modalMessage, setModalMessage] = useState<string | null>(null)
   const [status, setStatus] = useState<string>('')
 
@@ -79,6 +82,8 @@ export function Register() {
         return
       }
     }
+    const triForms =
+      pos === 'noun' && nounGender === 'tri_gender' ? collectNounTriGenderForms(inflectionOverrides) : []
     const entry: Entry = {
       pos,
       meaningJaPrimary: meanings[0],
@@ -89,9 +94,13 @@ export function Register() {
       inflectionType:
         pos === 'verb'
           ? inflectionType
-          : pos === 'noun'
+          : pos === 'noun' && nounGender !== 'tri_gender'
             ? inferNounInflectionTypeFromLemma(lemmaNorm, nounGender)
             : 'none',
+      inflectionOverrides:
+        pos === 'noun' && nounGender === 'tri_gender' && Object.keys(inflectionOverrides ?? {}).length
+          ? inflectionOverrides
+          : undefined,
       foreignLemma: lemmaStored ? lemmaStored : undefined,
       foreignForms: lemmaStored
         ? pos === 'pronoun_personal'
@@ -103,7 +112,7 @@ export function Register() {
                   .filter(Boolean),
               ]),
             )
-          : [lemmaStored]
+          : Array.from(new Set([lemmaStored, ...triForms]))
         : [],
       examples: parseExamplePairsText(examplesText),
       related: splitLines(relatedText),
@@ -121,6 +130,7 @@ export function Register() {
     setMemo('')
     setNounGender('masc')
     setInflectionType('none')
+    setInflectionOverrides({})
     setStatus('保存しました。')
   }
 
@@ -195,7 +205,14 @@ export function Register() {
         {pos === 'noun' && (
           <label className="field">
             <span className="label">性（名詞）</span>
-            <select value={nounGender} onChange={(e) => setNounGender(e.target.value as NounGender)}>
+            <select
+              value={nounGender}
+              onChange={(e) => {
+                const next = e.target.value as NounGender
+                setNounGender(next)
+                if (next !== 'tri_gender') setInflectionOverrides({})
+              }}
+            >
               {nounGenderOptions.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
@@ -203,6 +220,16 @@ export function Register() {
               ))}
             </select>
           </label>
+        )}
+
+        {pos === 'noun' && nounGender === 'tri_gender' && (
+          <div className="field">
+            <span className="label">活用（男性・女性・中性）</span>
+            <span className="help">数詞など、性ごとに形が異なる名詞向け。1つ以上入力すれば登録できます。</span>
+            <div className="matrixEdit">
+              <NounTriGenderOverridesEditor editOverrides={inflectionOverrides} setEditOverrides={setInflectionOverrides} />
+            </div>
+          </div>
         )}
 
         <label className="field">

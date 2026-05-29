@@ -14,6 +14,7 @@ import {
 } from '../../../grammar/accent'
 import { adjectiveMatchesToken } from '../../../grammar/adjective'
 import { personalPronounMatchesToken } from '../../../grammar/personalPronoun'
+import { collectNounTriGenderForms, hasNounTriGenderOverrides } from '../../../grammar/nounTriGender'
 import { tokenize } from '../../../lib/tokenize'
 
 export type TranslateDirection = 'ja_to_foreign' | 'foreign_to_ja'
@@ -177,6 +178,9 @@ function nounStem(lemmaNorm: string, type: InflectionType): string | null {
 
 function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
   const o = entry.inflectionOverrides
+  if (entry.nounGender === 'tri_gender' && hasNounTriGenderOverrides(o)) {
+    return collectNounTriGenderForms(o)
+  }
   if (o?.n_nom_sg || o?.n_acc_sg || o?.n_gen_sg || o?.n_nom_pl || o?.n_acc_pl || o?.n_gen_pl) {
     const all = [o?.n_nom_sg, o?.n_acc_sg, o?.n_gen_sg, o?.n_nom_pl, o?.n_acc_pl, o?.n_gen_pl]
       .map((x) => normalizeToken(x ?? ''))
@@ -187,7 +191,7 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
   const genders: NounGender[] =
     entry.pos === 'noun' && entry.nounGender === 'common_mf'
       ? (['masc', 'fem'] as const)
-      : entry.nounGender
+      : entry.nounGender && entry.nounGender !== 'tri_gender'
         ? [entry.nounGender]
         : []
 

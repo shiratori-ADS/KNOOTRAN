@@ -106,6 +106,7 @@ export function useWordbookController() {
   const inferredEditNounType = useMemo(() => {
     if (!(editPos === 'noun' && editLemmaNorm)) return 'none'
     // 通性（男/女）は推定が1つに定まらないため、編集欄では代表として男性側を使う
+    if (editNounGender === 'tri_gender') return 'none'
     const g = editNounGender === 'common_mf' ? 'masc' : editNounGender
     return inferNounInflectionTypeFromLemma(editLemmaNorm, g)
   }, [editPos, editLemmaNorm, editNounGender])
@@ -131,6 +132,7 @@ export function useWordbookController() {
   const autoEditNoun = useMemo(() => {
     if (editPos !== 'noun') return null
     if (!editLemmaNorm) return null
+    if (editNounGender === 'tri_gender') return null
     // 通性（男/女）は推定が1つに定まらないため、編集欄では代表として男性側を使う
     const g = editNounGender === 'common_mf' ? 'masc' : editNounGender
     return nounAutoForms(editLemmaDisplay, g, inferredEditNounType)
@@ -239,9 +241,16 @@ export function useWordbookController() {
       return
     }
 
-    const inferGenderForEdit = editNounGender === 'common_mf' ? 'masc' : editNounGender
-    const inferredNounType = editPos === 'noun' ? inferNounInflectionTypeFromLemma(lemmaNorm, inferGenderForEdit) : 'none'
-    const autoNoun = editPos === 'noun' ? nounAutoForms(lemmaNorm, inferGenderForEdit, inferredNounType) : null
+    const inferGenderForEdit =
+      editNounGender === 'common_mf' ? 'masc' : editNounGender === 'tri_gender' ? undefined : editNounGender
+    const inferredNounType =
+      editPos === 'noun' && editNounGender !== 'tri_gender'
+        ? inferNounInflectionTypeFromLemma(lemmaNorm, inferGenderForEdit)
+        : 'none'
+    const autoNoun =
+      editPos === 'noun' && editNounGender !== 'tri_gender' && inferGenderForEdit
+        ? nounAutoForms(lemmaNorm, inferGenderForEdit, inferredNounType)
+        : null
     const autoVerb = editPos === 'verb' ? verbMatrix(lemmaNorm, editInflectionType) : null
     const autoAor = editPos === 'verb' ? verbAoristMatrix(lemmaNorm, editInflectionType) : null
     const autoImp = editPos === 'verb' ? verbImperativeForms(lemmaNorm, editInflectionType) : null

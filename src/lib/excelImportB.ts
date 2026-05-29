@@ -159,7 +159,7 @@ export function parseExcelImportB(arrayBuffer: ArrayBuffer): ImportBResult {
         nounGender = (String(nr.nounGender ?? '').trim() as NounGender) || undefined
         Object.assign(overrides, pickOverrides(nr, 'n_'))
         // nounシートが空欄なら自動生成（登録は foreignForms に反映）
-        if (Object.keys(overrides).length === 0 && nounGender) {
+        if (Object.keys(overrides).length === 0 && nounGender && nounGender !== 'tri_gender') {
           const a = nounAutoForms(lemmaNorm, nounGender)
           if (a) autoForms.push(...Object.values(a))
         }

@@ -20,6 +20,7 @@ import {
   verbMatrix,
 } from '../wordbookHelpers'
 import { inferNounInflectionTypeFromLemma } from '../../../grammar/infer'
+import { hasNounTriGenderOverrides } from '../../../grammar/nounTriGender'
 
 const NOUN_OVERRIDE_KEYS = ['n_nom_sg', 'n_gen_sg', 'n_acc_sg', 'n_nom_pl', 'n_gen_pl', 'n_acc_pl'] as const
 
@@ -655,6 +656,76 @@ export function InflectionSection({ selected }: { selected: Entry }) {
             <td className="mono greek">{renderEndingRed(get('a_n_acc_pl' as any, row(5, 2)), [endingFor(5, 2)])}</td>
           </tr>
         </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  if (selected.pos === 'noun' && selected.nounGender === 'tri_gender') {
+    const o = selected.inflectionOverrides ?? {}
+    if (!hasNounTriGenderOverrides(o)) {
+      return <span className="subtle">男性・女性・中性の活用形を登録してください。</span>
+    }
+    const get = (k: string) => String((o as Record<string, string>)[k] ?? '').trim()
+    const article = (g: 'masc' | 'fem' | 'neut', num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
+      if (kase === 'gen' && num === 'pl') return 'των'
+      if (g === 'neut') {
+        if (kase === 'gen') return num === 'sg' ? 'του' : 'των'
+        return num === 'sg' ? 'το' : 'τα'
+      }
+      if (g === 'masc') {
+        if (kase === 'nom') return num === 'sg' ? 'ο' : 'οι'
+        if (kase === 'gen') return 'του'
+        return num === 'sg' ? 'τον' : 'τους'
+      }
+      if (kase === 'nom') return num === 'sg' ? 'η' : 'οι'
+      if (kase === 'gen') return 'της'
+      return num === 'sg' ? 'την' : 'τις'
+    }
+    const keyFor = (g: 'masc' | 'fem' | 'neut', num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
+      const p = g === 'masc' ? 'n_m' : g === 'fem' ? 'n_f' : 'n_n'
+      const c = kase === 'nom' ? 'nom' : kase === 'gen' ? 'gen' : 'acc'
+      return `${p}_${c}_${num}`
+    }
+    const cell = (g: 'masc' | 'fem' | 'neut', num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
+      const form = get(keyFor(g, num, kase))
+      if (!form) return ''
+      return `${article(g, num, kase)} ${form}`
+    }
+    const rowLabel = (num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
+      const n = num === 'sg' ? '単数' : '複数'
+      const k = kase === 'nom' ? '～は' : kase === 'gen' ? '～の' : '～を'
+      return `${n} ${k}`
+    }
+    const rows: Array<{ num: 'sg' | 'pl'; kase: 'nom' | 'gen' | 'acc' }> = [
+      { num: 'sg', kase: 'nom' },
+      { num: 'sg', kase: 'gen' },
+      { num: 'sg', kase: 'acc' },
+      { num: 'pl', kase: 'nom' },
+      { num: 'pl', kase: 'gen' },
+      { num: 'pl', kase: 'acc' },
+    ]
+    return (
+      <div className="matrixWrap">
+        <table className="matrix">
+          <thead>
+            <tr>
+              <th></th>
+              <th>男</th>
+              <th>女</th>
+              <th>中</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={`${r.num}-${r.kase}`}>
+                <td>{rowLabel(r.num, r.kase)}</td>
+                <td className="mono greek">{cell('masc', r.num, r.kase)}</td>
+                <td className="mono greek">{cell('fem', r.num, r.kase)}</td>
+                <td className="mono greek">{cell('neut', r.num, r.kase)}</td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
     )
