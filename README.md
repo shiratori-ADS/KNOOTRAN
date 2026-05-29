@@ -251,6 +251,7 @@ git push origin main
 2. VercelでGitHubリポジトリをImportしてDeploy（Viteなので通常は自動設定でOK）
    - Build: `npm run build`
    - Output: `dist`
+   - ルート直下の `vercel.json` で、すべてのパスを `index.html` にフォールバックします（`/wordbook` などを再読み込みしても 404 にならない）
 
 ### Vercelの環境変数（Supabase）
 
