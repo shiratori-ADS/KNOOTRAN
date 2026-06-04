@@ -1,6 +1,6 @@
 import type { Entry } from '../db/types'
 import { normalizeToken } from '../lib/normalize'
-import { stripGreekTonos } from './accent'
+import { applyAccentFromByVowelUnit, stripGreekTonos } from './accent'
 
 export type AdjectiveAutoForms = {
   a_m_nom_sg: string
@@ -63,16 +63,17 @@ export function adjectiveMatrix(lemmaNorm: string) {
   }
 
   if (lemmaPlain.endsWith('ος')) {
-    const stem = lemmaNorm.slice(0, -2) // トノス保持
+    const stem = stripGreekTonos(lemmaNorm).slice(0, -2)
+    const applyLikeLemma = (w: string) => applyAccentFromByVowelUnit(w, lemmaNorm)
     return {
       headers: ['男', '女', '中'],
       rows: [
-        { label: '単数 ～は', cells: [`${stem}ος`, `${stem}η`, `${stem}ο`] },
-        { label: '単数 ～の', cells: [`${stem}ου`, `${stem}ης`, `${stem}ου`] },
-        { label: '単数 ～を', cells: [`${stem}ο`, `${stem}η`, `${stem}ο`] },
-        { label: '複数 ～は', cells: [`${stem}οι`, `${stem}ες`, `${stem}α`] },
-        { label: '複数 ～の', cells: [`${stem}ων`, `${stem}ων`, `${stem}ων`] },
-        { label: '複数 ～を', cells: [`${stem}ους`, `${stem}ες`, `${stem}α`] },
+        { label: '単数 ～は', cells: [applyLikeLemma(`${stem}ος`), applyLikeLemma(`${stem}η`), applyLikeLemma(`${stem}ο`)] },
+        { label: '単数 ～の', cells: [applyLikeLemma(`${stem}ου`), applyLikeLemma(`${stem}ης`), applyLikeLemma(`${stem}ου`)] },
+        { label: '単数 ～を', cells: [applyLikeLemma(`${stem}ο`), applyLikeLemma(`${stem}η`), applyLikeLemma(`${stem}ο`)] },
+        { label: '複数 ～は', cells: [applyLikeLemma(`${stem}οι`), applyLikeLemma(`${stem}ες`), applyLikeLemma(`${stem}α`)] },
+        { label: '複数 ～の', cells: [applyLikeLemma(`${stem}ων`), applyLikeLemma(`${stem}ων`), applyLikeLemma(`${stem}ων`)] },
+        { label: '複数 ～を', cells: [applyLikeLemma(`${stem}ους`), applyLikeLemma(`${stem}ες`), applyLikeLemma(`${stem}α`)] },
       ],
     }
   }
