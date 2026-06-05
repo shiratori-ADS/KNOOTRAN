@@ -595,10 +595,12 @@ textarea {
 
 .kv {
   display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 10px;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 8px;
   align-items: start;
   margin: 12px 0;
+  width: 92%;
+  max-width: 100%;
 }
 .kv.kvFull {
   grid-template-columns: 1fr;
