@@ -98,6 +98,10 @@ function accentGamma3(word: string) {
   return addTonosOnNthFromEndVowelUnit(word, 3)
 }
 
+function accentPresentImperative2pl(word: string) {
+  return addTonosOnNthFromEndVowelUnit(word, 3)
+}
+
 function presFormsMidG1FromLemma(lemmaNorm: string) {
   // -ομαι: λέγομαι/λέγεσαι/λέγεται/λεγόμαστε/λέγεστε/λέγονται（最小）
   const plain = stripGreekTonos(lemmaNorm)
@@ -238,7 +242,7 @@ function aoristImperativesMidFromLemma(lemmaNorm: string, t: 'verb_pres_mid_Γ1_
     const aor2pl = `${baseStPlain}είτε` // 例: εργαστείτε
 
     // 継続・繰返し（現在）命令は 2pl だけ（2sg は空）
-    const pres2pl = applyAccentFrom(`${stemPlain}εστε`, lemmaNorm)
+    const pres2pl = accentPresentImperative2pl(`${stemPlain}εστε`)
     return { pres2sg: '', pres2pl, aor2sg, aor2pl } as const
   }
 
@@ -247,8 +251,8 @@ function aoristImperativesMidFromLemma(lemmaNorm: string, t: 'verb_pres_mid_Γ1_
   const stemPlain = plain.slice(0, -4)
   const aor2sg = `${stemPlain}ήσου` // 例: κοιμήσου
   const aor2pl = `${stemPlain}ηθείτε` // 例: κοιμηθείτε
-  // Γ2 継続・繰返し命令2複は後ろから2番目（例: κοιμάστε）
-  const pres2pl = addTonosOnNthFromEndVowelUnit(`${stemPlain}αστε`, 2)
+  // 継続・繰返し命令2複は後ろから3番目
+  const pres2pl = accentPresentImperative2pl(`${stemPlain}αστε`)
   return { pres2sg: '', pres2pl, aor2sg, aor2pl } as const
 }
 
@@ -292,7 +296,7 @@ function verbFormsAB(lemmaNorm: string) {
       } as const,
       imp: {
         pres2sg: 'άκου',
-        pres2pl: 'ακούτε',
+        pres2pl: accentPresentImperative2pl('ακουτε'),
         aor2sg: 'άκουσε',
         aor2pl: 'ακούστε',
       } as const,
@@ -334,7 +338,7 @@ function verbFormsAB(lemmaNorm: string) {
       } as const,
       imp: {
         pres2sg: 'τρώγε',
-        pres2pl: 'τρώτε',
+        pres2pl: accentPresentImperative2pl('τρωτε'),
         aor2sg: 'φάε',
         aor2pl: 'φάτε',
       } as const,
@@ -376,7 +380,7 @@ function verbFormsAB(lemmaNorm: string) {
       } as const,
       imp: {
         pres2sg: 'καίγε',
-        pres2pl: 'καίτε',
+        pres2pl: accentPresentImperative2pl('καιτε'),
         aor2sg: 'κάψε',
         aor2pl: 'κάψτε',
       } as const,
@@ -418,7 +422,7 @@ function verbFormsAB(lemmaNorm: string) {
       } as const,
       imp: {
         pres2sg: 'κλαίγε',
-        pres2pl: 'κλαίτε',
+        pres2pl: accentPresentImperative2pl('κλαιτε'),
         aor2sg: 'κλάψε',
         aor2pl: 'κλάψτε',
       } as const,
@@ -494,7 +498,7 @@ function verbFormsAB(lemmaNorm: string) {
     const aor2plPlain = `${aorStemPlain}τε`
     const imp = {
       pres2sg: `${stemNoOmega}γε`,
-      pres2pl: `${stemNoOmega}τε`,
+      pres2pl: accentPresentImperative2pl(`${stemPlainNoOmega}τε`),
       aor2sg: addTonosOnNthFromEndVowelUnit(aor2sgPlain, accentNthForImp2sg(aor2sgPlain)),
       aor2pl: addTonosOnNthFromEndVowelUnit(aor2plPlain, 2),
     } as const
@@ -988,11 +992,10 @@ export function verbImperativeForms(lemmaNorm: string, t?: InflectionType): Verb
     // ζητάω   → ζήτα  / ζητάτε  / ζήτησε  / ζητήστε
 
     const stemPlainNoOmega = stripGreekTonos(lemmaNorm).slice(0, -1) // ...α
-    const stemNoOmega = lemmaNorm.slice(0, -1) // ...ά (トノス保持)
 
     // Imperfective (present imperative)
     const pres2sgPlain = stemPlainNoOmega
-    const pres2pl = `${stemNoOmega}τε`
+    const pres2pl = accentPresentImperative2pl(`${stemPlainNoOmega}τε`)
     // Β1の2sg（-α）はユーザー指定で penult に統一（例: απάντα / βοήθα / ζήτα）
     const pres2sg = addTonosOnNthFromEndVowelUnit(pres2sgPlain, countGreekVowelUnits(pres2sgPlain) >= 2 ? 2 : 1)
 
@@ -1019,9 +1022,9 @@ export function verbImperativeForms(lemmaNorm: string, t?: InflectionType): Verb
     const accentNthForImp2sg = (plainForm: string) => (countGreekVowelUnits(plainForm) <= 2 ? 2 : 3)
 
     const pres2sgPlain = `${stemPlain}ει`
-    const pres2plPlain = `${stemPlain}ειτε` // -είτε（penultユニット=ει にトノス）
+    const pres2plPlain = `${stemPlain}ειτε`
     const pres2sg = addTonosOnNthFromEndVowelUnit(pres2sgPlain, 1)
-    const pres2pl = addTonosOnNthFromEndVowelUnit(pres2plPlain, 2)
+    const pres2pl = accentPresentImperative2pl(pres2plPlain)
 
     const aorStemPlain = stripGreekTonos(aoristStemFromLemmaStem(stripGreekTonos(lemmaNorm).slice(0, -1), t))
     const aor2sgPlain = `${aorStemPlain}σε`
@@ -1039,7 +1042,7 @@ export function verbImperativeForms(lemmaNorm: string, t?: InflectionType): Verb
   const pres2plPlain = `${stemPlain}ετε`
 
   const pres2sg = addTonosOnNthFromEndVowelUnit(pres2sgPlain, accentNthForImp2sg(pres2sgPlain))
-  const pres2pl = addTonosOnNthFromEndVowelUnit(pres2plPlain, 2)
+  const pres2pl = accentPresentImperative2pl(pres2plPlain)
 
   const aorStemPlain = stripGreekTonos(aoristStemFromLemmaStem(stripGreekTonos(lemmaNorm).slice(0, -1), t))
   const aor2sgPlain = aorStemPlain.endsWith('ξ') || aorStemPlain.endsWith('ψ') ? `${aorStemPlain}ε` : `${aorStemPlain}σε`
