@@ -140,12 +140,12 @@ function maybeAddFinalN(form: string): string[] {
 }
 
 export function adjectiveFormsForMatch(entry: Entry, lemmaNorm: string): string[] {
-  const o: any = entry.inflectionOverrides ?? {}
-  const hasOverrides = Object.keys(o).some((k) => k.startsWith('a_') && typeof o[k] === 'string' && o[k].trim())
+  const o = entry.inflectionOverrides ?? {}
+  const adjectiveOverrides = Object.entries(o).filter(([k, v]) => k.startsWith('a_') && typeof v === 'string' && v.trim())
+  const hasOverrides = adjectiveOverrides.length > 0
   if (hasOverrides) {
-    const all = Object.keys(o)
-      .filter((k) => k.startsWith('a_'))
-      .map((k) => normalizeToken(o[k] ?? ''))
+    const all = adjectiveOverrides
+      .map(([, v]) => normalizeToken(v ?? ''))
       .filter(Boolean)
     // 上書きが「ポιον」等の場合もあるので strip 形も併用
     return withPlain(all)

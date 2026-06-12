@@ -19,7 +19,7 @@ export function NounOverridesEditor({
   setEditOverrides: Dispatch<SetStateAction<Entry['inflectionOverrides']>>
   autoEditNoun: NounAutoForms | null
 }) {
-  const valueOf = (k: keyof NounAutoForms) => (editOverrides as any)?.[k] ?? (autoEditNoun as any)?.[k] ?? ''
+  const valueOf = (k: keyof NounAutoForms) => editOverrides?.[k] ?? autoEditNoun?.[k] ?? ''
   const setValue = (k: keyof NounAutoForms, v: string) => setEditOverrides((p) => ({ ...(p ?? {}), [k]: v }))
 
   return (

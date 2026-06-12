@@ -10,6 +10,10 @@ export type BackupPayloadV1 = {
   entries: Entry[]
 }
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null
+}
+
 export async function buildLocalPayload(): Promise<BackupPayloadV1> {
   const s = await getSettings()
   const entries = await db.entries.toArray()
@@ -23,13 +27,14 @@ export async function buildLocalPayload(): Promise<BackupPayloadV1> {
 }
 
 export async function restoreFromPayload(raw: unknown): Promise<{ restoredCount: number }> {
-  const r = raw as any
+  const r = asObject(raw)
   if (!r || r.kind !== 'known-only-translate-backup' || r.version !== 1) {
     throw new Error('バックアップ形式が不正です。')
   }
 
+  const settingsRaw = asObject(r.settings)
   const nextSettings: SettingsType | null =
-    r.settings && r.settings.id === 'singleton' ? (r.settings as SettingsType) : null
+    settingsRaw && settingsRaw.id === 'singleton' ? (r.settings as SettingsType) : null
   const nextEntries: Entry[] = Array.isArray(r.entries) ? (r.entries as Entry[]) : []
 
   if (!nextSettings) {
@@ -56,12 +61,12 @@ export async function restoreFromPayload(raw: unknown): Promise<{ restoredCount:
     const patchedSettings: SettingsType = {
       id: 'singleton',
       uiLanguage:
-        r.settings?.uiLanguage === 'en'
+        settingsRaw?.uiLanguage === 'en'
           ? 'en'
-          : r.settings?.uiLanguage === 'el'
+          : settingsRaw?.uiLanguage === 'el'
             ? 'el'
             : 'ja',
-      tags: Array.isArray(r.settings?.tags) ? r.settings.tags : [],
+      tags: Array.isArray(settingsRaw?.tags) ? settingsRaw.tags.filter((tag): tag is string => typeof tag === 'string') : [],
     }
     await db.settings.put(patchedSettings)
     await db.entries.bulkPut(normalizedEntries)

@@ -21,7 +21,7 @@ export type ImportBResult =
   | { ok: false; errors: Array<{ rowNumber: number; foreignLemma: string; message: string }> }
   | { ok: true; entries: Entry[] }
 
-function sheetToObjects<T extends Record<string, any>>(wb: XLSX.WorkBook, name: string): T[] {
+function sheetToObjects<T extends Record<string, unknown>>(wb: XLSX.WorkBook, name: string): T[] {
   const ws = wb.Sheets[name]
   if (!ws) return []
   return XLSX.utils.sheet_to_json(ws, { defval: '' }) as T[]
@@ -39,11 +39,11 @@ function normalizeExamplesCell(s: string) {
   return (s ?? '').replace(/\\n/g, '\n')
 }
 
-type VerbSheetRow = Record<string, string> & { foreignLemma: string; inflectionType?: string }
-type NounSheetRow = Record<string, string> & { foreignLemma: string; nounGender?: string }
-type AdjSheetRow = Record<string, string> & { foreignLemma: string; pos?: string }
+type VerbSheetRow = Record<string, unknown> & { foreignLemma: string; inflectionType?: string }
+type NounSheetRow = Record<string, unknown> & { foreignLemma: string; nounGender?: string }
+type AdjSheetRow = Record<string, unknown> & { foreignLemma: string; pos?: string }
 
-function pickOverrides(row: Record<string, any>, prefix: string) {
+function pickOverrides(row: Record<string, unknown>, prefix: string) {
   const out: Record<string, string> = {}
   for (const [k, v] of Object.entries(row)) {
     if (!k.startsWith(prefix)) continue
@@ -71,7 +71,7 @@ export function parseExcelImportB(arrayBuffer: ArrayBuffer): ImportBResult {
     }
   }
 
-  const wordRaw = sheetToObjects<Record<string, any>>(wb, 'word')
+  const wordRaw = sheetToObjects<Record<string, unknown>>(wb, 'word')
   // 1行目はヘッダ、sheet_to_json は2行目以降を返す。Excel上の行番号は +2 とする。
   const wordRows: ImportBWordRow[] = wordRaw.map((r, idx) => ({
     rowNumber: idx + 2,

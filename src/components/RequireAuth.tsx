@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { useAuth } from '../auth/AuthProvider'
+import { useAuth } from '../auth/useAuth'
 
 export function RequireAuth() {
   const { loading, isAuthenticated, cloudAuthEnabled } = useAuth()

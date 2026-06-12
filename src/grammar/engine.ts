@@ -1,5 +1,5 @@
 import { normalizeToken } from '../lib/normalize'
-import type { InflectionType } from '../db/types'
+import type { Entry, InflectionType } from '../db/types'
 import { resolveNounInflectionType } from './infer'
 import type {
   SentenceAnalysis,
@@ -621,22 +621,13 @@ export function translateSentenceForeignToJaCore(args: {
       args.nouns.find((n) => {
         const lemma = normalizeToken(n.lemma ?? '')
         if (!lemma) return false
-        const t = resolveNounInflectionType(
-          {
-            pos: 'noun',
-            meaningJaPrimary: n.meaningJaPrimary,
-            meaningJaVariants: [],
-            nounGender: n.nounGender,
-            inflectionType: n.inflectionType,
-            inflectionOverrides: n.inflectionOverrides as any,
-            foreignForms: [],
-            examples: [],
-            related: [],
-            createdAt: 0,
-            updatedAt: 0,
-          } as any,
-          lemma,
-        )
+        const nounEntry: Pick<Entry, 'pos' | 'inflectionType' | 'nounGender' | 'inflectionOverrides'> = {
+          pos: 'noun',
+          nounGender: n.nounGender,
+          inflectionType: n.inflectionType,
+          inflectionOverrides: n.inflectionOverrides,
+        }
+        const t = resolveNounInflectionType(nounEntry, lemma)
         const f = nounForms(n, lemma, t)
         if (!f) return false
         return f.nom.includes(tok) || f.acc.includes(tok) || f.gen.includes(tok)
@@ -644,22 +635,13 @@ export function translateSentenceForeignToJaCore(args: {
     if (!e?.id) continue
 
     const lemma = normalizeToken(e.lemma ?? tok)
-    const t = resolveNounInflectionType(
-      {
-        pos: 'noun',
-        meaningJaPrimary: e.meaningJaPrimary,
-        meaningJaVariants: [],
-        nounGender: e.nounGender,
-        inflectionType: e.inflectionType,
-        inflectionOverrides: e.inflectionOverrides as any,
-        foreignForms: [],
-        examples: [],
-        related: [],
-        createdAt: 0,
-        updatedAt: 0,
-      } as any,
-      lemma,
-    )
+    const nounEntry: Pick<Entry, 'pos' | 'inflectionType' | 'nounGender' | 'inflectionOverrides'> = {
+      pos: 'noun',
+      nounGender: e.nounGender,
+      inflectionType: e.inflectionType,
+      inflectionOverrides: e.inflectionOverrides,
+    }
+    const t = resolveNounInflectionType(nounEntry, lemma)
     const byForm = detectNounCaseByForm(tok, e, lemma, t)
 
     // 同形や不明はヒューリスティック：動詞の後に出た名詞は目的語(対格)扱い

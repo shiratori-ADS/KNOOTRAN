@@ -1,6 +1,6 @@
-import type { InflectionType, NounGender } from '../db/types'
+import type { Entry, InflectionType, NounGender } from '../db/types'
 
-export type InflectionOverridesLike = Partial<Record<string, string>>
+export type InflectionOverridesLike = Entry['inflectionOverrides']
 
 export type VerbLike = {
   id: number

@@ -1,11 +1,12 @@
 import type { Dispatch, SetStateAction } from 'react'
-import type { Entry } from '../../../db/types'
+import type { Entry, InflectionOverrideKey } from '../../../db/types'
 import type { VerbAorRow, VerbImperatives, VerbPerson, VerbRow } from '../../../grammar/verb'
 
 export type VerbPersonKey = VerbPerson
 export type VerbTense = 'pres' | 'past' | 'fut'
 
-export type VerbOverrideKey =
+export type VerbOverrideKey = Extract<
+  InflectionOverrideKey,
   | `v_${VerbPersonKey}`
   | `v_past_${VerbPersonKey}`
   | `v_fut_${VerbPersonKey}`
@@ -17,6 +18,7 @@ export type VerbOverrideKey =
   | 'v_imp_2pl'
   | 'v_aor_imp_2sg'
   | 'v_aor_imp_2pl'
+>
 
 export type { VerbRow, VerbAorRow }
 
@@ -33,7 +35,7 @@ export function VerbOverridesEditor({
   autoEditAor: VerbAorRow[] | null
   autoEditImp: VerbImperatives | null
 }) {
-  const valueOf = (k: VerbOverrideKey) => ((editOverrides as any)?.[k] as string | undefined) ?? ''
+  const valueOf = (k: VerbOverrideKey) => editOverrides?.[k] ?? ''
   const setValue = (k: VerbOverrideKey, v: string) => setEditOverrides((p) => ({ ...(p ?? {}), [k]: v }))
 
   const autoOf = (tense: VerbTense, person: VerbPersonKey) => {

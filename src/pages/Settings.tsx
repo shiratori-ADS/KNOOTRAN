@@ -6,6 +6,10 @@ import { markLocalDirty } from '../lib/cloudAutoSync'
 import { normalizeToken } from '../lib/normalize'
 import { CloudSyncPanel } from '../components/CloudSyncPanel'
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 export function Settings() {
   const [view, setView] = useState<'home' | 'language' | 'tags' | 'bulkImport' | 'cloud'>('home')
   const [settings, setSettings] = useState<SettingsType | null>(null)
@@ -174,8 +178,8 @@ export function Settings() {
       await db.entries.bulkAdd(entries)
       markLocalDirty()
       setExcelStatus(`一括登録しました（${entries.length}件）。`)
-    } catch (e: any) {
-      setExcelStatus(`Excelの読み込みに失敗しました: ${e?.message ?? String(e)}`)
+    } catch (e: unknown) {
+      setExcelStatus(`Excelの読み込みに失敗しました: ${errorMessage(e)}`)
     }
   }
 
@@ -208,8 +212,8 @@ export function Settings() {
       const skipped = mode === 'skip' ? toDup.length : 0
       markLocalDirty()
       setExcelStatus(`一括登録しました（登録/上書き: ${imported}件、スキップ: ${skipped}件）。`)
-    } catch (e: any) {
-      setExcelStatus(`一括登録に失敗しました: ${e?.message ?? String(e)}`)
+    } catch (e: unknown) {
+      setExcelStatus(`一括登録に失敗しました: ${errorMessage(e)}`)
     } finally {
       setExcelPendingEntries(null)
       setExcelDuplicates(null)

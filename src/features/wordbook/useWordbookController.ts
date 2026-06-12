@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { db, getSettings } from '../../db/db'
-import type { Entry, InflectionType, NounGender, PartOfSpeech, Settings } from '../../db/types'
+import type { Entry, InflectionOverrideKey, InflectionType, NounGender, PartOfSpeech, Settings } from '../../db/types'
 import { stripGreekTonos } from '../../grammar/accent'
 import { inferNounInflectionTypeFromLemma } from '../../grammar/infer'
 import { findEntryByNormalizedForeign } from '../../lib/entryForeignLookup'
@@ -45,6 +45,12 @@ export function useWordbookController() {
   const [editMemo, setEditMemo] = useState('')
   const [status, setStatus] = useState('')
   const [isMobile, setIsMobile] = useState(false)
+  const selectedRef = useRef<Entry | null>(null)
+  const selectedId = selected?.id
+
+  useEffect(() => {
+    selectedRef.current = selected
+  }, [selected])
 
   useEffect(() => {
     getSettings().then(setSettings)
@@ -79,23 +85,31 @@ export function useWordbookController() {
   }, [])
 
   useEffect(() => {
-    if (!selected) {
-      setIsEditing(false)
+    let alive = true
+    queueMicrotask(() => {
+      if (!alive) return
+      const current = selectedRef.current
+      if (!current) {
+        setIsEditing(false)
+        setStatus('')
+        return
+      }
       setStatus('')
-      return
+      setEditPos(current.pos)
+      setEditNounGender(current.nounGender ?? 'masc')
+      setEditInflectionType(current.inflectionType ?? 'none')
+      setEditOverrides(current.inflectionOverrides ?? {})
+      setEditMeaningJaText((current.meaningJaVariants ?? [current.meaningJaPrimary]).join('\n'))
+      setEditForeignLemma(current.foreignLemma ?? '')
+      setEditExamplesText(formatExamplePairsText(current.examples))
+      setEditRelatedText((current.related ?? []).join('\n'))
+      setEditTags(current.tags ?? [])
+      setEditMemo(current.memo ?? '')
+    })
+    return () => {
+      alive = false
     }
-    setStatus('')
-    setEditPos(selected.pos)
-    setEditNounGender(selected.nounGender ?? 'masc')
-    setEditInflectionType(selected.inflectionType ?? 'none')
-    setEditOverrides(selected.inflectionOverrides ?? {})
-    setEditMeaningJaText((selected.meaningJaVariants ?? [selected.meaningJaPrimary]).join('\n'))
-    setEditForeignLemma(selected.foreignLemma ?? '')
-    setEditExamplesText(formatExamplePairsText(selected.examples))
-    setEditRelatedText((selected.related ?? []).join('\n'))
-    setEditTags(selected.tags ?? [])
-    setEditMemo(selected.memo ?? '')
-  }, [selected?.id])
+  }, [selectedId])
 
   const editLemmaNorm = useMemo(() => (editForeignLemma.trim() ? normalizeToken(editForeignLemma) : ''), [editForeignLemma])
   const editLemmaDisplay = useMemo(
@@ -190,13 +204,13 @@ export function useWordbookController() {
     [],
   )
 
-  function alphaKeyForEntry(e: Entry) {
+  const alphaKeyForEntry = useCallback((e: Entry) => {
     const raw = (e.foreignLemma ?? e.foreignForms?.[0] ?? '').trim()
     if (!raw) return '#'
     const head = stripGreekTonos(raw.normalize('NFC')).trim()
     const first = (head[0] ?? '').toUpperCase()
     return greekLetters.has(first) ? first : '#'
-  }
+  }, [greekLetters])
 
   const sorted = useMemo(() => {
     const copy = [...items].filter((x) => {
@@ -214,7 +228,7 @@ export function useWordbookController() {
     })
     copy.sort((a, b) => (a.foreignLemma ?? '').localeCompare(b.foreignLemma ?? ''))
     return copy
-  }, [items, filterPos, filterTag, filterAlphas, filterNounGenders, filterVerbFamilies])
+  }, [items, filterPos, filterTag, filterAlphas, filterNounGenders, filterVerbFamilies, alphaKeyForEntry])
 
   async function onDelete(id?: number) {
     if (!id) return
@@ -258,64 +272,41 @@ export function useWordbookController() {
     const cleanOverrides = (() => {
       const o = { ...(editOverrides ?? {}) }
       const normEq = (a?: string, b?: string) => normalizeToken(a ?? '') === normalizeToken(b ?? '')
+      const removeIfAuto = (k: InflectionOverrideKey, auto: string) => {
+        const cur = o[k]
+        if (cur && normEq(cur, auto)) delete o[k]
+      }
       if (autoVerb) {
         for (const r of autoVerb) {
-          const presKey = `v_${r.person}` as const
-          const pastKey = `v_past_${r.person}` as const
-          const futKey = `v_fut_${r.person}` as const
-          const naKey = `v_na_${r.person}` as const
-
-          const curPres = (o as any)[presKey]
-          if (curPres && normEq(curPres, r.pres)) delete (o as any)[presKey]
-
-          const curPast = (o as any)[pastKey]
-          if (curPast && normEq(curPast, r.past)) delete (o as any)[pastKey]
-
-          const curFut = (o as any)[futKey]
-          if (curFut && normEq(curFut, r.fut)) delete (o as any)[futKey]
-
-          const curNa = (o as any)[naKey]
-          if (curNa && normEq(curNa, r.na)) delete (o as any)[naKey]
+          removeIfAuto(`v_${r.person}`, r.pres)
+          removeIfAuto(`v_past_${r.person}`, r.past)
+          removeIfAuto(`v_fut_${r.person}`, r.fut)
+          removeIfAuto(`v_na_${r.person}`, r.na)
         }
       }
       if (autoAor) {
         for (const r of autoAor) {
-          const apKey = `v_aor_past_${r.person}` as const
-          const afKey = `v_aor_fut_${r.person}` as const
-          const anKey = `v_aor_na_${r.person}` as const
-
-          const curAp = (o as any)[apKey]
-          if (curAp && normEq(curAp, r.aorPast)) delete (o as any)[apKey]
-
-          const curAf = (o as any)[afKey]
-          if (curAf && normEq(curAf, r.aorFut)) delete (o as any)[afKey]
-
-          const curAn = (o as any)[anKey]
-          if (curAn && normEq(curAn, r.aorNa)) delete (o as any)[anKey]
+          removeIfAuto(`v_aor_past_${r.person}`, r.aorPast)
+          removeIfAuto(`v_aor_fut_${r.person}`, r.aorFut)
+          removeIfAuto(`v_aor_na_${r.person}`, r.aorNa)
         }
       }
       if (autoImp) {
-        const curPres2sg = (o as any).v_imp_2sg
-        if (curPres2sg && normEq(curPres2sg, autoImp.pres2sg)) delete (o as any).v_imp_2sg
-        const curPres2pl = (o as any).v_imp_2pl
-        if (curPres2pl && normEq(curPres2pl, autoImp.pres2pl)) delete (o as any).v_imp_2pl
-        const curAor2sg = (o as any).v_aor_imp_2sg
-        if (curAor2sg && normEq(curAor2sg, autoImp.aor2sg)) delete (o as any).v_aor_imp_2sg
-        const curAor2pl = (o as any).v_aor_imp_2pl
-        if (curAor2pl && normEq(curAor2pl, autoImp.aor2pl)) delete (o as any).v_aor_imp_2pl
+        removeIfAuto('v_imp_2sg', autoImp.pres2sg)
+        removeIfAuto('v_imp_2pl', autoImp.pres2pl)
+        removeIfAuto('v_aor_imp_2sg', autoImp.aor2sg)
+        removeIfAuto('v_aor_imp_2pl', autoImp.aor2pl)
       }
       if (autoNoun) {
         ;(['n_nom_sg', 'n_nom_pl', 'n_acc_sg', 'n_acc_pl', 'n_gen_sg', 'n_gen_pl'] as const).forEach((k) => {
-          const cur = (o as any)[k]
-          if (cur && normEq(cur, (autoNoun as any)[k])) delete (o as any)[k]
+          removeIfAuto(k, autoNoun[k])
         })
       }
       if (editPos === 'pronoun_personal') {
         const autoPp = personalPronounAutoForms()
         for (const k of Object.keys(autoPp)) {
           const kk = k as keyof typeof autoPp
-          const cur = (o as any)[kk]
-          if (cur && normEq(cur, autoPp[kk])) delete (o as any)[kk]
+          removeIfAuto(kk, autoPp[kk])
         }
       }
       return o

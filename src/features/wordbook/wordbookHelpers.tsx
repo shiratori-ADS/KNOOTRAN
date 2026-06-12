@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- This module exports JSX-producing UI helpers, not React components. */
 import type { Entry, InflectionType, NounGender, PartOfSpeech } from '../../db/types'
 import {
   stripGreekTonos,

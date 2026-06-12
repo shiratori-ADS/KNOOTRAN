@@ -47,48 +47,51 @@ function verbMatchesToken(tokenNorm: string, entry: Entry): boolean {
   if (!lemma) return false
 
   const o = entry.inflectionOverrides
-  if (o?.v_1sg && tokenNorm === normalizeToken(o.v_1sg)) return true
-  if (o?.v_2sg && tokenNorm === normalizeToken(o.v_2sg)) return true
-  if (o?.v_3sg && tokenNorm === normalizeToken(o.v_3sg)) return true
-  if (o?.v_1pl && tokenNorm === normalizeToken(o.v_1pl)) return true
-  if (o?.v_2pl && tokenNorm === normalizeToken(o.v_2pl)) return true
-  if (o?.v_3pl && tokenNorm === normalizeToken(o.v_3pl)) return true
-  if ((o as any)?.v_past_1sg && tokenNorm === normalizeToken((o as any).v_past_1sg)) return true
-  if ((o as any)?.v_past_2sg && tokenNorm === normalizeToken((o as any).v_past_2sg)) return true
-  if ((o as any)?.v_past_3sg && tokenNorm === normalizeToken((o as any).v_past_3sg)) return true
-  if ((o as any)?.v_past_1pl && tokenNorm === normalizeToken((o as any).v_past_1pl)) return true
-  if ((o as any)?.v_past_2pl && tokenNorm === normalizeToken((o as any).v_past_2pl)) return true
-  if ((o as any)?.v_past_3pl && tokenNorm === normalizeToken((o as any).v_past_3pl)) return true
-  if ((o as any)?.v_fut_1sg && tokenNorm === normalizeToken((o as any).v_fut_1sg)) return true
-  if ((o as any)?.v_fut_2sg && tokenNorm === normalizeToken((o as any).v_fut_2sg)) return true
-  if ((o as any)?.v_fut_3sg && tokenNorm === normalizeToken((o as any).v_fut_3sg)) return true
-  if ((o as any)?.v_fut_1pl && tokenNorm === normalizeToken((o as any).v_fut_1pl)) return true
-  if ((o as any)?.v_fut_2pl && tokenNorm === normalizeToken((o as any).v_fut_2pl)) return true
-  if ((o as any)?.v_fut_3pl && tokenNorm === normalizeToken((o as any).v_fut_3pl)) return true
-  if ((o as any)?.v_na_1sg && tokenNorm === normalizeToken((o as any).v_na_1sg)) return true
-  if ((o as any)?.v_na_2sg && tokenNorm === normalizeToken((o as any).v_na_2sg)) return true
-  if ((o as any)?.v_na_3sg && tokenNorm === normalizeToken((o as any).v_na_3sg)) return true
-  if ((o as any)?.v_na_1pl && tokenNorm === normalizeToken((o as any).v_na_1pl)) return true
-  if ((o as any)?.v_na_2pl && tokenNorm === normalizeToken((o as any).v_na_2pl)) return true
-  if ((o as any)?.v_na_3pl && tokenNorm === normalizeToken((o as any).v_na_3pl)) return true
-  if ((o as any)?.v_aor_past_1sg && tokenNorm === normalizeToken((o as any).v_aor_past_1sg)) return true
-  if ((o as any)?.v_aor_past_2sg && tokenNorm === normalizeToken((o as any).v_aor_past_2sg)) return true
-  if ((o as any)?.v_aor_past_3sg && tokenNorm === normalizeToken((o as any).v_aor_past_3sg)) return true
-  if ((o as any)?.v_aor_past_1pl && tokenNorm === normalizeToken((o as any).v_aor_past_1pl)) return true
-  if ((o as any)?.v_aor_past_2pl && tokenNorm === normalizeToken((o as any).v_aor_past_2pl)) return true
-  if ((o as any)?.v_aor_past_3pl && tokenNorm === normalizeToken((o as any).v_aor_past_3pl)) return true
-  if ((o as any)?.v_aor_fut_1sg && tokenNorm === normalizeToken((o as any).v_aor_fut_1sg)) return true
-  if ((o as any)?.v_aor_fut_2sg && tokenNorm === normalizeToken((o as any).v_aor_fut_2sg)) return true
-  if ((o as any)?.v_aor_fut_3sg && tokenNorm === normalizeToken((o as any).v_aor_fut_3sg)) return true
-  if ((o as any)?.v_aor_fut_1pl && tokenNorm === normalizeToken((o as any).v_aor_fut_1pl)) return true
-  if ((o as any)?.v_aor_fut_2pl && tokenNorm === normalizeToken((o as any).v_aor_fut_2pl)) return true
-  if ((o as any)?.v_aor_fut_3pl && tokenNorm === normalizeToken((o as any).v_aor_fut_3pl)) return true
-  if ((o as any)?.v_aor_na_1sg && tokenNorm === normalizeToken((o as any).v_aor_na_1sg)) return true
-  if ((o as any)?.v_aor_na_2sg && tokenNorm === normalizeToken((o as any).v_aor_na_2sg)) return true
-  if ((o as any)?.v_aor_na_3sg && tokenNorm === normalizeToken((o as any).v_aor_na_3sg)) return true
-  if ((o as any)?.v_aor_na_1pl && tokenNorm === normalizeToken((o as any).v_aor_na_1pl)) return true
-  if ((o as any)?.v_aor_na_2pl && tokenNorm === normalizeToken((o as any).v_aor_na_2pl)) return true
-  if ((o as any)?.v_aor_na_3pl && tokenNorm === normalizeToken((o as any).v_aor_na_3pl)) return true
+  const overrideKeys = [
+    'v_1sg',
+    'v_2sg',
+    'v_3sg',
+    'v_1pl',
+    'v_2pl',
+    'v_3pl',
+    'v_past_1sg',
+    'v_past_2sg',
+    'v_past_3sg',
+    'v_past_1pl',
+    'v_past_2pl',
+    'v_past_3pl',
+    'v_fut_1sg',
+    'v_fut_2sg',
+    'v_fut_3sg',
+    'v_fut_1pl',
+    'v_fut_2pl',
+    'v_fut_3pl',
+    'v_na_1sg',
+    'v_na_2sg',
+    'v_na_3sg',
+    'v_na_1pl',
+    'v_na_2pl',
+    'v_na_3pl',
+    'v_aor_past_1sg',
+    'v_aor_past_2sg',
+    'v_aor_past_3sg',
+    'v_aor_past_1pl',
+    'v_aor_past_2pl',
+    'v_aor_past_3pl',
+    'v_aor_fut_1sg',
+    'v_aor_fut_2sg',
+    'v_aor_fut_3sg',
+    'v_aor_fut_1pl',
+    'v_aor_fut_2pl',
+    'v_aor_fut_3pl',
+    'v_aor_na_1sg',
+    'v_aor_na_2sg',
+    'v_aor_na_3sg',
+    'v_aor_na_1pl',
+    'v_aor_na_2pl',
+    'v_aor_na_3pl',
+  ] as const
+  if (overrideKeys.some((k) => o?.[k] && tokenNorm === normalizeToken(o[k]))) return true
 
   if (!stripGreekTonos(lemma).endsWith('ω')) return false
   const stem = lemma.slice(0, -1)

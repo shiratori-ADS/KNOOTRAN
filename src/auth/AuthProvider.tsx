@@ -1,33 +1,17 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { isCloudConfigured, signInWithPassword, signOutCloud, signUpWithPassword } from '../lib/cloudAutoSync'
 import { supabase } from '../lib/supabaseClient'
-
-type AuthContextValue = {
-  loading: boolean
-  session: Session | null
-  email: string | null
-  /** Supabase が設定されていればログイン必須 */
-  cloudAuthEnabled: boolean
-  isAuthenticated: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string) => Promise<void>
-  signOut: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
+import { AuthContext } from './authContext'
+import type { AuthContextValue } from './authContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => isCloudConfigured())
   const [session, setSession] = useState<Session | null>(null)
   const cloudAuthEnabled = isCloudConfigured()
 
   useEffect(() => {
-    if (!supabase) {
-      setSession(null)
-      setLoading(false)
-      return
-    }
+    if (!supabase) return
 
     let mounted = true
 
@@ -80,10 +64,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
 }

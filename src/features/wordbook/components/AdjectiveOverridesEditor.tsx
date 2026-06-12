@@ -32,7 +32,7 @@ export function AdjectiveOverridesEditor({
   setEditOverrides: Dispatch<SetStateAction<Entry['inflectionOverrides']>>
   autoEditAdj: AdjectiveAutoForms | null
 }) {
-  const valueOf = (k: Key) => (editOverrides as any)?.[k] ?? (autoEditAdj as any)?.[k] ?? ''
+  const valueOf = (k: Key) => editOverrides?.[k] ?? autoEditAdj?.[k] ?? ''
   const setValue = (k: Key, v: string) => setEditOverrides((p) => ({ ...(p ?? {}), [k]: v }))
 
   return (

@@ -1,4 +1,4 @@
-import type { Entry } from '../../../db/types'
+import type { Entry, InflectionOverrideKey } from '../../../db/types'
 import type { NounMatrix } from '../../../grammar/noun'
 import { normalizeForeignStorage, normalizeToken } from '../../../lib/normalize'
 import { stripGreekTonos } from '../../../grammar/accent'
@@ -283,7 +283,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     }
     // アオリストは「σ/ψ/ξ（目印）」を赤から外し、純粋な人称語尾だけを赤にする
     // 例: αγόρασα → α、αγόρασες → ες、θα αγοράσω → ω、αγόρασε → ε、αγοράστε → τε
-    const aorPastEnds = (_s: string) => {
+    const aorPastEnds = () => {
       // Γ: εργάστηκα / κοιμήθηκα は末尾を -ηκα 系として赤くする（目印は別途青）
       if (selected.inflectionType === 'verb_pres_mid_Γ1_-ομαι' || selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι')
         return ['ηκα', 'ηκες', 'ηκε', 'ηκαμε', 'ηκατε', 'ηκαν']
@@ -309,22 +309,23 @@ export function InflectionSection({ selected }: { selected: Entry }) {
         last.endsWith('ουνε')
       return looksLikeRegularEndings ? ['ω', 'εις', 'ει', 'ουμε', 'ετε', 'ουν', 'ουνε'] : ['ω', 'ς', 'ει', 'με', 'τε', 'ν', 'νε']
     }
-    const aorImpEnds = (_s: string) => {
+    const aorImpEnds = () => {
       // Γ: 2単/2複の語尾を赤くする（stripGreekTonos後）
       if (selected.inflectionType === 'verb_pres_mid_Γ1_-ομαι') return ['ου', 'ειτε']
       if (selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι') return ['ησου', 'ηθειτε']
       return ['ε', 'τε']
     }
-    const o: any = selected.inflectionOverrides ?? {}
+    const o = selected.inflectionOverrides ?? {}
     const m = verbMatrix(lemmaRaw, selected.inflectionType)
     const a = verbAoristMatrix(lemmaRaw, selected.inflectionType)
     const imp = verbImperativeForms(lemmaRaw, selected.inflectionType)
 
     // 活用タイプ未対応でも、手入力（上書き）分は表示できるようにする
     if (!m) {
-      const get = (k: string) => ((o?.[k] as string | undefined) ?? '').trim()
+      const manualOverrides: Partial<Record<string, string>> = o
+      const get = (k: string) => (manualOverrides[k] ?? '').trim()
       const autoNaFromFuture = (s: string) => (s ? s.replace(/^θα\s+/, 'να ') : '')
-      const hasAny = Object.keys(o).some((k) => k.startsWith('v_') && typeof o[k] === 'string' && (o[k] as string).trim())
+      const hasAny = Object.entries(manualOverrides).some(([k, v]) => k.startsWith('v_') && typeof v === 'string' && v.trim())
       if (!hasAny) return <span className="subtle">この活用タイプは未対応です。</span>
 
       const rows = [
@@ -457,10 +458,10 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                     <tr key={`aor-${r.person}`}>
                       <td>{personLabel(r.person)}</td>
                       <td className="mono greek">{renderEndingRed(pres, presEndings(selected.inflectionType))}</td>
-                      <td className="mono greek">{renderAoristEndingWithMarkerBlue(ap, aorPastEnds(ap))}</td>
+                      <td className="mono greek">{renderAoristEndingWithMarkerBlue(ap, aorPastEnds())}</td>
                       <td className="mono greek">{renderAoristEndingWithMarkerBlue(af, aorFutEnds(af))}</td>
                       <td className="mono greek">{renderAoristEndingWithMarkerBlue(an, aorFutEnds(an))}</td>
-                      <td className="mono greek">{aorImp ? renderAoristEndingWithMarkerBlue(aorImp, aorImpEnds(aorImp)) : ''}</td>
+                      <td className="mono greek">{aorImp ? renderAoristEndingWithMarkerBlue(aorImp, aorImpEnds()) : ''}</td>
                     </tr>
                   )
                 })}
@@ -549,11 +550,11 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   if (selected.pos === 'adjective' || selected.pos === 'pronoun_interrogative') {
     const a = adjectiveMatrix(lemmaRaw)
     const o = selected.inflectionOverrides ?? {}
-    const hasOverrides = Object.keys(o).some((k) => k.startsWith('a_') && typeof (o as any)[k] === 'string' && (o as any)[k].trim())
+    const hasOverrides = Object.entries(o).some(([k, v]) => k.startsWith('a_') && typeof v === 'string' && v.trim())
     if (!a && !hasOverrides) return <span className="subtle">この形容詞/疑問詞タイプは未対応です。</span>
 
     const headers = a?.headers ?? ['男', '女', '中']
-    const get = (k: keyof typeof o, fallback: string) => (((o as any)[k] as string | undefined) ?? fallback).toString()
+    const get = (k: InflectionOverrideKey, fallback: string) => (o[k] ?? fallback).toString()
     const row = (idx: number, col: number) => a?.rows?.[idx]?.cells?.[col] ?? ''
     const lemmaPlain = stripGreekTonos(lemmaNorm)
     const adjType =
@@ -621,39 +622,39 @@ export function InflectionSection({ selected }: { selected: Entry }) {
         <tbody>
           <tr>
             <td>単数 ～は</td>
-            <td className="mono greek">{renderEndingRed(get('a_m_nom_sg' as any, row(0, 0)), [endingFor(0, 0)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_f_nom_sg' as any, row(0, 1)), [endingFor(0, 1)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_n_nom_sg' as any, row(0, 2)), [endingFor(0, 2)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_m_nom_sg', row(0, 0)), [endingFor(0, 0)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_f_nom_sg', row(0, 1)), [endingFor(0, 1)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_n_nom_sg', row(0, 2)), [endingFor(0, 2)])}</td>
           </tr>
           <tr>
             <td>単数 ～の</td>
-            <td className="mono greek">{renderEndingRed(get('a_m_gen_sg' as any, row(1, 0)), [endingFor(1, 0)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_f_gen_sg' as any, row(1, 1)), [endingFor(1, 1)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_n_gen_sg' as any, row(1, 2)), [endingFor(1, 2)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_m_gen_sg', row(1, 0)), [endingFor(1, 0)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_f_gen_sg', row(1, 1)), [endingFor(1, 1)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_n_gen_sg', row(1, 2)), [endingFor(1, 2)])}</td>
           </tr>
           <tr>
             <td>単数 ～を</td>
-            <td className="mono greek">{renderEndingRed(get('a_m_acc_sg' as any, row(2, 0)), [endingFor(2, 0)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_f_acc_sg' as any, row(2, 1)), [endingFor(2, 1)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_n_acc_sg' as any, row(2, 2)), [endingFor(2, 2)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_m_acc_sg', row(2, 0)), [endingFor(2, 0)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_f_acc_sg', row(2, 1)), [endingFor(2, 1)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_n_acc_sg', row(2, 2)), [endingFor(2, 2)])}</td>
           </tr>
           <tr>
             <td>複数 ～は</td>
-            <td className="mono greek">{renderEndingRed(get('a_m_nom_pl' as any, row(3, 0)), [endingFor(3, 0)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_f_nom_pl' as any, row(3, 1)), [endingFor(3, 1)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_n_nom_pl' as any, row(3, 2)), [endingFor(3, 2)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_m_nom_pl', row(3, 0)), [endingFor(3, 0)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_f_nom_pl', row(3, 1)), [endingFor(3, 1)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_n_nom_pl', row(3, 2)), [endingFor(3, 2)])}</td>
           </tr>
           <tr>
             <td>複数 ～の</td>
-            <td className="mono greek">{renderEndingRed(get('a_m_gen_pl' as any, row(4, 0)), [endingFor(4, 0)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_f_gen_pl' as any, row(4, 1)), [endingFor(4, 1)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_n_gen_pl' as any, row(4, 2)), [endingFor(4, 2)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_m_gen_pl', row(4, 0)), [endingFor(4, 0)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_f_gen_pl', row(4, 1)), [endingFor(4, 1)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_n_gen_pl', row(4, 2)), [endingFor(4, 2)])}</td>
           </tr>
           <tr>
             <td>複数 ～を</td>
-            <td className="mono greek">{renderEndingRed(get('a_m_acc_pl' as any, row(5, 0)), [endingFor(5, 0)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_f_acc_pl' as any, row(5, 1)), [endingFor(5, 1)])}</td>
-            <td className="mono greek">{renderEndingRed(get('a_n_acc_pl' as any, row(5, 2)), [endingFor(5, 2)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_m_acc_pl', row(5, 0)), [endingFor(5, 0)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_f_acc_pl', row(5, 1)), [endingFor(5, 1)])}</td>
+            <td className="mono greek">{renderEndingRed(get('a_n_acc_pl', row(5, 2)), [endingFor(5, 2)])}</td>
           </tr>
         </tbody>
         </table>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useAuth } from '../auth/AuthProvider'
+import { useAuth } from '../auth/useAuth'
 import {
   detectCloudPullConflict,
   getCloudSyncStatus,
@@ -46,7 +46,7 @@ export function CloudSyncPanel({ onDataRestored }: { onDataRestored?: () => void
   }, [])
 
   useEffect(() => {
-    void refresh()
+    queueMicrotask(() => void refresh())
     return subscribeCloudSync(() => {
       void refresh()
     })

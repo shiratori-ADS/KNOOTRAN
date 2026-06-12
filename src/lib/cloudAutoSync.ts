@@ -4,6 +4,7 @@ import type { Entry } from '../db/types'
 import { db } from '../db/db'
 
 type CloudRow = { data: BackupPayloadV1; updated_at: string | null }
+type CloudSelectRow = { data: BackupPayloadV1; updated_at: string | null }
 
 let dirtySince: number | null = null
 let pushTimer: number | null = null
@@ -203,10 +204,10 @@ async function localSnapshotSummary(): Promise<{ entryCount: number; maxEntryUpd
 
 async function fetchCloud(userId: string): Promise<CloudRow | null> {
   if (!supabase) return null
-  const { data, error } = await supabase.from('user_state').select('data, updated_at').eq('user_id', userId).maybeSingle()
+  const { data, error } = await supabase.from('user_state').select('data, updated_at').eq('user_id', userId).maybeSingle<CloudSelectRow>()
   if (error) throw error
   if (!data?.data) return null
-  return { data: data.data as BackupPayloadV1, updated_at: (data as any).updated_at ?? null }
+  return { data: data.data, updated_at: data.updated_at ?? null }
 }
 
 async function pushCloud(userId: string) {
@@ -229,7 +230,7 @@ async function pullIfSafe(userId: string) {
   // 既に適用済みなら何もしない
   if (cloud.updated_at && meta.lastAppliedRemoteUpdatedAt === cloud.updated_at) return
 
-  const cloudEntries: any[] = Array.isArray((cloud.data as any)?.entries) ? ((cloud.data as any).entries as any[]) : []
+  const cloudEntries = Array.isArray(cloud.data.entries) ? cloud.data.entries : []
   const local = await localSnapshotSummary()
 
   // ローカルが空でクラウドにデータがある → 自動復元してOK

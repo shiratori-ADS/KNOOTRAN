@@ -14,7 +14,7 @@ export function Wordbook() {
 
     // スマホ表示はページ全体がスクロール主体なので、画面先頭へ戻す（編集を開いた直後も先頭行が見えるようにする）
     if (c.layout.isMobile) window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-  }, [c.selection.selected?.id, c.mode.isEditing])
+  }, [c.selection.selected?.id, c.mode.isEditing, c.layout.isMobile])
 
   return (
     <section className="page">

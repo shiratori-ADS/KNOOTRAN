@@ -562,12 +562,13 @@ function accentAntepenultByUnits(word: string): string {
 
 function aoristStemFromLemmaStem(lemmaStem: string, t: InflectionType): string {
   // アオリスト用の語幹（最小ルール）
-  // - ...ζω の場合: ζ が σ に変化（= ζ を落として σ 系語尾を付ける）
+  // - ...ζω の場合: 通常タイプでは ζ が σ に変化（= ζ を落として σ 系語尾を付ける）
   // - ...νω の場合も同様に ν を落として σ 系語尾を付ける（ユーザー要望：-ζω と同じ扱い）
   if (t === 'verb_pres_act_-γω_-χω_-χνω') {
-    // 最小: -γω/-χω/-χνω は ξ アオリスト扱い（例: τρέχω→έτρεξα, δείχνω→έδειξα）
+    // 最小: -γω/-χω/-χνω に加えて、このタイプを選んだ -ζω も ξ アオリスト扱い
+    // 例: τρέχω→έτρεξα, δείχνω→έδειξα, πειράζω→πείραξα
     if (lemmaStem.endsWith('χν')) return `${lemmaStem.slice(0, -2)}ξ`
-    if (lemmaStem.endsWith('χ') || lemmaStem.endsWith('γ')) return `${lemmaStem.slice(0, -1)}ξ`
+    if (lemmaStem.endsWith('χ') || lemmaStem.endsWith('γ') || lemmaStem.endsWith('ζ')) return `${lemmaStem.slice(0, -1)}ξ`
     return lemmaStem
   }
   if (t === 'verb_pres_act_-πω_-φω_-βω_-εύω') {
