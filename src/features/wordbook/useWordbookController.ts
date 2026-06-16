@@ -364,8 +364,14 @@ export function useWordbookController() {
         }
       }
       if (autoImp) {
-        removeIfAuto('v_imp_2sg', autoImp.pres2sg)
-        removeIfAuto('v_imp_2pl', autoImp.pres2pl)
+        const isEditVerbB2 =
+          editInflectionType === 'verb_pres_act_B2_-ώ_-ησα' ||
+          editInflectionType === 'verb_pres_act_B2_-ώ_-ασα' ||
+          editInflectionType === 'verb_pres_act_B2_-ώ_-εσα'
+        if (!isEditVerbB2) {
+          removeIfAuto('v_imp_2sg', autoImp.pres2sg)
+          removeIfAuto('v_imp_2pl', autoImp.pres2pl)
+        }
         removeIfAuto('v_aor_imp_2sg', autoImp.aor2sg)
         removeIfAuto('v_aor_imp_2pl', autoImp.aor2pl)
       }
