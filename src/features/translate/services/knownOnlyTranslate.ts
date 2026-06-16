@@ -15,6 +15,7 @@ import {
 import { adjectiveMatchesToken } from '../../../grammar/adjective'
 import { personalPronounMatchesToken } from '../../../grammar/personalPronoun'
 import { collectNounTriGenderForms, hasNounTriGenderOverrides } from '../../../grammar/nounTriGender'
+import { verbImperativeForms } from '../../../grammar/verb'
 import { tokenize } from '../../../lib/tokenize'
 
 export type TranslateDirection = 'ja_to_foreign' | 'foreign_to_ja'
@@ -45,6 +46,7 @@ async function findByForeignLemma(norm: string): Promise<Entry | undefined> {
 function verbMatchesToken(tokenNorm: string, entry: Entry): boolean {
   const lemma = normalizeToken(entry.foreignLemma ?? '')
   if (!lemma) return false
+  const matchesForm = (form: string) => tokenNorm === normalizeToken(form) || tokenNorm === stripGreekTonos(normalizeToken(form))
 
   const o = entry.inflectionOverrides
   const overrideKeys = [
@@ -90,11 +92,18 @@ function verbMatchesToken(tokenNorm: string, entry: Entry): boolean {
     'v_aor_na_1pl',
     'v_aor_na_2pl',
     'v_aor_na_3pl',
+    'v_imp_2sg',
+    'v_imp_2pl',
+    'v_aor_imp_2sg',
+    'v_aor_imp_2pl',
   ] as const
-  if (overrideKeys.some((k) => o?.[k] && tokenNorm === normalizeToken(o[k]))) return true
+  if (overrideKeys.some((k) => o?.[k] && matchesForm(o[k]))) return true
 
   if (!stripGreekTonos(lemma).endsWith('ω')) return false
   const stem = lemma.slice(0, -1)
+
+  const imp = verbImperativeForms(lemma, entry.inflectionType)
+  if (imp && [imp.pres2sg, imp.pres2pl, imp.aor2sg, imp.aor2pl].some((f) => f && matchesForm(f))) return true
 
   // Β2: -ώ（現在形は -είς/-εί/-ούμε/-είτε/-ούν）
   if (
@@ -103,7 +112,7 @@ function verbMatchesToken(tokenNorm: string, entry: Entry): boolean {
     entry.inflectionType === 'verb_pres_act_B2_-ώ_-εσα'
   ) {
     const forms = [`${stem}ώ`, `${stem}είς`, `${stem}εί`, `${stem}ούμε`, `${stem}είτε`, `${stem}ούν`]
-    return forms.some((f) => tokenNorm === normalizeToken(f) || tokenNorm === stripGreekTonos(normalizeToken(f)))
+    return forms.some(matchesForm)
   }
 
   // A系: -ω
