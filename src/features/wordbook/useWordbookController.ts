@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { db, getSettings } from '../../db/db'
 import type { Entry, InflectionOverrideKey, InflectionType, NounGender, PartOfSpeech, Settings } from '../../db/types'
 import { stripGreekTonos } from '../../grammar/accent'
+import { adjectiveFormsForMatch } from '../../grammar/adjective'
 import { inferNounInflectionTypeFromLemma } from '../../grammar/infer'
+import { collectNounTriGenderForms } from '../../grammar/nounTriGender'
+import { personalPronounFormsForMatch } from '../../grammar/personalPronoun'
 import { findEntryByNormalizedForeign } from '../../lib/entryForeignLookup'
 import { normalizeForeignStorage, normalizeToken } from '../../lib/normalize'
 import { formatExamplePairsText, parseExamplePairsText } from '../../lib/examples'
@@ -218,9 +221,48 @@ export function useWordbookController() {
     if (!query) return true
 
     const queryPlain = stripGreekTonos(query)
-    const foreignTargets = [e.foreignLemma, ...(e.foreignForms ?? [])]
-      .map((x) => normalizeToken(x ?? ''))
-      .filter(Boolean)
+    const foreignTargets = (() => {
+      const lemmaNorm = normalizeToken(e.foreignLemma ?? '')
+      const raw = [e.foreignLemma, ...(e.foreignForms ?? []), ...Object.values(e.inflectionOverrides ?? {})]
+
+      if (lemmaNorm) {
+        if (e.pos === 'verb') {
+          const m = verbMatrix(lemmaNorm, e.inflectionType)
+          const a = verbAoristMatrix(lemmaNorm, e.inflectionType)
+          const imp = verbImperativeForms(lemmaNorm, e.inflectionType)
+          if (m) raw.push(...m.flatMap((r) => [r.pres, r.past, r.fut, r.na]))
+          if (a) raw.push(...a.flatMap((r) => [r.pres, r.aorPast, r.aorFut, r.aorNa]))
+          if (imp) raw.push(imp.pres2sg, imp.pres2pl, imp.aor2sg, imp.aor2pl)
+        }
+
+        if (e.pos === 'noun') {
+          if (e.nounGender === 'tri_gender') {
+            raw.push(...collectNounTriGenderForms(e.inflectionOverrides))
+          } else {
+            const genders: NounGender[] =
+              e.nounGender === 'common_mf' ? ['masc', 'fem'] : e.nounGender ? [e.nounGender] : []
+            for (const gender of genders) {
+              const type =
+                e.nounGender === 'common_mf'
+                  ? inferNounInflectionTypeFromLemma(lemmaNorm, gender)
+                  : e.inflectionType
+              const forms = nounAutoForms(lemmaNorm, gender, type)
+              if (forms) raw.push(...Object.values(forms))
+            }
+          }
+        }
+
+        if (e.pos === 'adjective' || e.pos === 'pronoun_interrogative') {
+          raw.push(...adjectiveFormsForMatch(e, lemmaNorm))
+        }
+
+        if (e.pos === 'pronoun_personal') {
+          raw.push(...personalPronounFormsForMatch(e))
+        }
+      }
+
+      return Array.from(new Set(raw.map((x) => normalizeToken(x ?? '')).filter(Boolean)))
+    })()
     const meaningTargets = [e.meaningJaPrimary, ...(e.meaningJaVariants ?? [])]
       .map((x) => normalizeToken(x ?? ''))
       .filter(Boolean)
