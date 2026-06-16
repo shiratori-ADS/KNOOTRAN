@@ -27,6 +27,7 @@ export function useWordbookController() {
   const [isEditing, setIsEditing] = useState(false)
   const [filterPos, setFilterPos] = useState<PartOfSpeech | 'all'>('all')
   const [filterTag, setFilterTag] = useState<string | 'all'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   /** 空配列＝すべて。例: ['Α','Β'] は Α または Β で始まる語のみ */
   const [filterAlphas, setFilterAlphas] = useState<string[]>([])
   /** 品詞が名詞のときのみ有効。空配列＝すべて */
@@ -212,10 +213,29 @@ export function useWordbookController() {
     return greekLetters.has(first) ? first : '#'
   }, [greekLetters])
 
+  const entryMatchesSearch = useCallback((e: Entry, queryRaw: string) => {
+    const query = normalizeToken(queryRaw)
+    if (!query) return true
+
+    const queryPlain = stripGreekTonos(query)
+    const foreignTargets = [e.foreignLemma, ...(e.foreignForms ?? [])]
+      .map((x) => normalizeToken(x ?? ''))
+      .filter(Boolean)
+    const meaningTargets = [e.meaningJaPrimary, ...(e.meaningJaVariants ?? [])]
+      .map((x) => normalizeToken(x ?? ''))
+      .filter(Boolean)
+
+    return (
+      foreignTargets.some((x) => x.includes(query) || stripGreekTonos(x).includes(queryPlain)) ||
+      meaningTargets.some((x) => x.includes(query))
+    )
+  }, [])
+
   const sorted = useMemo(() => {
     const copy = [...items].filter((x) => {
       if (filterPos !== 'all' && x.pos !== filterPos) return false
       if (filterTag !== 'all' && !(x.tags ?? []).includes(filterTag)) return false
+      if (!entryMatchesSearch(x, searchQuery)) return false
       if (filterAlphas.length > 0 && !filterAlphas.includes(alphaKeyForEntry(x))) return false
       if (filterPos === 'noun' && filterNounGenders.length > 0) {
         if (!x.nounGender || !filterNounGenders.includes(x.nounGender)) return false
@@ -228,7 +248,17 @@ export function useWordbookController() {
     })
     copy.sort((a, b) => (a.foreignLemma ?? '').localeCompare(b.foreignLemma ?? ''))
     return copy
-  }, [items, filterPos, filterTag, filterAlphas, filterNounGenders, filterVerbFamilies, alphaKeyForEntry])
+  }, [
+    items,
+    filterPos,
+    filterTag,
+    searchQuery,
+    filterAlphas,
+    filterNounGenders,
+    filterVerbFamilies,
+    alphaKeyForEntry,
+    entryMatchesSearch,
+  ])
 
   async function onDelete(id?: number) {
     if (!id) return
@@ -373,6 +403,8 @@ export function useWordbookController() {
     setFilterPos,
     filterTag,
     setFilterTag,
+    searchQuery,
+    setSearchQuery,
     filterAlphas,
     setFilterAlphas,
     filterNounGenders,

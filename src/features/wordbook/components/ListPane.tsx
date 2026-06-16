@@ -32,6 +32,27 @@ function FilterIcon() {
   )
 }
 
+function SearchIcon() {
+  return (
+    <svg
+      className="iconButtonIcon"
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  )
+}
+
 function CloseIcon() {
   return (
     <svg
@@ -58,6 +79,8 @@ export function ListPane({
   setFilterPos,
   filterTag,
   setFilterTag,
+  searchQuery,
+  setSearchQuery,
   filterAlphas,
   setFilterAlphas,
   filterNounGenders,
@@ -73,6 +96,8 @@ export function ListPane({
   setFilterPos: (v: PartOfSpeech | 'all') => void
   filterTag: string | 'all'
   setFilterTag: (v: string | 'all') => void
+  searchQuery: string
+  setSearchQuery: (v: string) => void
   filterAlphas: string[]
   setFilterAlphas: (v: string[]) => void
   filterNounGenders: NounGender[]
@@ -85,6 +110,8 @@ export function ListPane({
   onSelect: (e: Entry) => void
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [draftSearchQuery, setDraftSearchQuery] = useState(searchQuery)
   const [draftPos, setDraftPos] = useState<PartOfSpeech | 'all'>(filterPos)
   const [draftTag, setDraftTag] = useState<string | 'all'>(filterTag)
   const [draftAlphas, setDraftAlphas] = useState<string[]>(filterAlphas)
@@ -130,6 +157,20 @@ export function ListPane({
     setIsFilterOpen(true)
   }
 
+  function openSearch() {
+    setDraftSearchQuery(searchQuery)
+    setIsSearchOpen(true)
+  }
+
+  function applySearchAndClose() {
+    setSearchQuery(draftSearchQuery.trim())
+    setIsSearchOpen(false)
+  }
+
+  function cancelSearchAndClose() {
+    setIsSearchOpen(false)
+  }
+
   function applyAndClose() {
     setFilterPos(draftPos)
     setFilterTag(draftTag)
@@ -148,6 +189,7 @@ export function ListPane({
     (filterPos === 'verb' && filterVerbFamilies.length > 0)
   const hasActiveFilter =
     filterPos !== 'all' || filterTag !== 'all' || filterAlphas.length > 0 || hasPosSubFilter
+  const hasActiveSearch = searchQuery.trim().length > 0
 
   function toggleDraftAlpha(letter: string) {
     setDraftAlphas((prev) => (prev.includes(letter) ? prev.filter((x) => x !== letter) : [...prev, letter]))
@@ -168,13 +210,84 @@ export function ListPane({
   }
 
   useEffect(() => {
-    if (!isFilterOpen) return
+    if (!isFilterOpen && !isSearchOpen) return
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = prevOverflow
     }
-  }, [isFilterOpen])
+  }, [isFilterOpen, isSearchOpen])
+
+  const searchModal =
+    isSearchOpen &&
+    createPortal(
+      <div
+        className="modalOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="検索"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) cancelSearchAndClose()
+        }}
+      >
+        <div className="modalCard modalCard--stacked" onMouseDown={(e) => e.stopPropagation()}>
+          <div className="modalCardHeader">
+            <div className="row wrap" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0 }}>検索</h3>
+              <button
+                type="button"
+                className="iconButton"
+                onClick={cancelSearchAndClose}
+                aria-label="キャンセル"
+                title="キャンセル"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              applySearchAndClose()
+            }}
+          >
+            <div className="modalCardBody">
+              <label className="field" style={{ marginBottom: 0 }}>
+                <span className="label">検索ワード</span>
+                <input
+                  value={draftSearchQuery}
+                  onChange={(e) => setDraftSearchQuery(e.target.value)}
+                  placeholder="単語または意味を入力"
+                  autoFocus
+                />
+                <span className="help">単語（見出し語・別形）または意味を部分一致で検索します。</span>
+              </label>
+            </div>
+
+            <div className="modalCardFooter">
+              <div className="row wrap" style={{ justifyContent: 'space-between', margin: 0 }}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    setDraftSearchQuery('')
+                    setSearchQuery('')
+                    setIsSearchOpen(false)
+                  }}
+                >
+                  クリア
+                </button>
+                <button type="submit" className="primary">
+                  検索
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>,
+      document.body,
+    )
 
   const filterModal =
     isFilterOpen &&
@@ -377,17 +490,29 @@ export function ListPane({
         <div className="subtle">
           表示件数: {sorted.length}/{totalCount}
         </div>
-        <button
-          type="button"
-          className={hasActiveFilter ? 'iconButton iconButton--active' : 'iconButton'}
-          onClick={openFilter}
-          aria-label="フィルター"
-          title="フィルター"
-        >
-          <FilterIcon />
-        </button>
+        <div className="row" style={{ gap: 8, margin: 0 }}>
+          <button
+            type="button"
+            className={hasActiveSearch ? 'iconButton iconButton--active' : 'iconButton'}
+            onClick={openSearch}
+            aria-label="検索"
+            title="検索"
+          >
+            <SearchIcon />
+          </button>
+          <button
+            type="button"
+            className={hasActiveFilter ? 'iconButton iconButton--active' : 'iconButton'}
+            onClick={openFilter}
+            aria-label="フィルター"
+            title="フィルター"
+          >
+            <FilterIcon />
+          </button>
+        </div>
       </div>
 
+      {searchModal}
       {filterModal}
 
 

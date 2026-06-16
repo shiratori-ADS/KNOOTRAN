@@ -499,11 +499,17 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                   (o[naKey] as string | undefined) ??
                   (fut ? fut.replace(/^θα\s+/, 'να ') : undefined) ??
                   r.na
+                const presImpOverride =
+                  r.person === '2sg'
+                    ? (o.v_imp_2sg as string | undefined)
+                    : r.person === '2pl'
+                      ? (o.v_imp_2pl as string | undefined)
+                      : undefined
                 const presImp =
                   r.person === '2sg'
-                    ? ((o.v_imp_2sg as string | undefined) ?? imp?.pres2sg ?? '')
+                    ? (presImpOverride ?? imp?.pres2sg ?? '')
                     : r.person === '2pl'
-                      ? ((o.v_imp_2pl as string | undefined) ?? imp?.pres2pl ?? '')
+                      ? (presImpOverride ?? imp?.pres2pl ?? '')
                       : ''
                 return (
                   <tr key={r.person}>
@@ -529,7 +535,9 @@ export function InflectionSection({ selected }: { selected: Entry }) {
                           : selected.inflectionType === 'verb_pres_mid_Γ2_-άμαι' && r.person === '2pl'
                             ? renderEndingRed(presImp, ['αστε'])
                           : isB2(selected.inflectionType) && r.person === '2sg'
-                            ? '-'
+                            ? presImpOverride?.trim()
+                              ? renderEndingRed(presImp, ['ει'])
+                              : '-'
                           : isB2(selected.inflectionType) && r.person === '2pl'
                             ? renderEndingRed(presImp, ['ειτε'])
                           : selected.inflectionType === 'verb_pres_act_AB' && r.person === '2sg'
