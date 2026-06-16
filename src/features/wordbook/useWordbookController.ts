@@ -371,9 +371,9 @@ export function useWordbookController() {
         if (!isEditVerbB2) {
           removeIfAuto('v_imp_2sg', autoImp.pres2sg)
           removeIfAuto('v_imp_2pl', autoImp.pres2pl)
+          removeIfAuto('v_aor_imp_2sg', autoImp.aor2sg)
+          removeIfAuto('v_aor_imp_2pl', autoImp.aor2pl)
         }
-        removeIfAuto('v_aor_imp_2sg', autoImp.aor2sg)
-        removeIfAuto('v_aor_imp_2pl', autoImp.aor2pl)
       }
       if (autoNoun) {
         ;(['n_nom_sg', 'n_nom_pl', 'n_acc_sg', 'n_acc_pl', 'n_gen_sg', 'n_gen_pl'] as const).forEach((k) => {
@@ -393,7 +393,14 @@ export function useWordbookController() {
     const overrideForms = Object.values(editOverrides ?? {})
       .map((x) => normalizeToken(x ?? ''))
       .filter(Boolean)
-    const mergedFormsBase = Array.from(new Set([lemmaStored, ...overrideForms]))
+    const autoImperativeForms =
+      editPos === 'verb' && autoImp
+        ? [
+            ...(autoVerb ? [autoImp.pres2sg, autoImp.pres2pl] : []),
+            ...(autoAor ? [autoImp.aor2sg, autoImp.aor2pl] : []),
+          ].map((x) => normalizeToken(x ?? '')).filter(Boolean)
+        : []
+    const mergedFormsBase = Array.from(new Set([lemmaStored, ...overrideForms, ...autoImperativeForms]))
     const mergedForms =
       editPos === 'pronoun_personal'
         ? Array.from(

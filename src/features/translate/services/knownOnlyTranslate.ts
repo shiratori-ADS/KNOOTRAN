@@ -485,7 +485,7 @@ async function findByForeignTokenWithInflection(norm: string): Promise<Entry | u
   if (byLemma) return byLemma
 
   // 動詞
-  const verbs = await db.entries.where('pos').equals('verb').limit(300).toArray()
+  const verbs = await db.entries.where('pos').equals('verb').toArray()
   for (const v of verbs) {
     if (verbMatchesToken(norm, v)) return v
   }

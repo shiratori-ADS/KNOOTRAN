@@ -16,7 +16,7 @@ export async function translateSentenceForeignToJa(input: string): Promise<Sente
   // 例文が完全一致する場合は、その訳を最優先（「参考」用の最小実装）
   const inputNorm = normalizeToken(stripPunct(input))
   if (inputNorm) {
-    const entriesWithExamples = await db.entries.where('pos').equals('verb').limit(300).toArray()
+    const entriesWithExamples = await db.entries.where('pos').equals('verb').toArray()
     // verbs 以外も例文は持てるので、追加で少し見る（全件は重いので上限）
     const others = await db.entries.where('pos').notEqual('verb').limit(400).toArray()
     const pool = [...entriesWithExamples, ...others]
@@ -35,7 +35,7 @@ export async function translateSentenceForeignToJa(input: string): Promise<Sente
     .filter(Boolean)
 
   // 文モードは当面「動詞/名詞だけ」見ればよいので、必要分だけ読む
-  const verbs: Entry[] = await db.entries.where('pos').equals('verb').limit(300).toArray()
+  const verbs: Entry[] = await db.entries.where('pos').equals('verb').toArray()
   const nouns: Entry[] = await db.entries.where('pos').equals('noun').limit(500).toArray()
 
   // 解析は grammar 側の純ロジックへ委譲

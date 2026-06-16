@@ -129,16 +129,18 @@ export function VerbOverridesEditor({
                 </td>
                 <td key={`aor-${r.person}-imp`}>
                   {r.person === '2sg' || r.person === '2pl' ? (
-                    <input
-                      className="mono greek"
-                      value={
-                        r.person === '2sg'
-                          ? valueOf('v_aor_imp_2sg') || (autoEditImp?.aor2sg ?? '')
-                          : valueOf('v_aor_imp_2pl') || (autoEditImp?.aor2pl ?? '')
-                      }
-                      placeholder=""
-                      onChange={(e) => setValue(r.person === '2sg' ? 'v_aor_imp_2sg' : 'v_aor_imp_2pl', e.target.value)}
-                    />
+                    (() => {
+                      const k = r.person === '2sg' ? 'v_aor_imp_2sg' : 'v_aor_imp_2pl'
+                      const auto = autoEditAor ? (r.person === '2sg' ? autoEditImp?.aor2sg : autoEditImp?.aor2pl) : ''
+                      return (
+                        <input
+                          className="mono greek"
+                          value={valueOf(k) || (auto ?? '')}
+                          placeholder={auto || '（任意）'}
+                          onChange={(e) => setValue(k, e.target.value)}
+                        />
+                      )
+                    })()
                   ) : (
                     ''
                   )}
@@ -193,16 +195,18 @@ export function VerbOverridesEditor({
                 </td>
                 <td key={`${r.person}-imp`}>
                   {r.person === '2sg' || r.person === '2pl' ? (
-                    <input
-                      className="mono greek"
-                      value={
-                        r.person === '2sg'
-                          ? valueOf('v_imp_2sg') || (autoEditImp?.pres2sg ?? '')
-                          : valueOf('v_imp_2pl') || (autoEditImp?.pres2pl ?? '')
-                      }
-                      placeholder=""
-                      onChange={(e) => setValue(r.person === '2sg' ? 'v_imp_2sg' : 'v_imp_2pl', e.target.value)}
-                    />
+                    (() => {
+                      const k = r.person === '2sg' ? 'v_imp_2sg' : 'v_imp_2pl'
+                      const auto = autoEditVerb ? (r.person === '2sg' ? autoEditImp?.pres2sg : autoEditImp?.pres2pl) : ''
+                      return (
+                        <input
+                          className="mono greek"
+                          value={valueOf(k) || (auto ?? '')}
+                          placeholder={auto || '（任意）'}
+                          onChange={(e) => setValue(k, e.target.value)}
+                        />
+                      )
+                    })()
                   ) : (
                     ''
                   )}
