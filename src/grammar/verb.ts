@@ -996,7 +996,7 @@ export function verbImperativeForms(lemmaNorm: string, t?: InflectionType): Verb
 
     // Imperfective (present imperative)
     const pres2sgPlain = stemPlainNoOmega
-    const pres2pl = accentPresentImperative2pl(`${stemPlainNoOmega}τε`)
+    const pres2pl = addTonosOnNthFromEndVowelUnit(`${stemPlainNoOmega}τε`, 2)
     // Β1の2sg（-α）はユーザー指定で penult に統一（例: απάντα / βοήθα / ζήτα）
     const pres2sg = addTonosOnNthFromEndVowelUnit(pres2sgPlain, countGreekVowelUnits(pres2sgPlain) >= 2 ? 2 : 1)
 
@@ -1025,7 +1025,7 @@ export function verbImperativeForms(lemmaNorm: string, t?: InflectionType): Verb
     const pres2sgPlain = `${stemPlain}ει`
     const pres2plPlain = `${stemPlain}ειτε`
     const pres2sg = addTonosOnNthFromEndVowelUnit(pres2sgPlain, 1)
-    const pres2pl = accentPresentImperative2pl(pres2plPlain)
+    const pres2pl = addTonosOnNthFromEndVowelUnit(pres2plPlain, 2)
 
     const aorStemPlain = stripGreekTonos(aoristStemFromLemmaStem(stripGreekTonos(lemmaNorm).slice(0, -1), t))
     const aor2sgPlain = `${aorStemPlain}σε`
