@@ -32,7 +32,7 @@ export function DetailView({
 
   return (
     <>
-      <div className="kv">
+      <div className="kv kvCompact">
         <div className="k">意味</div>
         <div className="v">{selected.meaningJaVariants?.join(' / ') ?? selected.meaningJaPrimary}</div>
       </div>
@@ -52,7 +52,7 @@ export function DetailView({
         </div>
       )}
 
-      <div className="kv">
+      <div className="kv kvCompact">
         <div className="k">例文</div>
         <div className="v">
           {selected.examples?.length ? (
@@ -69,7 +69,7 @@ export function DetailView({
           )}
         </div>
       </div>
-      <div className="kv">
+      <div className="kv kvCompact">
         <div className="k">関連語</div>
         <div className="v">
           {selected.related?.length ? (
@@ -87,7 +87,7 @@ export function DetailView({
           )}
         </div>
       </div>
-      <div className="kv">
+      <div className="kv kvCompact">
         <div className="k">メモ</div>
         <div className="v">
           {selected.memo?.trim() ? <span style={{ whiteSpace: 'pre-wrap' }}>{selected.memo}</span> : <span className="subtle">（なし）</span>}

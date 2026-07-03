@@ -603,9 +603,17 @@ textarea {
 .kv.kvFull {
   grid-template-columns: 1fr;
 }
+.kv.kvCompact {
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 4px 6px;
+}
 @media (max-width: 720px) {
   .kv {
     grid-template-columns: 1fr;
+  }
+  .kv.kvCompact {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
 }
 .k {
