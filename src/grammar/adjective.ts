@@ -30,6 +30,7 @@ export function adjectiveMatrix(lemmaNorm: string) {
   // - -ος: μεγάλος → μεγάλη / μεγάλο
   // - -ιος: ποιος → ποια / ποιο
   // - -ύς: βαθύς → βαθιά / βαθύ
+  // - -ης: ναζιάρης → ναζιάρα / ναζιάρικο
   // - πολύς: πολλή / πολύ / πολλοί / πολλές / πολλά（不規則）
 
   if (lemmaPlain === 'πολυς') {
@@ -74,6 +75,21 @@ export function adjectiveMatrix(lemmaNorm: string) {
         { label: '複数 ～は', cells: [applyLikeLemma(`${stem}οι`), applyLikeLemma(`${stem}ες`), applyLikeLemma(`${stem}α`)] },
         { label: '複数 ～の', cells: [applyLikeLemma(`${stem}ων`), applyLikeLemma(`${stem}ων`), applyLikeLemma(`${stem}ων`)] },
         { label: '複数 ～を', cells: [applyLikeLemma(`${stem}ους`), applyLikeLemma(`${stem}ες`), applyLikeLemma(`${stem}α`)] },
+      ],
+    }
+  }
+
+  if (lemmaPlain.endsWith('ης')) {
+    const stem = lemmaNorm.slice(0, -2)
+    return {
+      headers: ['男', '女', '中'],
+      rows: [
+        { label: '単数 ～は', cells: [`${stem}ης`, `${stem}α`, `${stem}ικο`] },
+        { label: '単数 ～の', cells: [`${stem}η`, `${stem}ας`, `${stem}ικου`] },
+        { label: '単数 ～を', cells: [`${stem}η`, `${stem}α`, `${stem}ικο`] },
+        { label: '複数 ～は', cells: [`${stem}ηδες`, `${stem}ες`, `${stem}ικα`] },
+        { label: '複数 ～の', cells: [`${stem}ηδων`, `${stem}ων`, `${stem}ικων`] },
+        { label: '複数 ～を', cells: [`${stem}ηδες`, `${stem}ες`, `${stem}ικα`] },
       ],
     }
   }

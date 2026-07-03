@@ -566,7 +566,15 @@ export function InflectionSection({ selected }: { selected: Entry }) {
     const row = (idx: number, col: number) => a?.rows?.[idx]?.cells?.[col] ?? ''
     const lemmaPlain = stripGreekTonos(lemmaNorm)
     const adjType =
-      lemmaPlain === 'πολυς' ? 'adj_πολυς' : lemmaPlain.endsWith('υς') ? 'adj_-υς' : lemmaPlain.endsWith('ιος') ? 'adj_-ιος' : 'adj_-ος'
+      lemmaPlain === 'πολυς'
+        ? 'adj_πολυς'
+        : lemmaPlain.endsWith('υς')
+          ? 'adj_-υς'
+        : lemmaPlain.endsWith('ιος')
+          ? 'adj_-ιος'
+        : lemmaPlain.endsWith('ης')
+          ? 'adj_-ης'
+        : 'adj_-ος'
     const endingFor = (r: number, c: number): string => {
       if (adjType === 'adj_πολυς') {
         const map: string[][] = [
@@ -602,6 +610,17 @@ export function InflectionSection({ selected }: { selected: Entry }) {
           ['οι', 'ες', 'α'],
           ['ων', 'ων', 'ων'],
           ['ους', 'ες', 'α'],
+        ]
+        return map[r]?.[c] ?? ''
+      }
+      if (adjType === 'adj_-ης') {
+        const map: string[][] = [
+          ['ης', 'α', 'ικο'],
+          ['η', 'ας', 'ικου'],
+          ['η', 'α', 'ικο'],
+          ['ηδες', 'ες', 'ικα'],
+          ['ηδων', 'ων', 'ικων'],
+          ['ηδες', 'ες', 'ικα'],
         ]
         return map[r]?.[c] ?? ''
       }

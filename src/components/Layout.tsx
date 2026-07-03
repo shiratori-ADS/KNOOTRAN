@@ -4,6 +4,13 @@ import { useAuth } from '../auth/useAuth'
 import { startCloudAutoSync } from '../lib/cloudAutoSync'
 import { BrandLogo } from './BrandLogo'
 
+const mainMenuItems = [
+  { to: '/wordbook', label: '単語帳', visible: true },
+  { to: '/register', label: '登録', visible: true },
+  { to: '/translate', label: '翻訳', visible: false },
+  { to: '/settings', label: '設定', visible: true },
+]
+
 function LogoutIcon() {
   return (
     <svg
@@ -66,18 +73,13 @@ export function Layout() {
       </main>
 
       <nav className="tabBar" aria-label="メインメニュー">
-        <NavLink to="/register" className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>
-          登録
-        </NavLink>
-        <NavLink to="/translate" className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>
-          翻訳
-        </NavLink>
-        <NavLink to="/wordbook" className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>
-          単語帳
-        </NavLink>
-        <NavLink to="/settings" className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>
-          設定
-        </NavLink>
+        {mainMenuItems
+          .filter((item) => item.visible)
+          .map((item) => (
+            <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'tab active' : 'tab')}>
+              {item.label}
+            </NavLink>
+          ))}
       </nav>
     </div>
   )
