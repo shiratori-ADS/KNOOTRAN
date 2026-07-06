@@ -362,7 +362,7 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
 
   // 男性名詞 -ος, -οι（antepenult は複数属格・対格でトノス移動）
   if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult') {
-    const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, lemmaNorm, applyLikeLemma)
+    const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, applyLikeLemma)
     return {
       nom: [applyLikeLemma(`${stemPlain}ος`), applyLikeLemma(`${stemPlain}οι`)],
       gen: [applyLikeLemma(`${stemPlain}ου`), genPl],

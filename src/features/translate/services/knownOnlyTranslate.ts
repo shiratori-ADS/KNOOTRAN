@@ -226,7 +226,7 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
     const withPlain = (forms: string[]) => Array.from(new Set(forms.flatMap((f) => [f, stripGreekTonos(f)])))
 
     if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult') {
-      const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, lemmaNorm, applyLikeLemma)
+      const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, applyLikeLemma)
       out.push(
         ...withPlain([
           applyLikeLemma(`${stemPlain}ος`),
@@ -331,7 +331,7 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
   const withPlain = (forms: string[]) => Array.from(new Set(forms.flatMap((f) => [f, stripGreekTonos(f)])))
 
   if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult') {
-    const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, lemmaNorm, applyLikeLemma)
+    const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, applyLikeLemma)
     return withPlain([
       applyLikeLemma(`${stemPlain}ος`),
       applyLikeLemma(`${stemPlain}οι`),

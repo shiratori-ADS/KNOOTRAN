@@ -53,15 +53,14 @@ export function resolveNounTypeForMatrix(
 export function mascOsPluralGenAccPl(
   type: InflectionType,
   stemPlain: string,
-  lemmaNorm: string,
   applyLikeLemma: (w: string) => string,
 ): { genPl: string; accPl: string } {
   const genPlPlain = `${stemPlain}ων`
   const accPlPlain = `${stemPlain}ους`
   if (type === 'noun_masc_-ος_antepenult') {
     return {
-      genPl: addTonosOnNthFromEndVowelUnit(genPlPlain, 2, lemmaNorm),
-      accPl: addTonosOnNthFromEndVowelUnit(accPlPlain, 2, lemmaNorm),
+      genPl: addTonosOnNthFromEndVowelUnit(genPlPlain, 2),
+      accPl: addTonosOnNthFromEndVowelUnit(accPlPlain, 2),
     }
   }
   return {
@@ -98,7 +97,7 @@ export function nounAutoForms(lemmaNorm: string, gender: NounGender, t?: Inflect
   if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult') {
     if (!endsWith('ος')) return null
     const st = stem(-2)
-    const { genPl, accPl } = mascOsPluralGenAccPl(type, st, lemmaNorm, applyLikeLemma)
+    const { genPl, accPl } = mascOsPluralGenAccPl(type, st, applyLikeLemma)
     return {
       n_nom_sg: applyLikeLemma(`${st}ος`),
       n_nom_pl: applyLikeLemma(`${st}οι`),
@@ -297,7 +296,7 @@ export function nounMatrix(lemmaNorm: string, t?: InflectionType): NounMatrix | 
     const genSg = applyLikeLemma(`${stem}ου`)
     const accSg = applyLikeLemma(`${stem}ο`)
     const nomPl = applyLikeLemma(`${stem}οι`)
-    const { genPl, accPl } = mascOsPluralGenAccPl(t, stem, lemmaNorm, applyLikeLemma)
+    const { genPl, accPl } = mascOsPluralGenAccPl(t, stem, applyLikeLemma)
     return {
       rows: [
         { number: 'sg', forms: { nom: nomSg, gen: genSg, acc: accSg } },
