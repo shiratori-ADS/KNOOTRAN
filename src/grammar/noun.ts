@@ -8,6 +8,7 @@ import {
   accentPositionFromEndByVowelUnit,
   applyAccentFromByVowelUnit,
   stripGreekTonos,
+  transferAccentByCharIndex,
 } from './accent'
 import { inferNounInflectionTypeFromLemma, resolveNounInflectionType } from './infer'
 
@@ -21,6 +22,7 @@ export const endingsByCell: Record<
   'noun_2nd_neut_-ο': { nomSg: 'ο', genSg: 'ου', accSg: 'ο', nomPl: 'α', genPl: 'ων', accPl: 'α' },
   'noun_2nd_neut_-ος': { nomSg: 'ος', genSg: 'ους', accSg: 'ος', nomPl: 'η', genPl: 'ων', accPl: 'η' },
   'noun_fem_-η': { nomSg: 'η', genSg: 'ης', accSg: 'η', nomPl: 'ες', genPl: 'ων', accPl: 'ες' },
+  'noun_fem_-η_-εις': { nomSg: 'η', genSg: 'ης', accSg: 'η', nomPl: 'εις', genPl: 'εων', accPl: 'εις' },
   'noun_fem_-α': { nomSg: 'α', genSg: 'ας', accSg: 'α', nomPl: 'ες', genPl: 'ων', accPl: 'ες' },
   'noun_fem_-ά': { nomSg: 'α', genSg: 'ας', accSg: 'α', nomPl: 'ες', genPl: 'ων', accPl: 'ες' },
   'noun_fem_-ος': { nomSg: 'ος', genSg: 'ου', accSg: 'ο', nomPl: 'οι', genPl: 'ων', accPl: 'ους' },
@@ -85,6 +87,16 @@ export function femAlphaPluralGenPl(
     return addTonosOnNthFromEndVowelUnit(genPlPlain, 1)
   }
   return applyLikeLemma(genPlPlain)
+}
+
+/** 女性名詞 -η（antepenult）の複数：-εις / -εων。トノスは母音ユニット（ει 等）で後ろから2番目 */
+export function femEtaEisPluralForms(stemPlain: string): { nomPl: string; genPl: string; accPl: string } {
+  const nomPlPlain = `${stemPlain}εις`
+  const genPlPlain = `${stemPlain}εων`
+  const nomPl = addTonosOnNthFromEndVowelUnit(nomPlPlain, 2)
+  const accPl = nomPl
+  const genPl = transferAccentByCharIndex(genPlPlain, nomPl)
+  return { nomPl, genPl, accPl }
 }
 
 const NOUN_AUTO_OVERRIDE_KEYS = ['n_nom_sg', 'n_nom_pl', 'n_acc_sg', 'n_acc_pl', 'n_gen_sg', 'n_gen_pl'] as const
@@ -256,6 +268,19 @@ export function nounAutoForms(lemmaNorm: string, gender: NounGender, t?: Inflect
       n_gen_pl: applyLikeLemma(`${st}ων`),
     }
   }
+  if (type === 'noun_fem_-η_-εις') {
+    if (!endsWith('η')) return null
+    const st = stem(-1)
+    const { nomPl, genPl, accPl } = femEtaEisPluralForms(st)
+    return {
+      n_nom_sg: applyLikeLemma(`${st}η`),
+      n_nom_pl: nomPl,
+      n_acc_sg: applyLikeLemma(`${st}η`),
+      n_acc_pl: accPl,
+      n_gen_sg: applyLikeLemma(`${st}ης`),
+      n_gen_pl: genPl,
+    }
+  }
   if (type === 'noun_fem_-α' || type === 'noun_fem_-ά') {
     if (!endsWith('α')) return null
     const st = stem(-1)
@@ -416,6 +441,27 @@ export function nounMatrix(lemmaNorm: string, t?: InflectionType): NounMatrix | 
             gen: applyLikeLemma(`${stemPlain}ων`),
             acc: applyLikeLemma(`${stemPlain}ες`),
           },
+        },
+      ],
+    }
+  }
+  if (t === 'noun_fem_-η_-εις') {
+    if (!lemmaPlain.endsWith('η')) return null
+    const stemPlain = lemmaPlain.slice(0, -1)
+    const { nomPl, genPl, accPl } = femEtaEisPluralForms(stemPlain)
+    return {
+      rows: [
+        {
+          number: 'sg',
+          forms: {
+            nom: applyLikeLemma(`${stemPlain}η`),
+            gen: applyLikeLemma(`${stemPlain}ης`),
+            acc: applyLikeLemma(`${stemPlain}η`),
+          },
+        },
+        {
+          number: 'pl',
+          forms: { nom: nomPl, gen: genPl, acc: accPl },
         },
       ],
     }

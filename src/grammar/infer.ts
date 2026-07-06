@@ -22,6 +22,11 @@ export function resolveNounInflectionType(
     // -ηδες は -εις で一律扱い
     return accentPos === 'last' ? 'noun_masc_-ης_-εις_last' : 'noun_masc_-ης_-εις_penult'
   }
+  if (lemmaPlain.endsWith('η') && entry.nounGender === 'fem') {
+    const pluralLooksEis =
+      (nomPl && stripGreekTonos(nomPl).endsWith('εις')) || (accPl && stripGreekTonos(accPl).endsWith('εις'))
+    if (pluralLooksEis) return 'noun_fem_-η_-εις'
+  }
 
   const inferred = inferNounInflectionTypeFromLemma(lemmaNorm, entry.nounGender)
   if (inferred !== 'none') return inferred
@@ -66,7 +71,13 @@ export function inferNounInflectionTypeFromLemma(rawLemma: string, nounGender?: 
   if (lemmaRaw.endsWith('ί')) return 'noun_neut_-ί'
   if (lemma.endsWith('υ')) return lemma.endsWith('χτυ') ? 'noun_neut_-υ_-υα' : 'noun_neut_-υ_-ια'
   if (nounGender === 'fem' && (lemmaRaw.endsWith('ού') || lemmaRaw.endsWith('ού'))) return 'noun_fem_-ού'
-  if (lemma.endsWith('η')) return nounGender === 'fem' ? 'noun_fem_-η' : 'none'
+  if (lemma.endsWith('η')) {
+    if (nounGender === 'fem') {
+      if (accentPos === 'antepenult') return 'noun_fem_-η_-εις'
+      return 'noun_fem_-η'
+    }
+    return 'none'
+  }
   if (lemma.endsWith('α')) {
     if (nounGender !== 'fem') return 'none'
     // -ά（最後アクセント）だけは主格単数で判別できる

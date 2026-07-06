@@ -249,6 +249,22 @@ export function addTonosOnLastVowel(word: string): string {
   return addTonosOnNthFromEndVowel(word, 1)
 }
 
+/** accentedSource と同じ文字 index にトノスを写す（-εις → -εων の語幹アクセント用） */
+export function transferAccentByCharIndex(plainTarget: string, accentedSource: string): string {
+  const sourceChars = [...accentedSource]
+  let accentAt = -1
+  for (let i = 0; i < sourceChars.length; i++) {
+    if (ACCENTED_VOWELS.has(sourceChars[i] ?? '')) accentAt = i
+  }
+  if (accentAt === -1) return plainTarget
+  const chars = [...stripGreekTonos(plainTarget)]
+  const ch = chars[accentAt] ?? ''
+  const accented = VOWEL_MAP[ch]
+  if (!accented) return plainTarget
+  chars[accentAt] = accented
+  return chars.join('')
+}
+
 export function hasEndingTonos(word: string): boolean {
   if (!word) return false
   const chars = [...word]

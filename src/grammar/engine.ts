@@ -1,7 +1,7 @@
 import { normalizeToken } from '../lib/normalize'
 import type { Entry, InflectionType } from '../db/types'
 import { resolveNounInflectionType } from './infer'
-import { femAlphaPluralGenPl, mascOsPluralGenAccPl, reconcileNounInflectionOverrides } from './noun'
+import { femAlphaPluralGenPl, femEtaEisPluralForms, mascOsPluralGenAccPl, reconcileNounInflectionOverrides } from './noun'
 import type {
   SentenceAnalysis,
   SentenceNounCase,
@@ -301,7 +301,7 @@ function nounStem(lemma: string, type?: InflectionType): string | null {
     if (!lemmaPlain.endsWith('μο')) return null
     return lemma.slice(0, -2)
   }
-  if (type === 'noun_fem_-η') {
+  if (type === 'noun_fem_-η' || type === 'noun_fem_-η_-εις') {
     if (!lemmaPlain.endsWith('η')) return null
     return lemma.slice(0, -1)
   }
@@ -438,6 +438,17 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
       nom: [nomAccSg, nomAccPl],
       gen: [genSg, ...genPl],
       acc: [nomAccSg, nomAccPl],
+    }
+  }
+  if (type === 'noun_fem_-η_-εις') {
+    const nomSg = applyLikeLemma(`${stemPlain}η`)
+    const accSg = applyLikeLemma(`${stemPlain}η`)
+    const genSg = applyLikeLemma(`${stemPlain}ης`)
+    const { nomPl, genPl, accPl } = femEtaEisPluralForms(stemPlain)
+    return {
+      nom: [nomSg, nomPl],
+      gen: [genSg, genPl],
+      acc: [accSg, accPl],
     }
   }
   if (type === 'noun_fem_-ος') {

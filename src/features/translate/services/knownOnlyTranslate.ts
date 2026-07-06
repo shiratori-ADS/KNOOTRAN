@@ -15,7 +15,7 @@ import {
 import { adjectiveMatchesToken } from '../../../grammar/adjective'
 import { personalPronounMatchesToken } from '../../../grammar/personalPronoun'
 import { collectNounTriGenderForms, hasNounTriGenderOverrides } from '../../../grammar/nounTriGender'
-import { femAlphaPluralGenPl, mascOsPluralGenAccPl, reconcileNounInflectionOverrides } from '../../../grammar/noun'
+import { femAlphaPluralGenPl, femEtaEisPluralForms, mascOsPluralGenAccPl, reconcileNounInflectionOverrides } from '../../../grammar/noun'
 import { verbImperativeForms } from '../../../grammar/verb'
 import { tokenize } from '../../../lib/tokenize'
 
@@ -182,7 +182,7 @@ function nounStem(lemmaNorm: string, type: InflectionType): string | null {
   if (type === 'noun_neut_-υ_-ια' || type === 'noun_neut_-υ_-υα') return lemmaPlain.endsWith('υ') ? lemmaNorm.slice(0, -1) : null
   if (type === 'noun_neut_-μα_2syll' || type === 'noun_neut_-μα_3plus') return lemmaPlain.endsWith('μα') ? lemmaNorm.slice(0, -2) : null
   if (type === 'noun_neut_-μο') return lemmaPlain.endsWith('μο') ? lemmaNorm.slice(0, -2) : null
-  if (type === 'noun_fem_-η') return lemmaPlain.endsWith('η') ? lemmaNorm.slice(0, -1) : null
+  if (type === 'noun_fem_-η' || type === 'noun_fem_-η_-εις') return lemmaPlain.endsWith('η') ? lemmaNorm.slice(0, -1) : null
   if (type === 'noun_fem_-α' || type === 'noun_fem_-ά') return lemmaPlain.endsWith('α') ? lemmaNorm.slice(0, -1) : null
   if (type === 'noun_fem_-ος') return lemmaPlain.endsWith('ος') ? lemmaNorm.slice(0, -2) : null
   if (type === 'noun_fem_-ού') return lemmaPlain.endsWith('ου') ? lemmaNorm.slice(0, -2) : null
@@ -278,6 +278,19 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
       )
       continue
     }
+    if (type === 'noun_fem_-η_-εις') {
+      const { nomPl, genPl, accPl } = femEtaEisPluralForms(stemPlain)
+      out.push(
+        ...withPlain([
+          applyLikeLemma(`${stemPlain}η`),
+          applyLikeLemma(`${stemPlain}ης`),
+          nomPl,
+          genPl,
+          accPl,
+        ]),
+      )
+      continue
+    }
     if (type === 'noun_fem_-ος') {
       out.push(
         ...withPlain([
@@ -369,6 +382,16 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
       applyLikeLemma(`${stemPlain}ης`),
       applyLikeLemma(genPlPlain),
       addTonosOnLastVowel(genPlPlain),
+    ])
+  }
+  if (type === 'noun_fem_-η_-εις') {
+    const { nomPl, genPl, accPl } = femEtaEisPluralForms(stemPlain)
+    return withPlain([
+      applyLikeLemma(`${stemPlain}η`),
+      applyLikeLemma(`${stemPlain}ης`),
+      nomPl,
+      genPl,
+      accPl,
     ])
   }
   if (type === 'noun_fem_-ος')
