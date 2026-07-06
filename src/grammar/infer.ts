@@ -2,6 +2,11 @@ import type { Entry, InflectionType, NounGender } from '../db/types'
 import { normalizeToken } from '../lib/normalize'
 import { accentPositionFromEndByVowelUnit, stripGreekTonos, vowelCount } from './accent'
 
+/** 女性名詞で複数 -εις / -εων になる語尾（-ση, -ξη） */
+export function isFemEtaEisLemma(lemmaPlain: string): boolean {
+  return lemmaPlain.endsWith('ση') || lemmaPlain.endsWith('ξη')
+}
+
 /** 単語帳に保存された活用タイプがあればそれを優先し、なければ見出し語＋性から推定する */
 export function resolveNounInflectionType(
   entry: Pick<Entry, 'pos' | 'inflectionType' | 'nounGender' | 'inflectionOverrides'>,
@@ -22,7 +27,7 @@ export function resolveNounInflectionType(
     // -ηδες は -εις で一律扱い
     return accentPos === 'last' ? 'noun_masc_-ης_-εις_last' : 'noun_masc_-ης_-εις_penult'
   }
-  if (lemmaPlain.endsWith('ση') && entry.nounGender === 'fem') {
+  if (isFemEtaEisLemma(lemmaPlain) && entry.nounGender === 'fem') {
     const pluralLooksEis =
       (nomPl && stripGreekTonos(nomPl).endsWith('εις')) || (accPl && stripGreekTonos(accPl).endsWith('εις'))
     if (pluralLooksEis) return 'noun_fem_-ση_-εις'
@@ -73,7 +78,7 @@ export function inferNounInflectionTypeFromLemma(rawLemma: string, nounGender?: 
   if (nounGender === 'fem' && (lemmaRaw.endsWith('ού') || lemmaRaw.endsWith('ού'))) return 'noun_fem_-ού'
   if (lemma.endsWith('η')) {
     if (nounGender === 'fem') {
-      if (lemma.endsWith('ση')) return 'noun_fem_-ση_-εις'
+      if (isFemEtaEisLemma(lemma)) return 'noun_fem_-ση_-εις'
       return 'noun_fem_-η'
     }
     return 'none'

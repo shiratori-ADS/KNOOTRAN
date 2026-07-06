@@ -89,7 +89,7 @@ export function femAlphaPluralGenPl(
   return applyLikeLemma(genPlPlain)
 }
 
-/** 女性名詞 -ση の複数：-εις / -εων（ει は1ユニット）。トノスは -εις 形で決め、-εων は同じ語幹位置へ写す */
+/** 女性名詞 -ση / -ξη の複数：-εις / -εων（ει は1ユニット）。トノスは -εις 形で決め、-εων は同じ語幹位置へ写す */
 export function femEtaEisPluralForms(
   stemPlain: string,
   lemmaNorm: string,

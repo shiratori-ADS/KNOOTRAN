@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type { Entry, Settings } from './types'
 import { normalizeForeignStorage, normalizeToken } from '../lib/normalize'
-import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
+import { inferNounInflectionTypeFromLemma, isFemEtaEisLemma } from '../grammar/infer'
 import { reconcileNounInflectionOverrides } from '../grammar/noun'
 import { stripGreekTonos } from '../grammar/accent'
 
@@ -293,7 +293,25 @@ export class AppDB extends Dexie {
         await entries.toCollection().modify((e) => {
           if (!e || e.pos !== 'noun' || e.nounGender !== 'fem') return
           const lemma = normalizeForeignStorage(e.foreignLemma ?? e.foreignForms?.[0] ?? '')
-          if (!lemma || !stripGreekTonos(normalizeToken(lemma)).endsWith('ση')) return
+          if (!lemma || !isFemEtaEisLemma(stripGreekTonos(normalizeToken(lemma)))) return
+          e.inflectionType = inferNounInflectionTypeFromLemma(lemma, 'fem')
+          e.inflectionOverrides = reconcileNounInflectionOverrides(e, lemma)
+        })
+      })
+
+    // v15: 女性名詞 -ξη も複数 -εις/-εων 型へ（απόδειξη 等）
+    this.version(15)
+      .stores({
+        entries:
+          '++id, pos, nounGender, inflectionType, meaningJaPrimary, *meaningJaVariants, *tags, memo, foreignLemma, *foreignForms, updatedAt',
+        settings: 'id',
+      })
+      .upgrade(async (tx) => {
+        const entries = tx.table('entries')
+        await entries.toCollection().modify((e) => {
+          if (!e || e.pos !== 'noun' || e.nounGender !== 'fem') return
+          const lemma = normalizeForeignStorage(e.foreignLemma ?? e.foreignForms?.[0] ?? '')
+          if (!lemma || !isFemEtaEisLemma(stripGreekTonos(normalizeToken(lemma)))) return
           e.inflectionType = inferNounInflectionTypeFromLemma(lemma, 'fem')
           e.inflectionOverrides = reconcileNounInflectionOverrides(e, lemma)
         })

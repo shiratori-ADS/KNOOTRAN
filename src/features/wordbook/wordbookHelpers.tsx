@@ -159,7 +159,7 @@ export function inflectionLabel(t?: InflectionType) {
     case 'noun_fem_-η':
       return '名詞（女性・-η）'
     case 'noun_fem_-ση_-εις':
-      return '名詞（女性・-ση,-εις）'
+      return '名詞（女性・-ση/-ξη,-εις）'
     case 'noun_fem_-α':
       return '名詞（女性・-α）'
     case 'noun_fem_-ά':
