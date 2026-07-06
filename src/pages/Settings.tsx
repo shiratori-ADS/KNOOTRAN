@@ -16,6 +16,8 @@ export function Settings() {
   const [uiLanguage, setUiLanguage] = useState<UiLanguage>('ja')
   const [tagsText, setTagsText] = useState('')
   const [selectedTag, setSelectedTag] = useState<string>('')
+  const [isEditingTag, setIsEditingTag] = useState(false)
+  const [editTagText, setEditTagText] = useState('')
   const [modalMessage, setModalMessage] = useState<string | null>(null)
   const [status, setStatus] = useState('')
   const [excelStatus, setExcelStatus] = useState('')
@@ -84,7 +86,56 @@ export function Settings() {
     setSettings(next)
     markLocalDirty()
     setSelectedTag('')
+    setIsEditingTag(false)
+    setEditTagText('')
     setStatus('タグを削除しました。')
+  }
+
+  async function onRenameTag(oldName: string, newNameRaw: string) {
+    setStatus('')
+    const newName = newNameRaw.trim().replace(/\s+/g, ' ')
+    if (!newName) return
+    if (newName === oldName) {
+      setIsEditingTag(false)
+      setEditTagText('')
+      return
+    }
+
+    const current = settings ?? (await getSettings())
+    const tagList = current.tags ?? []
+
+    if (tagList.includes(newName)) {
+      setModalMessage('そのタグ名は既に登録済みです。')
+      return
+    }
+    if (!tagList.includes(oldName)) {
+      setModalMessage('対象のタグが見つかりません。')
+      return
+    }
+
+    await db.transaction('rw', db.settings, db.entries, async () => {
+      const nextTags = tagList
+        .map((t) => (t === oldName ? newName : t))
+        .sort((a, b) => a.localeCompare(b))
+      await db.settings.put({ ...current, tags: nextTags })
+
+      const affected = await db.entries.filter((e) => (e.tags ?? []).includes(oldName)).toArray()
+      for (const e of affected) {
+        await db.entries.put({
+          ...e,
+          tags: (e.tags ?? []).map((t) => (t === oldName ? newName : t)),
+          updatedAt: Date.now(),
+        })
+      }
+    })
+
+    const next = await getSettings()
+    setSettings(next)
+    markLocalDirty()
+    setSelectedTag(newName)
+    setIsEditingTag(false)
+    setEditTagText('')
+    setStatus('タグ名を変更しました。')
   }
 
   async function confirmRemoveTag(tag: string) {
@@ -351,8 +402,12 @@ export function Settings() {
             <div className="row wrap tagFieldRow">
               <select
                 value={selectedTag}
-                onChange={(e) => setSelectedTag(e.target.value)}
-                disabled={tags.length === 0}
+                onChange={(e) => {
+                  setSelectedTag(e.target.value)
+                  setIsEditingTag(false)
+                  setEditTagText('')
+                }}
+                disabled={tags.length === 0 || isEditingTag}
                 style={{ flex: '1 1 320px', minWidth: 0 }}
               >
                 <option value="">{tags.length ? '選択してください' : '（なし）'}</option>
@@ -364,8 +419,20 @@ export function Settings() {
               </select>
               <button
                 type="button"
+                className="secondary"
+                disabled={!selectedTag || isEditingTag}
+                onClick={() => {
+                  if (!selectedTag) return
+                  setEditTagText(selectedTag)
+                  setIsEditingTag(true)
+                }}
+              >
+                編集
+              </button>
+              <button
+                type="button"
                 className="danger"
-                disabled={!selectedTag}
+                disabled={!selectedTag || isEditingTag}
                 onClick={() => {
                   if (!selectedTag) return
                   void (async () => {
@@ -379,6 +446,44 @@ export function Settings() {
               </button>
             </div>
           </label>
+
+          {isEditingTag && selectedTag && (
+            <label className="field" style={{ marginTop: 12 }}>
+              <span className="label">タグ名を編集</span>
+              <div className="row wrap tagFieldRow">
+                <input
+                  value={editTagText}
+                  onChange={(e) => setEditTagText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      void onRenameTag(selectedTag, editTagText)
+                    }
+                    if (e.key === 'Escape') {
+                      setIsEditingTag(false)
+                      setEditTagText('')
+                    }
+                  }}
+                  autoFocus
+                  style={{ flex: '1 1 320px', minWidth: 0 }}
+                />
+                <button type="button" className="primary" onClick={() => void onRenameTag(selectedTag, editTagText)}>
+                  保存
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    setIsEditingTag(false)
+                    setEditTagText('')
+                  }}
+                >
+                  キャンセル
+                </button>
+              </div>
+              <span className="help">単語に付与済みのタグも新しい名前に更新されます。</span>
+            </label>
+          )}
 
           <div className="status" role="status" aria-live="polite">
             {status}
