@@ -3,6 +3,7 @@ import {
   addTonosOnAntepenultVowel,
   addTonosOnLastVowel,
   addTonosOnNthFromEndVowel,
+  addTonosOnNthFromEndVowelUnit,
   applyAccentFromByVowelUnit,
   stripGreekTonos,
 } from './accent'
@@ -48,6 +49,27 @@ export function resolveNounTypeForMatrix(
   return resolveNounInflectionType(selected, lemmaNorm)
 }
 
+/** 男性名詞 -ος（antepenult）の複数属格・対格はトノスを後ろから2番目（母音ユニット）へ移動 */
+export function mascOsPluralGenAccPl(
+  type: InflectionType,
+  stemPlain: string,
+  lemmaNorm: string,
+  applyLikeLemma: (w: string) => string,
+): { genPl: string; accPl: string } {
+  const genPlPlain = `${stemPlain}ων`
+  const accPlPlain = `${stemPlain}ους`
+  if (type === 'noun_masc_-ος_antepenult') {
+    return {
+      genPl: addTonosOnNthFromEndVowelUnit(genPlPlain, 2, lemmaNorm),
+      accPl: addTonosOnNthFromEndVowelUnit(accPlPlain, 2, lemmaNorm),
+    }
+  }
+  return {
+    genPl: applyLikeLemma(genPlPlain),
+    accPl: applyLikeLemma(accPlPlain),
+  }
+}
+
 export type NounAutoForms = {
   n_nom_sg: string
   n_nom_pl: string
@@ -76,13 +98,14 @@ export function nounAutoForms(lemmaNorm: string, gender: NounGender, t?: Inflect
   if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult') {
     if (!endsWith('ος')) return null
     const st = stem(-2)
+    const { genPl, accPl } = mascOsPluralGenAccPl(type, st, lemmaNorm, applyLikeLemma)
     return {
       n_nom_sg: applyLikeLemma(`${st}ος`),
       n_nom_pl: applyLikeLemma(`${st}οι`),
       n_acc_sg: applyLikeLemma(`${st}ο`),
-      n_acc_pl: applyLikeLemma(`${st}ους`),
+      n_acc_pl: accPl,
       n_gen_sg: applyLikeLemma(`${st}ου`),
-      n_gen_pl: applyLikeLemma(`${st}ων`),
+      n_gen_pl: genPl,
     }
   }
 
@@ -274,8 +297,7 @@ export function nounMatrix(lemmaNorm: string, t?: InflectionType): NounMatrix | 
     const genSg = applyLikeLemma(`${stem}ου`)
     const accSg = applyLikeLemma(`${stem}ο`)
     const nomPl = applyLikeLemma(`${stem}οι`)
-    const genPl = applyLikeLemma(`${stem}ων`)
-    const accPl = applyLikeLemma(`${stem}ους`)
+    const { genPl, accPl } = mascOsPluralGenAccPl(t, stem, lemmaNorm, applyLikeLemma)
     return {
       rows: [
         { number: 'sg', forms: { nom: nomSg, gen: genSg, acc: accSg } },

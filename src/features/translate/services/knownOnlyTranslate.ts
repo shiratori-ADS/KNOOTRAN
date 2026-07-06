@@ -15,6 +15,7 @@ import {
 import { adjectiveMatchesToken } from '../../../grammar/adjective'
 import { personalPronounMatchesToken } from '../../../grammar/personalPronoun'
 import { collectNounTriGenderForms, hasNounTriGenderOverrides } from '../../../grammar/nounTriGender'
+import { mascOsPluralGenAccPl } from '../../../grammar/noun'
 import { verbImperativeForms } from '../../../grammar/verb'
 import { tokenize } from '../../../lib/tokenize'
 
@@ -225,14 +226,15 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
     const withPlain = (forms: string[]) => Array.from(new Set(forms.flatMap((f) => [f, stripGreekTonos(f)])))
 
     if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult') {
+      const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, lemmaNorm, applyLikeLemma)
       out.push(
         ...withPlain([
           applyLikeLemma(`${stemPlain}ος`),
           applyLikeLemma(`${stemPlain}οι`),
           applyLikeLemma(`${stemPlain}ου`),
-          applyLikeLemma(`${stemPlain}ων`),
+          genPl,
           applyLikeLemma(`${stemPlain}ο`),
-          applyLikeLemma(`${stemPlain}ους`),
+          accPl,
         ]),
       )
       continue
@@ -328,15 +330,17 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
   const applyLikeLemma = (w: string) => applyAccentFrom(w, lemmaNorm)
   const withPlain = (forms: string[]) => Array.from(new Set(forms.flatMap((f) => [f, stripGreekTonos(f)])))
 
-  if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult')
+  if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult') {
+    const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, lemmaNorm, applyLikeLemma)
     return withPlain([
       applyLikeLemma(`${stemPlain}ος`),
       applyLikeLemma(`${stemPlain}οι`),
       applyLikeLemma(`${stemPlain}ου`),
-      applyLikeLemma(`${stemPlain}ων`),
+      genPl,
       applyLikeLemma(`${stemPlain}ο`),
-      applyLikeLemma(`${stemPlain}ους`),
+      accPl,
     ])
+  }
   if (type === 'noun_2nd_neut_-ο') return [`${stem}ο`, `${stem}α`, `${stem}ου`, `${stem}ων`]
   if (type === 'noun_2nd_neut_-ος') {
     const nomAccSg = [`${stem}ος`]

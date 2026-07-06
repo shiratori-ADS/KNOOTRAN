@@ -1,6 +1,7 @@
 import { normalizeToken } from '../lib/normalize'
 import type { Entry, InflectionType } from '../db/types'
 import { resolveNounInflectionType } from './infer'
+import { mascOsPluralGenAccPl } from './noun'
 import type {
   SentenceAnalysis,
   SentenceNounCase,
@@ -359,13 +360,15 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
   const stemPlain = stripGreekTonos(stem)
   const applyLikeLemma = (w: string) => applyAccentFrom(w, lemmaNorm)
 
-  // 男性名詞 -ος, -οι（(1)/(2)は区別せず、トノス移動なし扱い）
-  if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult')
+  // 男性名詞 -ος, -οι（antepenult は複数属格・対格でトノス移動）
+  if (type === 'noun_masc_-ος_last' || type === 'noun_masc_-ος_penult' || type === 'noun_masc_-ος_antepenult') {
+    const { genPl, accPl } = mascOsPluralGenAccPl(type, stemPlain, lemmaNorm, applyLikeLemma)
     return {
       nom: [applyLikeLemma(`${stemPlain}ος`), applyLikeLemma(`${stemPlain}οι`)],
-      gen: [applyLikeLemma(`${stemPlain}ου`), applyLikeLemma(`${stemPlain}ων`)],
-      acc: [applyLikeLemma(`${stemPlain}ο`), applyLikeLemma(`${stemPlain}ους`)],
+      gen: [applyLikeLemma(`${stemPlain}ου`), genPl],
+      acc: [applyLikeLemma(`${stemPlain}ο`), accPl],
     }
+  }
 
   if (type === 'noun_2nd_neut_-ο')
     return (() => {
