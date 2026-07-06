@@ -1,6 +1,6 @@
 import type { Entry, InflectionType, NounGender } from '../db/types'
 import { normalizeToken } from '../lib/normalize'
-import { accentPositionFromEnd, stripGreekTonos, vowelCount } from './accent'
+import { accentPositionFromEndByVowelUnit, stripGreekTonos, vowelCount } from './accent'
 
 /** 単語帳に保存された活用タイプがあればそれを優先し、なければ見出し語＋性から推定する */
 export function resolveNounInflectionType(
@@ -8,13 +8,11 @@ export function resolveNounInflectionType(
   lemmaNorm: string,
 ): InflectionType {
   if (entry.pos !== 'noun') return 'none'
-  const stored = entry.inflectionType
-  if (stored && stored !== 'none' && stored.startsWith('noun_')) return stored
 
   // UIで型選択はしない方針でも、マトリックス上書きから -ηδες を推定できるようにする
   const lemmaRaw = normalizeToken(lemmaNorm)
   const lemmaPlain = stripGreekTonos(lemmaRaw)
-  const accentPos = accentPositionFromEnd(lemmaRaw)
+  const accentPos = accentPositionFromEndByVowelUnit(lemmaRaw)
   const overrides = entry.inflectionOverrides
   const nomPl = normalizeToken(overrides?.n_nom_pl ?? '')
   const accPl = normalizeToken(overrides?.n_acc_pl ?? '')
@@ -25,14 +23,20 @@ export function resolveNounInflectionType(
     return accentPos === 'last' ? 'noun_masc_-ης_-εις_last' : 'noun_masc_-ης_-εις_penult'
   }
 
-  return inferNounInflectionTypeFromLemma(lemmaNorm, entry.nounGender)
+  const inferred = inferNounInflectionTypeFromLemma(lemmaNorm, entry.nounGender)
+  if (inferred !== 'none') return inferred
+
+  const stored = entry.inflectionType
+  if (stored && stored !== 'none' && stored.startsWith('noun_')) return stored
+
+  return 'none'
 }
 
 export function inferNounInflectionTypeFromLemma(rawLemma: string, nounGender?: NounGender): InflectionType {
   const lemmaRaw = normalizeToken(rawLemma)
   if (!lemmaRaw) return 'none'
   const lemma = stripGreekTonos(lemmaRaw)
-  const accentPos = accentPositionFromEnd(lemmaRaw)
+  const accentPos = accentPositionFromEndByVowelUnit(lemmaRaw)
   const vCount = vowelCount(lemmaRaw)
   // 通性（男/女）は推定結果が1つに定まらないため、呼び出し側で masc/fem を別々に推定する
   if (nounGender === 'common_mf' || nounGender === 'tri_gender') return 'none'
