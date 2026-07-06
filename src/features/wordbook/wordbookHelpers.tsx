@@ -265,7 +265,7 @@ export const verbInflectionOptions: Array<{ value: InflectionType; label: string
   { value: 'verb_pres_mid_Γ1_-ομαι', label: inflectionLabel('verb_pres_mid_Γ1_-ομαι') },
   { value: 'verb_pres_mid_Γ2_-άμαι', label: inflectionLabel('verb_pres_mid_Γ2_-άμαι') },
 ]
-export { nounAutoForms } from '../../grammar/noun'
+export { nounAutoForms, reconcileNounInflectionOverrides } from '../../grammar/noun'
 export { adjectiveMatrix, adjectiveAutoForms } from '../../grammar/adjective'
 export {
   PP_COLS,

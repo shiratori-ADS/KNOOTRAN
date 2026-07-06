@@ -1,9 +1,11 @@
 import type { Entry, InflectionType, NounGender } from '../db/types'
+import { normalizeToken } from '../lib/normalize'
 import {
   addTonosOnAntepenultVowel,
   addTonosOnLastVowel,
   addTonosOnNthFromEndVowel,
   addTonosOnNthFromEndVowelUnit,
+  accentPositionFromEndByVowelUnit,
   applyAccentFromByVowelUnit,
   stripGreekTonos,
 } from './accent'
@@ -49,7 +51,7 @@ export function resolveNounTypeForMatrix(
   return resolveNounInflectionType(selected, lemmaNorm)
 }
 
-/** 男性名詞 -ος（antepenult）の複数属格・対格はトノスを後ろから2番目（母音ユニット）へ移動 */
+/** 男性名詞 -ος の複数属格・対格：母音ユニット（οι/ου 等）で後ろから2番目へトノスを置く */
 export function mascOsPluralGenAccPl(
   type: InflectionType,
   stemPlain: string,
@@ -57,7 +59,9 @@ export function mascOsPluralGenAccPl(
 ): { genPl: string; accPl: string } {
   const genPlPlain = `${stemPlain}ων`
   const accPlPlain = `${stemPlain}ους`
-  if (type === 'noun_masc_-ος_antepenult') {
+  const usePenultByUnit =
+    type === 'noun_masc_-ος_antepenult' || (type === 'noun_masc_-ος_penult' && stemPlain.includes('οι'))
+  if (usePenultByUnit) {
     return {
       genPl: addTonosOnNthFromEndVowelUnit(genPlPlain, 2),
       accPl: addTonosOnNthFromEndVowelUnit(accPlPlain, 2),
@@ -67,6 +71,54 @@ export function mascOsPluralGenAccPl(
     genPl: applyLikeLemma(genPlPlain),
     accPl: applyLikeLemma(accPlPlain),
   }
+}
+
+/** 女性名詞 -α（antepenult）の複数属格：母音ユニット（ει/αι 等）で後ろから1番目へトノスを置く */
+export function femAlphaPluralGenPl(
+  type: InflectionType,
+  stemPlain: string,
+  lemmaNorm: string,
+  applyLikeLemma: (w: string) => string,
+): string {
+  const genPlPlain = `${stemPlain}ων`
+  if (type === 'noun_fem_-α' && accentPositionFromEndByVowelUnit(lemmaNorm) === 'antepenult') {
+    return addTonosOnNthFromEndVowelUnit(genPlPlain, 1)
+  }
+  return applyLikeLemma(genPlPlain)
+}
+
+const NOUN_AUTO_OVERRIDE_KEYS = ['n_nom_sg', 'n_nom_pl', 'n_acc_sg', 'n_acc_pl', 'n_gen_sg', 'n_gen_pl'] as const
+
+/** 自動生成とトノス無しで同じ古い上書きを除去（表示・保存の両方で使う） */
+export function reconcileNounInflectionOverrides(
+  entry: Pick<Entry, 'pos' | 'nounGender' | 'inflectionType' | 'inflectionOverrides'>,
+  lemma: string,
+): Entry['inflectionOverrides'] {
+  const raw = entry.inflectionOverrides ?? {}
+  if (entry.pos !== 'noun' || entry.nounGender === 'tri_gender') return raw
+
+  const gender: NounGender | undefined =
+    entry.nounGender === 'common_mf' ? 'masc' : entry.nounGender
+  if (!gender) return raw
+
+  const type = resolveNounInflectionType(entry, lemma)
+  const auto = nounAutoForms(lemma, gender, type)
+  if (!auto) return raw
+
+  const next: NonNullable<Entry['inflectionOverrides']> = { ...raw }
+  for (const k of NOUN_AUTO_OVERRIDE_KEYS) {
+    const cur = next[k]
+    if (!cur) continue
+    const autoVal = auto[k]
+    if (normalizeToken(cur) === normalizeToken(autoVal)) {
+      delete next[k]
+      continue
+    }
+    if (stripGreekTonos(cur) === stripGreekTonos(autoVal)) {
+      delete next[k]
+    }
+  }
+  return Object.keys(next).length ? next : undefined
 }
 
 export type NounAutoForms = {
@@ -207,13 +259,14 @@ export function nounAutoForms(lemmaNorm: string, gender: NounGender, t?: Inflect
   if (type === 'noun_fem_-α' || type === 'noun_fem_-ά') {
     if (!endsWith('α')) return null
     const st = stem(-1)
+    const genPl = femAlphaPluralGenPl(type, st, lemmaNorm, applyLikeLemma)
     return {
       n_nom_sg: applyLikeLemma(`${st}α`),
       n_nom_pl: applyLikeLemma(`${st}ες`),
       n_acc_sg: applyLikeLemma(`${st}α`),
       n_acc_pl: applyLikeLemma(`${st}ες`),
       n_gen_sg: applyLikeLemma(`${st}ας`),
-      n_gen_pl: applyLikeLemma(`${st}ων`),
+      n_gen_pl: genPl,
     }
   }
   if (type === 'noun_neut_-ι') {
@@ -370,6 +423,7 @@ export function nounMatrix(lemmaNorm: string, t?: InflectionType): NounMatrix | 
   if (t === 'noun_fem_-α' || t === 'noun_fem_-ά') {
     if (!lemmaPlain.endsWith('α')) return null
     const stemPlain = lemmaPlain.slice(0, -1)
+    const genPl = femAlphaPluralGenPl(t, stemPlain, lemmaNorm, applyLikeLemma)
     return {
       rows: [
         {
@@ -384,7 +438,7 @@ export function nounMatrix(lemmaNorm: string, t?: InflectionType): NounMatrix | 
           number: 'pl',
           forms: {
             nom: applyLikeLemma(`${stemPlain}ες`),
-            gen: applyLikeLemma(`${stemPlain}ων`),
+            gen: genPl,
             acc: applyLikeLemma(`${stemPlain}ες`),
           },
         },

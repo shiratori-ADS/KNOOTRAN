@@ -1,7 +1,7 @@
 import { normalizeToken } from '../lib/normalize'
 import type { Entry, InflectionType } from '../db/types'
 import { resolveNounInflectionType } from './infer'
-import { mascOsPluralGenAccPl } from './noun'
+import { femAlphaPluralGenPl, mascOsPluralGenAccPl, reconcileNounInflectionOverrides } from './noun'
 import type {
   SentenceAnalysis,
   SentenceNounCase,
@@ -325,7 +325,15 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
   acc: string[]
   gen: string[]
 } | null {
-  const o = entry.inflectionOverrides
+  const o = reconcileNounInflectionOverrides(
+    {
+      pos: 'noun',
+      nounGender: entry.nounGender,
+      inflectionType: entry.inflectionType,
+      inflectionOverrides: entry.inflectionOverrides,
+    },
+    lemmaNorm,
+  )
   if (entry.nounGender === 'tri_gender' && o) {
     const nom = ['n_m_nom_sg', 'n_f_nom_sg', 'n_n_nom_sg', 'n_m_nom_pl', 'n_f_nom_pl', 'n_n_nom_pl']
       .map((k) => normalizeToken((o as Record<string, string>)[k] ?? ''))
@@ -412,8 +420,8 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
     const nomAccPl = applyLikeLemma(`${stemPlain}ες`)
     const genSg = applyLikeLemma(`${stemPlain}ας`)
     const genPlPlain = `${stemPlain}ων`
-    // -ων / -ών の区別ができないので両方を許容
-    const genPl = Array.from(new Set([applyLikeLemma(genPlPlain), addTonosOnLastVowel(genPlPlain)]))
+    const genPlPrimary = femAlphaPluralGenPl(type, stemPlain, lemmaNorm, applyLikeLemma)
+    const genPl = Array.from(new Set([genPlPrimary, applyLikeLemma(genPlPlain), addTonosOnLastVowel(genPlPlain)]))
     return {
       nom: [nomAccSg, nomAccPl],
       gen: [genSg, ...genPl],

@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie'
 import type { Entry, Settings } from './types'
 import { normalizeForeignStorage, normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma } from '../grammar/infer'
+import { reconcileNounInflectionOverrides } from '../grammar/noun'
 
 export class AppDB extends Dexie {
   entries!: Table<Entry, number>
@@ -256,6 +257,26 @@ export class AppDB extends Dexie {
               .filter(Boolean)
             e.foreignForms = Array.from(new Set(forms))
           }
+        })
+      })
+
+    // v13: 名詞の古い活用上書きと inflectionType を見出し語から再整合（οι/ου を母音ユニットとして数える推定へ）
+    this.version(13)
+      .stores({
+        entries:
+          '++id, pos, nounGender, inflectionType, meaningJaPrimary, *meaningJaVariants, *tags, memo, foreignLemma, *foreignForms, updatedAt',
+        settings: 'id',
+      })
+      .upgrade(async (tx) => {
+        const entries = tx.table('entries')
+        await entries.toCollection().modify((e) => {
+          if (!e || e.pos !== 'noun') return
+          const lemma = normalizeForeignStorage(e.foreignLemma ?? e.foreignForms?.[0] ?? '')
+          if (!lemma) return
+          if (e.nounGender && e.nounGender !== 'tri_gender') {
+            e.inflectionType = inferNounInflectionTypeFromLemma(lemma, e.nounGender)
+          }
+          e.inflectionOverrides = reconcileNounInflectionOverrides(e, lemma)
         })
       })
   }

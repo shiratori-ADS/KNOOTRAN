@@ -3,7 +3,7 @@ import { db, getSettings } from '../../db/db'
 import type { Entry, InflectionOverrideKey, InflectionType, NounGender, PartOfSpeech, Settings } from '../../db/types'
 import { stripGreekTonos } from '../../grammar/accent'
 import { adjectiveFormsForMatch } from '../../grammar/adjective'
-import { inferNounInflectionTypeFromLemma } from '../../grammar/infer'
+import { inferNounInflectionTypeFromLemma, resolveNounInflectionType } from '../../grammar/infer'
 import { collectNounTriGenderForms } from '../../grammar/nounTriGender'
 import { personalPronounFormsForMatch } from '../../grammar/personalPronoun'
 import { findEntryByNormalizedForeign } from '../../lib/entryForeignLookup'
@@ -245,7 +245,7 @@ export function useWordbookController() {
               const type =
                 e.nounGender === 'common_mf'
                   ? inferNounInflectionTypeFromLemma(lemmaNorm, gender)
-                  : e.inflectionType
+                  : resolveNounInflectionType(e, lemmaNorm)
               const forms = nounAutoForms(lemmaNorm, gender, type)
               if (forms) raw.push(...Object.values(forms))
             }
@@ -378,6 +378,8 @@ export function useWordbookController() {
       if (autoNoun) {
         ;(['n_nom_sg', 'n_nom_pl', 'n_acc_sg', 'n_acc_pl', 'n_gen_sg', 'n_gen_pl'] as const).forEach((k) => {
           removeIfAuto(k, autoNoun[k])
+          const cur = o[k]
+          if (cur && stripGreekTonos(cur) === stripGreekTonos(autoNoun[k])) delete o[k]
         })
       }
       if (editPos === 'pronoun_personal') {

@@ -15,6 +15,7 @@ import {
   ppKey,
   renderEndingRed,
   resolveNounTypeForMatrix,
+  reconcileNounInflectionOverrides,
   verbAoristMatrix,
   verbImperativeForms,
   verbMatrix,
@@ -885,6 +886,7 @@ export function InflectionSection({ selected }: { selected: Entry }) {
   const nounType = resolveNounTypeForMatrix(selected, lemmaRaw)
   const n = nounMatrix(lemmaRaw, nounType) ?? nounMatrixFromOverrides(selected.inflectionOverrides)
   if (!n) return <span className="subtle">この活用タイプは未対応です。</span>
+  const nounOverrides = reconcileNounInflectionOverrides(selected, lemmaRaw) ?? {}
   const ends = endingsByCell[nounType] ?? undefined
   const g = selected.nounGender === 'fem' ? 'fem' : selected.nounGender === 'neut' ? 'neut' : 'masc'
   const article = (num: 'sg' | 'pl', kase: 'nom' | 'gen' | 'acc') => {
@@ -918,9 +920,9 @@ export function InflectionSection({ selected }: { selected: Entry }) {
       <tbody>
         {n.rows.map((r) => {
           const num = r.number
-          const ovNom = num === 'pl' ? selected.inflectionOverrides?.n_nom_pl : selected.inflectionOverrides?.n_nom_sg
-          const ovGen = num === 'pl' ? selected.inflectionOverrides?.n_gen_pl : selected.inflectionOverrides?.n_gen_sg
-          const ovAcc = num === 'pl' ? selected.inflectionOverrides?.n_acc_pl : selected.inflectionOverrides?.n_acc_sg
+          const ovNom = num === 'pl' ? nounOverrides.n_nom_pl : nounOverrides.n_nom_sg
+          const ovGen = num === 'pl' ? nounOverrides.n_gen_pl : nounOverrides.n_gen_sg
+          const ovAcc = num === 'pl' ? nounOverrides.n_acc_pl : nounOverrides.n_acc_sg
 
           const cell = (kase: 'nom' | 'gen' | 'acc', form: string, ov?: string, ending?: string) => {
             const baseForm = ov ?? form

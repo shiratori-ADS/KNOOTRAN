@@ -15,7 +15,7 @@ import {
 import { adjectiveMatchesToken } from '../../../grammar/adjective'
 import { personalPronounMatchesToken } from '../../../grammar/personalPronoun'
 import { collectNounTriGenderForms, hasNounTriGenderOverrides } from '../../../grammar/nounTriGender'
-import { mascOsPluralGenAccPl } from '../../../grammar/noun'
+import { femAlphaPluralGenPl, mascOsPluralGenAccPl, reconcileNounInflectionOverrides } from '../../../grammar/noun'
 import { verbImperativeForms } from '../../../grammar/verb'
 import { tokenize } from '../../../lib/tokenize'
 
@@ -190,7 +190,7 @@ function nounStem(lemmaNorm: string, type: InflectionType): string | null {
 }
 
 function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
-  const o = entry.inflectionOverrides
+  const o = reconcileNounInflectionOverrides(entry, lemmaNorm)
   if (entry.nounGender === 'tri_gender' && hasNounTriGenderOverrides(o)) {
     return collectNounTriGenderForms(o)
   }
@@ -253,12 +253,13 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
     }
     if (type === 'noun_fem_-α' || type === 'noun_fem_-ά') {
       const genPlPlain = `${stemPlain}ων`
+      const genPl = femAlphaPluralGenPl(type, stemPlain, lemmaNorm, applyLikeLemma)
       out.push(
         ...withPlain([
           applyLikeLemma(`${stemPlain}α`),
           applyLikeLemma(`${stemPlain}ες`),
           applyLikeLemma(`${stemPlain}ας`),
-          applyLikeLemma(genPlPlain),
+          genPl,
           addTonosOnLastVowel(genPlPlain),
         ]),
       )
@@ -351,11 +352,12 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
   }
   if (type === 'noun_fem_-α' || type === 'noun_fem_-ά') {
     const genPlPlain = `${stemPlain}ων`
+    const genPl = femAlphaPluralGenPl(type, stemPlain, lemmaNorm, applyLikeLemma)
     return withPlain([
       applyLikeLemma(`${stemPlain}α`),
       applyLikeLemma(`${stemPlain}ες`),
       applyLikeLemma(`${stemPlain}ας`),
-      applyLikeLemma(genPlPlain),
+      genPl,
       addTonosOnLastVowel(genPlPlain),
     ])
   }
