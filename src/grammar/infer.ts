@@ -22,10 +22,10 @@ export function resolveNounInflectionType(
     // -ηδες は -εις で一律扱い
     return accentPos === 'last' ? 'noun_masc_-ης_-εις_last' : 'noun_masc_-ης_-εις_penult'
   }
-  if (lemmaPlain.endsWith('η') && entry.nounGender === 'fem') {
+  if (lemmaPlain.endsWith('ση') && entry.nounGender === 'fem') {
     const pluralLooksEis =
       (nomPl && stripGreekTonos(nomPl).endsWith('εις')) || (accPl && stripGreekTonos(accPl).endsWith('εις'))
-    if (pluralLooksEis) return 'noun_fem_-η_-εις'
+    if (pluralLooksEis) return 'noun_fem_-ση_-εις'
   }
 
   const inferred = inferNounInflectionTypeFromLemma(lemmaNorm, entry.nounGender)
@@ -73,7 +73,7 @@ export function inferNounInflectionTypeFromLemma(rawLemma: string, nounGender?: 
   if (nounGender === 'fem' && (lemmaRaw.endsWith('ού') || lemmaRaw.endsWith('ού'))) return 'noun_fem_-ού'
   if (lemma.endsWith('η')) {
     if (nounGender === 'fem') {
-      if (accentPos === 'antepenult') return 'noun_fem_-η_-εις'
+      if (lemma.endsWith('ση')) return 'noun_fem_-ση_-εις'
       return 'noun_fem_-η'
     }
     return 'none'

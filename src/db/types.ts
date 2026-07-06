@@ -48,7 +48,7 @@ export type InflectionType =
   | 'noun_fem_-α'
   | 'noun_fem_-ά'
   | 'noun_fem_-η'
-  | 'noun_fem_-η_-εις'
+  | 'noun_fem_-ση_-εις'
   | 'noun_fem_-ος'
   | 'noun_fem_-ού'
 

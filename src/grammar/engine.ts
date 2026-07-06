@@ -301,7 +301,7 @@ function nounStem(lemma: string, type?: InflectionType): string | null {
     if (!lemmaPlain.endsWith('μο')) return null
     return lemma.slice(0, -2)
   }
-  if (type === 'noun_fem_-η' || type === 'noun_fem_-η_-εις') {
+  if (type === 'noun_fem_-η' || type === 'noun_fem_-ση_-εις') {
     if (!lemmaPlain.endsWith('η')) return null
     return lemma.slice(0, -1)
   }
@@ -440,11 +440,11 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
       acc: [nomAccSg, nomAccPl],
     }
   }
-  if (type === 'noun_fem_-η_-εις') {
+  if (type === 'noun_fem_-ση_-εις') {
     const nomSg = applyLikeLemma(`${stemPlain}η`)
     const accSg = applyLikeLemma(`${stemPlain}η`)
     const genSg = applyLikeLemma(`${stemPlain}ης`)
-    const { nomPl, genPl, accPl } = femEtaEisPluralForms(stemPlain)
+    const { nomPl, genPl, accPl } = femEtaEisPluralForms(stemPlain, lemmaNorm, applyLikeLemma)
     return {
       nom: [nomSg, nomPl],
       gen: [genSg, genPl],
