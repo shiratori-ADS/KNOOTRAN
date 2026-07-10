@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   applyCellTextAlign,
+  applyColumnsWidth,
   buildTableHtml,
   deleteTable,
   deleteTableColumn,
@@ -10,6 +11,8 @@ import {
   insertTableColumn,
   insertTableRow,
   readCellTextAlign,
+  readColumnsWidthPx,
+  getSelectedColumnIndexes,
   type CellTextAlign,
   type TableContext,
   type TableInsertOptions,
@@ -118,14 +121,50 @@ function applyFontSize(editor: HTMLElement, size: string) {
 export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const tableCtxRef = useRef<TableContext | null>(null)
+  const selectedColIndexesRef = useRef<number[]>([])
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
   const [tableCtx, setTableCtx] = useState<TableContext | null>(null)
+  const [selectedColIndexes, setSelectedColIndexes] = useState<number[]>([])
+  const [colWidthDraft, setColWidthDraft] = useState('')
   const isInternalUpdate = useRef(false)
+  const isTableEditingRef = useRef(false)
 
   const refreshTableContext = useCallback(() => {
-    const ctx = getTableContext(editorRef.current)
-    tableCtxRef.current = ctx
-    setTableCtx(ctx)
+    const editor = editorRef.current
+    const ctx = getTableContext(editor)
+    if (ctx) {
+      const selection = window.getSelection()
+      let colIndexes = [ctx.colIndex]
+      if (editor && selection && selection.rangeCount > 0) {
+        const fromRange = getSelectedColumnIndexes(editor, selection.getRangeAt(0))
+        if (fromRange.length > 0) colIndexes = fromRange
+      }
+      tableCtxRef.current = ctx
+      selectedColIndexesRef.current = colIndexes
+      setTableCtx(ctx)
+      setSelectedColIndexes(colIndexes)
+      return
+    }
+
+    if (isTableEditingRef.current) return
+
+    const active = document.activeElement
+    if (active instanceof HTMLElement && active.closest('#note-editor-toolbar-panels')) {
+      return
+    }
+
+    if (tableCtxRef.current?.table.isConnected) return
+
+    tableCtxRef.current = null
+    selectedColIndexesRef.current = []
+    setTableCtx(null)
+    setSelectedColIndexes([])
+  }, [])
+
+  const onToolbarMouseDown = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (target.closest('input, select, textarea')) return
+    e.preventDefault()
   }, [])
 
   useEffect(() => {
@@ -144,6 +183,15 @@ export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
     document.addEventListener('selectionchange', onSelectionChange)
     return () => document.removeEventListener('selectionchange', onSelectionChange)
   }, [refreshTableContext])
+
+  useEffect(() => {
+    if (!tableCtx) {
+      setColWidthDraft('')
+      return
+    }
+    const px = readColumnsWidthPx(tableCtx.table, selectedColIndexes)
+    setColWidthDraft(px != null ? String(px) : '')
+  }, [tableCtx, selectedColIndexes])
 
   const emitChange = useCallback(() => {
     const el = editorRef.current
@@ -169,7 +217,12 @@ export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
     (fn: (ctx: TableContext) => void) => {
       const ctx = tableCtxRef.current ?? getTableContext(editorRef.current)
       if (!ctx) return
-      fn(ctx)
+      isTableEditingRef.current = true
+      try {
+        fn(ctx)
+      } finally {
+        isTableEditingRef.current = false
+      }
       emitChange()
     },
     [emitChange],
@@ -223,11 +276,33 @@ export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
 
   const currentCellAlign = tableCtx ? readCellTextAlign(tableCtx.cell) : 'left'
 
+  const onApplyColWidth = useCallback(() => {
+    runTableEdit((ctx) => {
+      const colIndexes = selectedColIndexesRef.current.length > 0 ? selectedColIndexesRef.current : [ctx.colIndex]
+      const trimmed = colWidthDraft.trim()
+      if (!trimmed) {
+        applyColumnsWidth(ctx.table, colIndexes, null)
+        return
+      }
+      const px = Number(trimmed)
+      if (!Number.isFinite(px) || px < 20) return
+      applyColumnsWidth(ctx.table, colIndexes, Math.min(800, Math.round(px)))
+    })
+  }, [colWidthDraft, runTableEdit])
+
+  const onClearColWidth = useCallback(() => {
+    setColWidthDraft('')
+    runTableEdit((ctx) => {
+      const colIndexes = selectedColIndexesRef.current.length > 0 ? selectedColIndexesRef.current : [ctx.colIndex]
+      applyColumnsWidth(ctx.table, colIndexes, null)
+    })
+  }, [runTableEdit])
+
   return (
     <div className="noteEditorShell">
       {toolbarOpen ? (
         <div className="noteToolbarDock isOpen">
-          <div id="note-editor-toolbar-panels" className="noteToolbarPanels">
+          <div id="note-editor-toolbar-panels" className="noteToolbarPanels" onMouseDown={onToolbarMouseDown}>
             <NotesToolbar
               onBold={onBold}
               onFontSize={onFontSize}
@@ -237,6 +312,11 @@ export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
             {tableCtx ? (
               <TableEditToolbar
                 currentAlign={currentCellAlign}
+                selectedColCount={selectedColIndexes.length}
+                colWidthPx={colWidthDraft}
+                onColWidthPxChange={setColWidthDraft}
+                onApplyColWidth={onApplyColWidth}
+                onClearColWidth={onClearColWidth}
                 onAlignLeft={() => onCellAlign('left')}
                 onAlignCenter={() => onCellAlign('center')}
                 onAlignRight={() => onCellAlign('right')}

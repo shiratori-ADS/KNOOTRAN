@@ -1,4 +1,5 @@
 export const NOTE_FONT_SIZES = [
+  { label: '最小', value: '10px' },
   { label: '小', value: '13px' },
   { label: '標準', value: '16px' },
   { label: '大', value: '20px' },

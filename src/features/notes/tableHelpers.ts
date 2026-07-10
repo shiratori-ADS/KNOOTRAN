@@ -80,6 +80,20 @@ export function getCellsInRange(root: HTMLElement, range: Range): HTMLTableCellE
   return Array.from(cells)
 }
 
+export function getSelectedColumnIndexes(root: HTMLElement, range: Range): number[] {
+  const cells = getCellsInRange(root, range)
+  if (cells.length === 0) return []
+
+  const indexes = new Set<number>()
+  for (const cell of cells) {
+    const row = cell.parentElement
+    if (!row) continue
+    const colIndex = Array.from(row.children).indexOf(cell)
+    if (colIndex >= 0) indexes.add(colIndex)
+  }
+  return Array.from(indexes).sort((a, b) => a - b)
+}
+
 export function readCellTextAlign(cell: HTMLTableCellElement): CellTextAlign {
   const inline = cell.style.textAlign
   if (inline === 'center' || inline === 'right') return inline
@@ -123,6 +137,136 @@ function forEachRow(table: HTMLTableElement, fn: (row: HTMLTableRowElement, sect
   }
 }
 
+function getAllRowsOrdered(table: HTMLTableElement): HTMLTableRowElement[] {
+  const rows: HTMLTableRowElement[] = []
+  if (table.tHead) rows.push(...Array.from(table.tHead.rows))
+  for (const tbody of Array.from(table.tBodies)) rows.push(...Array.from(tbody.rows))
+  return rows
+}
+
+export function placeCaretInCell(cell: HTMLTableCellElement): void {
+  const range = document.createRange()
+  range.selectNodeContents(cell)
+  range.collapse(true)
+  const selection = window.getSelection()
+  selection?.removeAllRanges()
+  selection?.addRange(range)
+}
+
+function buildContextFromCell(cell: HTMLTableCellElement): TableContext | null {
+  const table = cell.closest('table.note-table')
+  if (!(table instanceof HTMLTableElement)) return null
+
+  const row = cell.parentElement
+  if (!row) return null
+
+  const colIndex = Array.from(row.children).indexOf(cell)
+  if (colIndex < 0) return null
+
+  const section: 'head' | 'body' = row.parentElement?.tagName === 'THEAD' ? 'head' : 'body'
+  return { table, cell, colIndex, section }
+}
+
+export function focusTableCell(table: HTMLTableElement, rowIndex: number, colIndex: number): TableContext | null {
+  const rows = getAllRowsOrdered(table)
+  if (rows.length === 0) return null
+
+  const row = rows[Math.max(0, Math.min(rowIndex, rows.length - 1))]
+  const safeColIndex = Math.max(0, Math.min(colIndex, row.cells.length - 1))
+  const cell = row.cells[safeColIndex]
+  if (!(cell instanceof HTMLTableCellElement)) return null
+
+  placeCaretInCell(cell)
+  return buildContextFromCell(cell)
+}
+
+function ensureColgroup(table: HTMLTableElement): HTMLTableColElement[] {
+  const colCount = tableColCount(table)
+  let colgroup = table.querySelector('colgroup')
+  if (!colgroup) {
+    colgroup = document.createElement('colgroup')
+    const first = table.tHead ?? table.tBodies[0] ?? table.querySelector('tr')
+    if (first) table.insertBefore(colgroup, first)
+    else table.prepend(colgroup)
+  }
+  while (colgroup.children.length < colCount) {
+    colgroup.appendChild(document.createElement('col'))
+  }
+  while (colgroup.children.length > colCount) {
+    colgroup.lastElementChild?.remove()
+  }
+  return Array.from(colgroup.children) as HTMLTableColElement[]
+}
+
+function parseWidthPx(value: string): number | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const px = Number(trimmed.replace(/px$/i, ''))
+  if (!Number.isFinite(px) || px <= 0) return null
+  return Math.round(px)
+}
+
+export function readColumnWidthPx(ctx: TableContext): number | null {
+  return readColumnsWidthPx(ctx.table, [ctx.colIndex])
+}
+
+export function readColumnsWidthPx(table: HTMLTableElement, colIndexes: number[]): number | null {
+  if (colIndexes.length === 0) return null
+  const widths = colIndexes.map((colIndex) => {
+    const col = ensureColgroup(table)[colIndex]
+    if (col?.style.width) {
+      const fromCol = parseWidthPx(col.style.width)
+      if (fromCol != null) return fromCol
+    }
+    for (const section of [table.tHead, ...Array.from(table.tBodies)]) {
+      if (!section) continue
+      const row = section.rows[0]
+      const cell = row?.cells[colIndex]
+      if (cell instanceof HTMLTableCellElement && cell.style.width) {
+        const fromCell = parseWidthPx(cell.style.width)
+        if (fromCell != null) return fromCell
+      }
+    }
+    return null
+  })
+
+  const defined = widths.filter((w): w is number => w != null)
+  if (defined.length === 0) return null
+  const first = defined[0]
+  return defined.every((w) => w === first) ? first : null
+}
+
+function applyColumnWidthAt(table: HTMLTableElement, colIndex: number, widthPx: number | null): void {
+  const width = widthPx != null && widthPx > 0 ? `${widthPx}px` : ''
+  const cols = ensureColgroup(table)
+  const col = cols[colIndex]
+  if (col) col.style.width = width
+
+  forEachRow(table, (row) => {
+    const cell = row.cells[colIndex]
+    if (!cell) return
+    cell.style.width = width
+    if (width) {
+      cell.style.minWidth = width
+      cell.style.maxWidth = width
+    } else {
+      cell.style.minWidth = ''
+      cell.style.maxWidth = ''
+    }
+  })
+}
+
+export function applyColumnWidth(ctx: TableContext, widthPx: number | null): void {
+  applyColumnWidthAt(ctx.table, ctx.colIndex, widthPx)
+}
+
+export function applyColumnsWidth(table: HTMLTableElement, colIndexes: number[], widthPx: number | null): void {
+  ensureColgroup(table)
+  for (const colIndex of colIndexes) {
+    applyColumnWidthAt(table, colIndex, widthPx)
+  }
+}
+
 export function insertTableRow(ctx: TableContext, position: 'above' | 'below'): void {
   const row = ctx.cell.parentElement as HTMLTableRowElement
   const tag = ctx.section === 'head' ? 'th' : 'td'
@@ -144,20 +288,29 @@ export function insertTableColumn(ctx: TableContext, position: 'left' | 'right')
     if (ref) row.insertBefore(newCell, ref)
     else row.appendChild(newCell)
   })
+  ensureColgroup(ctx.table)
 }
 
 export function deleteTableRow(ctx: TableContext): boolean {
   if (tableRowCount(ctx.table) <= 1) return false
   const row = ctx.cell.parentElement as HTMLTableRowElement
+  const rowIndex = getAllRowsOrdered(ctx.table).indexOf(row)
+  const colIndex = ctx.colIndex
   row.remove()
+  focusTableCell(ctx.table, rowIndex, colIndex)
   return true
 }
 
 export function deleteTableColumn(ctx: TableContext): boolean {
   if (tableColCount(ctx.table) <= 1) return false
-  forEachRow(ctx.table, (row) => {
-    row.cells[ctx.colIndex]?.remove()
+  const row = ctx.cell.parentElement as HTMLTableRowElement
+  const rowIndex = getAllRowsOrdered(ctx.table).indexOf(row)
+  const colIndex = ctx.colIndex
+  forEachRow(ctx.table, (targetRow) => {
+    targetRow.cells[colIndex]?.remove()
   })
+  ensureColgroup(ctx.table)
+  focusTableCell(ctx.table, rowIndex, Math.min(colIndex, row.cells.length - 1))
   return true
 }
 

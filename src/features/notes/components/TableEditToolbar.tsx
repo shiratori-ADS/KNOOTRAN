@@ -1,7 +1,15 @@
 import type { CellTextAlign } from '../tableHelpers'
+import { TableAlignButtons } from './TableAlignButtons'
+import { TableInsertButtons } from './TableInsertButtons'
+import { TableDeleteButtons } from './TableDeleteButtons'
 
 type Props = {
   currentAlign: CellTextAlign
+  selectedColCount: number
+  colWidthPx: string
+  onColWidthPxChange: (value: string) => void
+  onApplyColWidth: () => void
+  onClearColWidth: () => void
   onAlignLeft: () => void
   onAlignCenter: () => void
   onAlignRight: () => void
@@ -16,6 +24,11 @@ type Props = {
 
 export function TableEditToolbar({
   currentAlign,
+  selectedColCount,
+  colWidthPx,
+  onColWidthPxChange,
+  onApplyColWidth,
+  onClearColWidth,
   onAlignLeft,
   onAlignCenter,
   onAlignRight,
@@ -31,54 +44,52 @@ export function TableEditToolbar({
     <div className="noteTableToolbar" role="toolbar" aria-label="表の編集">
       <span className="noteTableToolbarLabel">表の編集</span>
       <span className="noteTableToolbarGroup">
-        <span className="noteTableToolbarSubLabel">位置</span>
-        <button
-          type="button"
-          className={currentAlign === 'left' ? 'noteToolbarBtn active' : 'noteToolbarBtn secondary'}
-          onClick={onAlignLeft}
-          title="左揃え"
-        >
-          左
+        <span className="noteTableToolbarSubLabel">
+          列幅{selectedColCount > 1 ? `（${selectedColCount}列）` : ''}
+        </span>
+        <input
+          className="noteTableColWidthInput"
+          type="number"
+          min={20}
+          max={800}
+          placeholder={selectedColCount > 1 ? '複数' : '自動'}
+          value={colWidthPx}
+          onChange={(e) => onColWidthPxChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              onApplyColWidth()
+            }
+          }}
+          aria-label={selectedColCount > 1 ? `列幅（px・${selectedColCount}列）` : '列幅（px）'}
+          title={selectedColCount > 1 ? `選択中の${selectedColCount}列に同じ幅を適用` : '選択中の列に幅を適用'}
+        />
+        <span className="noteTableColWidthUnit">px</span>
+        <button type="button" className="noteToolbarBtn secondary" onClick={onApplyColWidth} title="列幅を適用">
+          適用
         </button>
-        <button
-          type="button"
-          className={currentAlign === 'center' ? 'noteToolbarBtn active' : 'noteToolbarBtn secondary'}
-          onClick={onAlignCenter}
-          title="中央揃え"
-        >
-          中央
-        </button>
-        <button
-          type="button"
-          className={currentAlign === 'right' ? 'noteToolbarBtn active' : 'noteToolbarBtn secondary'}
-          onClick={onAlignRight}
-          title="右揃え"
-        >
-          右
+        <button type="button" className="noteToolbarBtn secondary" onClick={onClearColWidth} title="列幅を自動に戻す">
+          自動
         </button>
       </span>
+      <TableAlignButtons
+        currentAlign={currentAlign}
+        onAlignLeft={onAlignLeft}
+        onAlignCenter={onAlignCenter}
+        onAlignRight={onAlignRight}
+      />
       <span className="noteTableToolbarDivider" aria-hidden="true" />
-      <button type="button" className="noteToolbarBtn secondary" onClick={onInsertRowAbove} title="上に行を追加">
-        行↑
-      </button>
-      <button type="button" className="noteToolbarBtn secondary" onClick={onInsertRowBelow} title="下に行を追加">
-        行↓
-      </button>
-      <button type="button" className="noteToolbarBtn secondary" onClick={onInsertColLeft} title="左に列を追加">
-        列←
-      </button>
-      <button type="button" className="noteToolbarBtn secondary" onClick={onInsertColRight} title="右に列を追加">
-        列→
-      </button>
-      <button type="button" className="noteToolbarBtn secondary" onClick={onDeleteRow} title="行を削除">
-        行削除
-      </button>
-      <button type="button" className="noteToolbarBtn secondary" onClick={onDeleteCol} title="列を削除">
-        列削除
-      </button>
-      <button type="button" className="noteToolbarBtn danger" onClick={onDeleteTable} title="表全体を削除">
-        表削除
-      </button>
+      <TableInsertButtons
+        onInsertRowAbove={onInsertRowAbove}
+        onInsertRowBelow={onInsertRowBelow}
+        onInsertColLeft={onInsertColLeft}
+        onInsertColRight={onInsertColRight}
+      />
+      <TableDeleteButtons
+        onDeleteRow={onDeleteRow}
+        onDeleteCol={onDeleteCol}
+        onDeleteTable={onDeleteTable}
+      />
     </div>
   )
 }
