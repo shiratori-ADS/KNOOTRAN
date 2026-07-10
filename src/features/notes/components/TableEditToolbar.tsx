@@ -1,4 +1,10 @@
+import type { CellTextAlign } from '../tableHelpers'
+
 type Props = {
+  currentAlign: CellTextAlign
+  onAlignLeft: () => void
+  onAlignCenter: () => void
+  onAlignRight: () => void
   onInsertRowAbove: () => void
   onInsertRowBelow: () => void
   onInsertColLeft: () => void
@@ -9,6 +15,10 @@ type Props = {
 }
 
 export function TableEditToolbar({
+  currentAlign,
+  onAlignLeft,
+  onAlignCenter,
+  onAlignRight,
   onInsertRowAbove,
   onInsertRowBelow,
   onInsertColLeft,
@@ -20,6 +30,34 @@ export function TableEditToolbar({
   return (
     <div className="noteTableToolbar" role="toolbar" aria-label="表の編集">
       <span className="noteTableToolbarLabel">表の編集</span>
+      <span className="noteTableToolbarGroup">
+        <span className="noteTableToolbarSubLabel">位置</span>
+        <button
+          type="button"
+          className={currentAlign === 'left' ? 'noteToolbarBtn active' : 'noteToolbarBtn secondary'}
+          onClick={onAlignLeft}
+          title="左揃え"
+        >
+          左
+        </button>
+        <button
+          type="button"
+          className={currentAlign === 'center' ? 'noteToolbarBtn active' : 'noteToolbarBtn secondary'}
+          onClick={onAlignCenter}
+          title="中央揃え"
+        >
+          中央
+        </button>
+        <button
+          type="button"
+          className={currentAlign === 'right' ? 'noteToolbarBtn active' : 'noteToolbarBtn secondary'}
+          onClick={onAlignRight}
+          title="右揃え"
+        >
+          右
+        </button>
+      </span>
+      <span className="noteTableToolbarDivider" aria-hidden="true" />
       <button type="button" className="noteToolbarBtn secondary" onClick={onInsertRowAbove} title="上に行を追加">
         行↑
       </button>

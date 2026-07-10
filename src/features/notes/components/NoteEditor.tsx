@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  applyCellTextAlign,
   buildTableHtml,
   deleteTable,
   deleteTableColumn,
   deleteTableRow,
+  getCellsInRange,
   getTableContext,
   insertTableColumn,
   insertTableRow,
+  readCellTextAlign,
+  type CellTextAlign,
   type TableContext,
   type TableInsertOptions,
 } from '../tableHelpers'
@@ -41,11 +45,16 @@ function wrapTextNodeWithFontSize(textNode: Text, start: number, end: number, si
   span.appendChild(target)
 }
 
-function applyFontSizeToTextNodes(range: Range, size: string) {
+function getSelectedTableCells(editor: HTMLElement, range: Range): HTMLTableCellElement[] {
+  return getCellsInRange(editor, range)
+}
+
+function applyFontSizeToTextNodes(range: Range, size: string, scope?: Element) {
   const root =
-    range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+    scope ??
+    (range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
       ? (range.commonAncestorContainer as Element)
-      : range.commonAncestorContainer.parentElement
+      : range.commonAncestorContainer.parentElement)
   if (!root) return
 
   const targets: Array<{ node: Text; start: number; end: number }> = []
@@ -71,18 +80,36 @@ function applyFontSizeToTextNodes(range: Range, size: string) {
   }
 }
 
+function applyFontSizeInTable(editor: HTMLElement, range: Range, size: string) {
+  for (const cell of getSelectedTableCells(editor, range)) {
+    applyFontSizeToTextNodes(range, size, cell)
+  }
+}
+
 function applyFontSize(editor: HTMLElement, size: string) {
   const selection = window.getSelection()
   if (!selection || selection.rangeCount === 0) return
   const range = selection.getRangeAt(0)
   if (!editor.contains(range.commonAncestorContainer)) return
 
-  const hadRange = !range.collapsed
+  if (range.collapsed) {
+    document.execCommand('fontSize', false, '7')
+    replaceFontSizeMarkers(editor, size)
+    return
+  }
+
+  const tableCells = getSelectedTableCells(editor, range)
+  if (tableCells.length > 0) {
+    // execCommand は複数セル選択時に中身を1セルへ集約してしまうため、セル単位で処理する
+    applyFontSizeInTable(editor, range, size)
+    return
+  }
+
   document.execCommand('fontSize', false, '7')
   const applied = editor.querySelectorAll('font[size="7"]').length > 0
   replaceFontSizeMarkers(editor, size)
 
-  if (hadRange && !applied) {
+  if (!applied) {
     applyFontSizeToTextNodes(range, size)
   }
 }
@@ -175,6 +202,26 @@ export function NoteEditor({ pageId, content, onChange }: Props) {
     [exec],
   )
 
+  const onCellAlign = useCallback(
+    (align: CellTextAlign) => {
+      exec(() => {
+        const editor = editorRef.current
+        const selection = window.getSelection()
+        if (!editor || !selection || selection.rangeCount === 0) return
+        const range = selection.getRangeAt(0)
+        let cells = getCellsInRange(editor, range)
+        if (cells.length === 0) {
+          const ctx = tableCtxRef.current ?? getTableContext(editor)
+          if (ctx) cells = [ctx.cell]
+        }
+        if (cells.length > 0) applyCellTextAlign(cells, align)
+      })
+    },
+    [exec],
+  )
+
+  const currentCellAlign = tableCtx ? readCellTextAlign(tableCtx.cell) : 'left'
+
   return (
     <div className="noteEditorShell">
       <NotesToolbar
@@ -185,6 +232,10 @@ export function NoteEditor({ pageId, content, onChange }: Props) {
       />
       {tableCtx ? (
         <TableEditToolbar
+          currentAlign={currentCellAlign}
+          onAlignLeft={() => onCellAlign('left')}
+          onAlignCenter={() => onCellAlign('center')}
+          onAlignRight={() => onCellAlign('right')}
           onInsertRowAbove={() => runTableEdit((ctx) => insertTableRow(ctx, 'above'))}
           onInsertRowBelow={() => runTableEdit((ctx) => insertTableRow(ctx, 'below'))}
           onInsertColLeft={() => runTableEdit((ctx) => insertTableColumn(ctx, 'left'))}

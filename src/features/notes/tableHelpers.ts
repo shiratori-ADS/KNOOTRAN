@@ -1,3 +1,5 @@
+export type CellTextAlign = 'left' | 'center' | 'right'
+
 export type TableInsertOptions = {
   rows: number
   cols: number
@@ -47,6 +49,47 @@ export function getTableContext(root: HTMLElement | null): TableContext | null {
 
   const section: 'head' | 'body' = row.parentElement?.tagName === 'THEAD' ? 'head' : 'body'
   return { table, cell, colIndex, section }
+}
+
+function cellFromNode(node: Node): HTMLTableCellElement | null {
+  const el = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement
+  const cell = el?.closest('td, th')
+  return cell instanceof HTMLTableCellElement ? cell : null
+}
+
+export function getCellsInRange(root: HTMLElement, range: Range): HTMLTableCellElement[] {
+  const cells = new Set<HTMLTableCellElement>()
+  const startCell = cellFromNode(range.startContainer)
+  const endCell = cellFromNode(range.endContainer)
+  if (startCell) cells.add(startCell)
+  if (endCell) cells.add(endCell)
+
+  const ancestor = range.commonAncestorContainer
+  const container = ancestor.nodeType === Node.ELEMENT_NODE ? (ancestor as Element) : ancestor.parentElement
+  const table = container?.closest('table.note-table')
+  if (!table || !root.contains(table)) return Array.from(cells)
+
+  for (const cell of table.querySelectorAll('td, th')) {
+    if (!(cell instanceof HTMLTableCellElement)) continue
+    const cellRange = document.createRange()
+    cellRange.selectNodeContents(cell)
+    if (range.compareBoundaryPoints(Range.END_TO_START, cellRange) >= 0) continue
+    if (range.compareBoundaryPoints(Range.START_TO_END, cellRange) <= 0) continue
+    cells.add(cell)
+  }
+  return Array.from(cells)
+}
+
+export function readCellTextAlign(cell: HTMLTableCellElement): CellTextAlign {
+  const inline = cell.style.textAlign
+  if (inline === 'center' || inline === 'right') return inline
+  return 'left'
+}
+
+export function applyCellTextAlign(cells: HTMLTableCellElement[], align: CellTextAlign) {
+  for (const cell of cells) {
+    cell.style.textAlign = align
+  }
 }
 
 function createCell(tag: 'td' | 'th'): HTMLTableCellElement {

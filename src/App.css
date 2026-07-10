@@ -784,6 +784,32 @@ textarea {
   margin-right: 4px;
 }
 
+.noteTableToolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.noteTableToolbarSubLabel {
+  font-size: 12px;
+  color: var(--text);
+  margin-right: 2px;
+}
+
+.noteTableToolbarDivider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+.noteToolbarBtn.active {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-weight: 600;
+}
+
 .noteTableFormGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
