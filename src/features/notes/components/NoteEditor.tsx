@@ -20,28 +20,70 @@ type Props = {
   onChange: (html: string) => void
 }
 
-function applyFontSize(size: string) {
+function replaceFontSizeMarkers(editor: HTMLElement, size: string) {
+  const fonts = editor.querySelectorAll('font[size="7"]')
+  fonts.forEach((font) => {
+    const span = document.createElement('span')
+    span.style.fontSize = size
+    while (font.firstChild) span.appendChild(font.firstChild)
+    font.replaceWith(span)
+  })
+}
+
+function wrapTextNodeWithFontSize(textNode: Text, start: number, end: number, size: string) {
+  let target = textNode
+  if (end < target.length) target.splitText(end)
+  if (start > 0) target = target.splitText(start)
+
+  const span = document.createElement('span')
+  span.style.fontSize = size
+  target.parentNode?.insertBefore(span, target)
+  span.appendChild(target)
+}
+
+function applyFontSizeToTextNodes(range: Range, size: string) {
+  const root =
+    range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+      ? (range.commonAncestorContainer as Element)
+      : range.commonAncestorContainer.parentElement
+  if (!root) return
+
+  const targets: Array<{ node: Text; start: number; end: number }> = []
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let current: Node | null
+  while ((current = walker.nextNode())) {
+    const node = current as Text
+    if (!node.textContent?.length) continue
+
+    const nodeRange = document.createRange()
+    nodeRange.selectNodeContents(node)
+    if (range.compareBoundaryPoints(Range.END_TO_START, nodeRange) >= 0) continue
+    if (range.compareBoundaryPoints(Range.START_TO_END, nodeRange) <= 0) continue
+
+    const start = node === range.startContainer ? range.startOffset : 0
+    const end = node === range.endContainer ? range.endOffset : node.length
+    if (start < end) targets.push({ node, start, end })
+  }
+
+  for (let i = targets.length - 1; i >= 0; i -= 1) {
+    const { node, start, end } = targets[i]
+    wrapTextNodeWithFontSize(node, start, end, size)
+  }
+}
+
+function applyFontSize(editor: HTMLElement, size: string) {
   const selection = window.getSelection()
   if (!selection || selection.rangeCount === 0) return
   const range = selection.getRangeAt(0)
-  if (range.collapsed) {
-    document.execCommand('fontSize', false, '7')
-    const fontElements = document.querySelectorAll('font[size="7"]')
-    const last = fontElements[fontElements.length - 1] as HTMLElement | undefined
-    if (last) {
-      const span = document.createElement('span')
-      span.style.fontSize = size
-      span.innerHTML = last.innerHTML
-      last.replaceWith(span)
-    }
-    return
-  }
-  const span = document.createElement('span')
-  span.style.fontSize = size
-  try {
-    range.surroundContents(span)
-  } catch {
-    document.execCommand('insertHTML', false, `<span style="font-size:${size}">${range.toString()}</span>`)
+  if (!editor.contains(range.commonAncestorContainer)) return
+
+  const hadRange = !range.collapsed
+  document.execCommand('fontSize', false, '7')
+  const applied = editor.querySelectorAll('font[size="7"]').length > 0
+  replaceFontSizeMarkers(editor, size)
+
+  if (hadRange && !applied) {
+    applyFontSizeToTextNodes(range, size)
   }
 }
 
@@ -111,7 +153,10 @@ export function NoteEditor({ pageId, content, onChange }: Props) {
 
   const onFontSize = useCallback(
     (size: string) => {
-      exec(() => applyFontSize(size))
+      exec(() => {
+        const editor = editorRef.current
+        if (editor) applyFontSize(editor, size)
+      })
     },
     [exec],
   )
