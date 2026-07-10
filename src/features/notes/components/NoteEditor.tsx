@@ -255,19 +255,21 @@ export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
           </div>
         </div>
       ) : null}
-      <div
-        ref={editorRef}
-        className="noteEditor"
-        contentEditable
-        role="textbox"
-        aria-multiline="true"
-        aria-label="ノート本文"
-        suppressContentEditableWarning
-        onInput={emitChange}
-        onClick={refreshTableContext}
-        onKeyUp={refreshTableContext}
-        onBlur={emitChange}
-      />
+      <div className="noteEditorScroll">
+        <div
+          ref={editorRef}
+          className="noteEditor"
+          contentEditable
+          role="textbox"
+          aria-multiline="true"
+          aria-label="ノート本文"
+          suppressContentEditableWarning
+          onInput={emitChange}
+          onClick={refreshTableContext}
+          onKeyUp={refreshTableContext}
+          onBlur={emitChange}
+        />
+      </div>
       <TableInsertDialog
         open={tableDialogOpen}
         onClose={() => setTableDialogOpen(false)}
