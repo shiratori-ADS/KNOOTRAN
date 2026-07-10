@@ -848,6 +848,24 @@ textarea {
   overscroll-behavior-x: contain;
 }
 
+.noteEditor {
+  display: inline-block;
+  vertical-align: top;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  min-height: 50vh;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--code-bg);
+  color: var(--text-h);
+  line-height: 1.6;
+  outline: none;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+
 .noteToolbarDock {
   position: sticky;
   top: calc(var(--top-bar-height) + 3.25rem);
@@ -921,20 +939,6 @@ textarea {
   border-radius: 8px;
   font-size: 13px;
   cursor: pointer;
-}
-
-.noteEditor {
-  min-width: 100%;
-  min-height: 50vh;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--code-bg);
-  color: var(--text-h);
-  line-height: 1.6;
-  outline: none;
-  overflow-wrap: anywhere;
-  box-sizing: border-box;
 }
 
 .noteEditor:focus {
