@@ -1,5 +1,5 @@
 import { db, getSettings } from '../db/db'
-import type { Entry, Settings as SettingsType } from '../db/types'
+import type { Entry, NotePage, Settings as SettingsType } from '../db/types'
 import { normalizeForeignStorage } from './normalize'
 
 export type BackupPayloadV1 = {
@@ -8,6 +8,7 @@ export type BackupPayloadV1 = {
   exportedAt: number
   settings: SettingsType
   entries: Entry[]
+  notePages?: NotePage[]
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -17,12 +18,14 @@ function asObject(value: unknown): Record<string, unknown> | null {
 export async function buildLocalPayload(): Promise<BackupPayloadV1> {
   const s = await getSettings()
   const entries = await db.entries.toArray()
+  const notePages = await db.notePages.orderBy('sortOrder').toArray()
   return {
     kind: 'known-only-translate-backup',
     version: 1,
     exportedAt: Date.now(),
     settings: s,
     entries,
+    notePages,
   }
 }
 
@@ -36,6 +39,7 @@ export async function restoreFromPayload(raw: unknown): Promise<{ restoredCount:
   const nextSettings: SettingsType | null =
     settingsRaw && settingsRaw.id === 'singleton' ? (r.settings as SettingsType) : null
   const nextEntries: Entry[] = Array.isArray(r.entries) ? (r.entries as Entry[]) : []
+  const nextNotePages: NotePage[] = Array.isArray(r.notePages) ? (r.notePages as NotePage[]) : []
 
   if (!nextSettings) {
     throw new Error('settingsが不正です。')
@@ -55,9 +59,10 @@ export async function restoreFromPayload(raw: unknown): Promise<{ restoredCount:
     }
   })
 
-  await db.transaction('rw', db.entries, db.settings, async () => {
+  await db.transaction('rw', db.entries, db.settings, db.notePages, async () => {
     await db.entries.clear()
     await db.settings.clear()
+    await db.notePages.clear()
     const patchedSettings: SettingsType = {
       id: 'singleton',
       uiLanguage:
@@ -70,6 +75,9 @@ export async function restoreFromPayload(raw: unknown): Promise<{ restoredCount:
     }
     await db.settings.put(patchedSettings)
     await db.entries.bulkPut(normalizedEntries)
+    if (nextNotePages.length > 0) {
+      await db.notePages.bulkPut(nextNotePages)
+    }
   })
 
   return { restoredCount: normalizedEntries.length }

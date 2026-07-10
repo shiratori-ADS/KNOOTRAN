@@ -6,6 +6,7 @@ import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Translate } from './pages/Translate'
 import { Wordbook } from './pages/Wordbook'
+import { Notes } from './pages/Notes'
 import { Settings } from './pages/Settings'
 import './App.css'
 
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/register" element={<Register />} />
           <Route path="/translate" element={<Translate />} />
+          <Route path="/notes" element={<Notes />} />
           <Route path="/wordbook" element={<Wordbook />} />
           <Route path="/settings" element={<Settings />} />
         </Route>

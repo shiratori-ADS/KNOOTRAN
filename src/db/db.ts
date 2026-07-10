@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { Entry, Settings } from './types'
+import type { Entry, NotePage, Settings } from './types'
 import { normalizeForeignStorage, normalizeToken } from '../lib/normalize'
 import { inferNounInflectionTypeFromLemma, isFemEtaEisLemma } from '../grammar/infer'
 import { reconcileNounInflectionOverrides } from '../grammar/noun'
@@ -8,6 +8,7 @@ import { stripGreekTonos } from '../grammar/accent'
 export class AppDB extends Dexie {
   entries!: Table<Entry, number>
   settings!: Table<Settings, string>
+  notePages!: Table<NotePage, number>
 
   constructor() {
     super('knownOnlyTranslate')
@@ -316,6 +317,13 @@ export class AppDB extends Dexie {
           e.inflectionOverrides = reconcileNounInflectionOverrides(e, lemma)
         })
       })
+
+    this.version(16).stores({
+      entries:
+        '++id, pos, nounGender, inflectionType, meaningJaPrimary, *meaningJaVariants, *tags, memo, foreignLemma, *foreignForms, updatedAt',
+      settings: 'id',
+      notePages: '++id, sortOrder, updatedAt',
+    })
   }
 }
 

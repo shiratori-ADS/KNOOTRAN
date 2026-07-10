@@ -226,3 +226,13 @@ export type ExamplePair = {
   ja: string
 }
 
+export type NotePage = {
+  id?: number
+  title: string
+  /** contentEditable から保存した HTML */
+  content: string
+  sortOrder: number
+  createdAt: number
+  updatedAt: number
+}
+

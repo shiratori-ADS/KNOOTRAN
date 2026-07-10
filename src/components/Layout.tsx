@@ -5,6 +5,7 @@ import { startCloudAutoSync } from '../lib/cloudAutoSync'
 import { BrandLogo } from './BrandLogo'
 
 const mainMenuItems = [
+  { to: '/notes', label: 'ノート', visible: true },
   { to: '/wordbook', label: '単語帳', visible: true },
   { to: '/register', label: '登録', visible: true },
   { to: '/translate', label: '翻訳', visible: false },
