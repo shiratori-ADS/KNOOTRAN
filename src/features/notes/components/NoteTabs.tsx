@@ -63,7 +63,7 @@ export function NoteTabs({ pages, activeId, onSelect, onAdd, onDelete, onRename 
               className={isActive ? 'noteTab active' : 'noteTab'}
               onClick={() => onSelect(page.id!)}
               onDoubleClick={() => startRename(page)}
-              title="ダブルクリックでも名前変更できます"
+              title="ダブルクリックで名前変更"
             >
               {page.title}
             </button>
@@ -73,13 +73,8 @@ export function NoteTabs({ pages, activeId, onSelect, onAdd, onDelete, onRename 
           ＋
         </button>
       </div>
-      <div className="noteTabActions">
-        {activePage ? (
-          <button type="button" className="noteTabRename secondary" onClick={() => startRename(activePage)}>
-            名前変更
-          </button>
-        ) : null}
-        {activeId != null && pages.length > 1 ? (
+      {activeId != null && pages.length > 1 ? (
+        <div className="noteTabActions">
           <button
             type="button"
             className="noteTabDelete secondary"
@@ -89,8 +84,8 @@ export function NoteTabs({ pages, activeId, onSelect, onAdd, onDelete, onRename 
           >
             削除
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   )
 }

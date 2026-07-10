@@ -760,12 +760,6 @@ textarea {
   font-size: 12px;
 }
 
-.noteTabRename {
-  flex: 0 0 auto;
-  padding: 8px 10px;
-  font-size: 12px;
-}
-
 .noteTableToolbar {
   display: flex;
   flex-wrap: wrap;
@@ -852,12 +846,15 @@ textarea {
 }
 
 .noteToolbarToggle {
-  padding: 6px 12px;
+  width: 36px;
+  height: 32px;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: color-mix(in oklab, var(--bg) 96%, black);
   color: var(--text-h);
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
 }
 

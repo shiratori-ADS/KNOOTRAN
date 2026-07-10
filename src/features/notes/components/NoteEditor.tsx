@@ -233,8 +233,10 @@ export function NoteEditor({ pageId, content, onChange }: Props) {
             onClick={() => setToolbarOpen((open) => !open)}
             aria-expanded={toolbarOpen}
             aria-controls="note-editor-toolbar-panels"
+            aria-label={toolbarOpen ? '編集を隠す' : '編集を表示'}
+            title={toolbarOpen ? '編集を隠す' : '編集を表示'}
           >
-            {toolbarOpen ? '▲ 編集を隠す' : '▼ 編集を表示'}
+            {toolbarOpen ? '▲' : '▼'}
           </button>
         </div>
         {toolbarOpen ? (
