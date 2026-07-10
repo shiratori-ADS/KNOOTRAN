@@ -119,6 +119,7 @@ export function NoteEditor({ pageId, content, onChange }: Props) {
   const tableCtxRef = useRef<TableContext | null>(null)
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
   const [tableCtx, setTableCtx] = useState<TableContext | null>(null)
+  const [toolbarOpen, setToolbarOpen] = useState(true)
   const isInternalUpdate = useRef(false)
 
   const refreshTableContext = useCallback(() => {
@@ -224,30 +225,47 @@ export function NoteEditor({ pageId, content, onChange }: Props) {
 
   return (
     <div className="noteEditorShell">
-      <NotesToolbar
-        onBold={onBold}
-        onFontSize={onFontSize}
-        onColor={onColor}
-        onOpenTableDialog={() => setTableDialogOpen(true)}
-      />
-      {tableCtx ? (
-        <TableEditToolbar
-          currentAlign={currentCellAlign}
-          onAlignLeft={() => onCellAlign('left')}
-          onAlignCenter={() => onCellAlign('center')}
-          onAlignRight={() => onCellAlign('right')}
-          onInsertRowAbove={() => runTableEdit((ctx) => insertTableRow(ctx, 'above'))}
-          onInsertRowBelow={() => runTableEdit((ctx) => insertTableRow(ctx, 'below'))}
-          onInsertColLeft={() => runTableEdit((ctx) => insertTableColumn(ctx, 'left'))}
-          onInsertColRight={() => runTableEdit((ctx) => insertTableColumn(ctx, 'right'))}
-          onDeleteRow={() => runTableEdit((ctx) => deleteTableRow(ctx))}
-          onDeleteCol={() => runTableEdit((ctx) => deleteTableColumn(ctx))}
-          onDeleteTable={() => {
-            if (!window.confirm('この表を削除しますか？')) return
-            runTableEdit((ctx) => deleteTable(ctx))
-          }}
-        />
-      ) : null}
+      <div className={`noteToolbarDock${toolbarOpen ? ' isOpen' : ''}`}>
+        <div className="noteToolbarToggleRow">
+          <button
+            type="button"
+            className="noteToolbarToggle"
+            onClick={() => setToolbarOpen((open) => !open)}
+            aria-expanded={toolbarOpen}
+            aria-controls="note-editor-toolbar-panels"
+          >
+            {toolbarOpen ? '▲ 編集を隠す' : '▼ 編集を表示'}
+          </button>
+        </div>
+        {toolbarOpen ? (
+          <div id="note-editor-toolbar-panels" className="noteToolbarPanels">
+            <NotesToolbar
+              onBold={onBold}
+              onFontSize={onFontSize}
+              onColor={onColor}
+              onOpenTableDialog={() => setTableDialogOpen(true)}
+            />
+            {tableCtx ? (
+              <TableEditToolbar
+                currentAlign={currentCellAlign}
+                onAlignLeft={() => onCellAlign('left')}
+                onAlignCenter={() => onCellAlign('center')}
+                onAlignRight={() => onCellAlign('right')}
+                onInsertRowAbove={() => runTableEdit((ctx) => insertTableRow(ctx, 'above'))}
+                onInsertRowBelow={() => runTableEdit((ctx) => insertTableRow(ctx, 'below'))}
+                onInsertColLeft={() => runTableEdit((ctx) => insertTableColumn(ctx, 'left'))}
+                onInsertColRight={() => runTableEdit((ctx) => insertTableColumn(ctx, 'right'))}
+                onDeleteRow={() => runTableEdit((ctx) => deleteTableRow(ctx))}
+                onDeleteCol={() => runTableEdit((ctx) => deleteTableColumn(ctx))}
+                onDeleteTable={() => {
+                  if (!window.confirm('この表を削除しますか？')) return
+                  runTableEdit((ctx) => deleteTable(ctx))
+                }}
+              />
+            ) : null}
+          </div>
+        ) : null}
+      </div>
       <div
         ref={editorRef}
         className="noteEditor"

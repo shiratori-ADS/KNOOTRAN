@@ -829,6 +829,48 @@ textarea {
   gap: 10px;
 }
 
+.noteToolbarDock {
+  position: sticky;
+  top: 49px;
+  z-index: 19;
+  display: grid;
+  gap: 8px;
+  padding-bottom: 4px;
+  background: color-mix(in oklab, var(--bg) 94%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.noteToolbarDock.isOpen {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+  padding-bottom: 10px;
+}
+
+.noteToolbarToggleRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.noteToolbarToggle {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--bg) 96%, black);
+  color: var(--text-h);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.noteToolbarToggle:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.noteToolbarPanels {
+  display: grid;
+  gap: 8px;
+}
+
 .noteToolbar {
   display: flex;
   flex-wrap: wrap;
