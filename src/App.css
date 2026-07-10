@@ -2,6 +2,12 @@
   min-height: 100svh;
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* topBarInner: padding 12+12, logo 24px, border 1px（ログアウトボタン時は 36px） */
+  --top-bar-height: calc(1px + 12px + 24px + 12px);
+}
+
+.appShell:has(.topBar .iconButton) {
+  --top-bar-height: calc(1px + 12px + 36px + 12px);
 }
 
 .topBar {
@@ -694,11 +700,17 @@ textarea {
 }
 
 .noteTabsBar {
+  position: sticky;
+  top: var(--top-bar-height);
+  z-index: 19;
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
   flex-wrap: wrap;
+  padding: 6px 0 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
 .noteTabActions {
@@ -825,8 +837,8 @@ textarea {
 
 .noteToolbarDock {
   position: sticky;
-  top: 49px;
-  z-index: 19;
+  top: calc(var(--top-bar-height) + 3.25rem);
+  z-index: 18;
   display: grid;
   gap: 8px;
   padding-bottom: 4px;

@@ -5,7 +5,7 @@ import { useNotesController } from './useNotesController'
 
 export function NotesPage() {
   const c = useNotesController()
-  const [toolbarOpen, setToolbarOpen] = useState(true)
+  const [toolbarOpen, setToolbarOpen] = useState(false)
   if (c.loading) {
     return (
       <section className="page">
@@ -40,7 +40,8 @@ export function NotesPage() {
           content={c.activePage.content}
           toolbarOpen={toolbarOpen}
           onChange={c.updateContent}
-        />      ) : (
+        />
+      ) : (
         <p className="subtle">ページがありません。「＋」で追加してください。</p>
       )}
     </section>
