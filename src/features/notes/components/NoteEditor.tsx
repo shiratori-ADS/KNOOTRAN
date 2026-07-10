@@ -21,6 +21,7 @@ import { TableInsertDialog } from './TableInsertDialog'
 type Props = {
   pageId: number
   content: string
+  toolbarOpen: boolean
   onChange: (html: string) => void
 }
 
@@ -114,12 +115,11 @@ function applyFontSize(editor: HTMLElement, size: string) {
   }
 }
 
-export function NoteEditor({ pageId, content, onChange }: Props) {
+export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const tableCtxRef = useRef<TableContext | null>(null)
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
   const [tableCtx, setTableCtx] = useState<TableContext | null>(null)
-  const [toolbarOpen, setToolbarOpen] = useState(true)
   const isInternalUpdate = useRef(false)
 
   const refreshTableContext = useCallback(() => {
@@ -225,21 +225,8 @@ export function NoteEditor({ pageId, content, onChange }: Props) {
 
   return (
     <div className="noteEditorShell">
-      <div className={`noteToolbarDock${toolbarOpen ? ' isOpen' : ''}`}>
-        <div className="noteToolbarToggleRow">
-          <button
-            type="button"
-            className="noteToolbarToggle"
-            onClick={() => setToolbarOpen((open) => !open)}
-            aria-expanded={toolbarOpen}
-            aria-controls="note-editor-toolbar-panels"
-            aria-label={toolbarOpen ? '編集を隠す' : '編集を表示'}
-            title={toolbarOpen ? '編集を隠す' : '編集を表示'}
-          >
-            {toolbarOpen ? '▲' : '▼'}
-          </button>
-        </div>
-        {toolbarOpen ? (
+      {toolbarOpen ? (
+        <div className="noteToolbarDock isOpen">
           <div id="note-editor-toolbar-panels" className="noteToolbarPanels">
             <NotesToolbar
               onBold={onBold}
@@ -266,8 +253,8 @@ export function NoteEditor({ pageId, content, onChange }: Props) {
               />
             ) : null}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       <div
         ref={editorRef}
         className="noteEditor"

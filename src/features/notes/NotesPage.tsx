@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { NoteEditor } from './components/NoteEditor'
 import { NoteTabs } from './components/NoteTabs'
 import { useNotesController } from './useNotesController'
 
 export function NotesPage() {
   const c = useNotesController()
-
+  const [toolbarOpen, setToolbarOpen] = useState(true)
   if (c.loading) {
     return (
       <section className="page">
@@ -24,6 +25,8 @@ export function NotesPage() {
       <NoteTabs
         pages={c.pages}
         activeId={c.activeId}
+        toolbarOpen={toolbarOpen}
+        onToggleToolbar={() => setToolbarOpen((open) => !open)}
         onSelect={c.setActiveId}
         onAdd={() => void c.addPage()}
         onDelete={(id) => void c.deletePage(id)}
@@ -35,9 +38,9 @@ export function NotesPage() {
           key={c.activePage.id}
           pageId={c.activePage.id}
           content={c.activePage.content}
+          toolbarOpen={toolbarOpen}
           onChange={c.updateContent}
-        />
-      ) : (
+        />      ) : (
         <p className="subtle">ページがありません。「＋」で追加してください。</p>
       )}
     </section>

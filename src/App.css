@@ -840,11 +840,6 @@ textarea {
   padding-bottom: 10px;
 }
 
-.noteToolbarToggleRow {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .noteToolbarToggle {
   width: 36px;
   height: 32px;

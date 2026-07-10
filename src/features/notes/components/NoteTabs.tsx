@@ -4,14 +4,15 @@ import type { NotePage } from '../../../db/types'
 type Props = {
   pages: NotePage[]
   activeId: number | null
+  toolbarOpen: boolean
+  onToggleToolbar: () => void
   onSelect: (id: number) => void
   onAdd: () => void
   onDelete: (id: number) => void
   onRename: (id: number, title: string) => void
 }
 
-export function NoteTabs({ pages, activeId, onSelect, onAdd, onDelete, onRename }: Props) {
-  const [renamingId, setRenamingId] = useState<number | null>(null)
+export function NoteTabs({ pages, activeId, toolbarOpen, onToggleToolbar, onSelect, onAdd, onDelete, onRename }: Props) {  const [renamingId, setRenamingId] = useState<number | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
 
   function startRename(page: NotePage) {
@@ -26,8 +27,6 @@ export function NoteTabs({ pages, activeId, onSelect, onAdd, onDelete, onRename 
     setRenamingId(null)
     setRenameDraft('')
   }
-
-  const activePage = pages.find((p) => p.id === activeId) ?? null
 
   return (
     <div className="noteTabsBar">
@@ -73,17 +72,30 @@ export function NoteTabs({ pages, activeId, onSelect, onAdd, onDelete, onRename 
           ＋
         </button>
       </div>
-      {activeId != null && pages.length > 1 ? (
+      {activeId != null ? (
         <div className="noteTabActions">
           <button
             type="button"
-            className="noteTabDelete secondary"
-            onClick={() => {
-              if (window.confirm('このページを削除しますか？')) void onDelete(activeId)
-            }}
+            className="noteToolbarToggle"
+            onClick={onToggleToolbar}
+            aria-expanded={toolbarOpen}
+            aria-controls="note-editor-toolbar-panels"
+            aria-label={toolbarOpen ? '編集を隠す' : '編集を表示'}
+            title={toolbarOpen ? '編集を隠す' : '編集を表示'}
           >
-            削除
+            {toolbarOpen ? '▲' : '▼'}
           </button>
+          {pages.length > 1 ? (
+            <button
+              type="button"
+              className="noteTabDelete secondary"
+              onClick={() => {
+                if (window.confirm('このページを削除しますか？')) void onDelete(activeId)
+              }}
+            >
+              削除
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
