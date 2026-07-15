@@ -712,9 +712,14 @@ textarea {
   gap: 8px;
   margin-bottom: 10px;
   flex-wrap: nowrap;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 6px 0 8px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .noteTabActions {
@@ -725,12 +730,18 @@ textarea {
 
 .noteTabsScroll {
   display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
-  overflow-x: auto;
-  flex: 1;
+  align-items: center;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
 }
 
 .noteTab {
