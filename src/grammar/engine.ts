@@ -421,7 +421,7 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
     const genSg = applyLikeLemma(`${stemPlain}ας`)
     const genPlPlain = `${stemPlain}ων`
     const genPlPrimary = femAlphaPluralGenPl(type, stemPlain, lemmaNorm, applyLikeLemma)
-    const genPl = Array.from(new Set([genPlPrimary, applyLikeLemma(genPlPlain), addTonosOnLastVowel(genPlPlain)]))
+    const genPl = Array.from(new Set([genPlPrimary, applyLikeLemma(genPlPlain)]))
     return {
       nom: [nomAccSg, nomAccPl],
       gen: [genSg, ...genPl],
@@ -433,7 +433,8 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
     const nomAccPl = applyLikeLemma(`${stemPlain}ες`)
     const genSg = applyLikeLemma(`${stemPlain}ης`)
     const genPlPlain = `${stemPlain}ων`
-    const genPl = Array.from(new Set([applyLikeLemma(genPlPlain), addTonosOnLastVowel(genPlPlain)]))
+    // 表示代表は語末トノス（τεχνών）。照合は旧形（τέχνων）も許容
+    const genPl = Array.from(new Set([addTonosOnLastVowel(genPlPlain), applyLikeLemma(genPlPlain)]))
     return {
       nom: [nomAccSg, nomAccPl],
       gen: [genSg, ...genPl],

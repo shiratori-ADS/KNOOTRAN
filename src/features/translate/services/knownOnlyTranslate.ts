@@ -380,8 +380,8 @@ function nounFormsForMatch(entry: Entry, lemmaNorm: string) {
       applyLikeLemma(`${stemPlain}η`),
       applyLikeLemma(`${stemPlain}ες`),
       applyLikeLemma(`${stemPlain}ης`),
-      applyLikeLemma(genPlPlain),
       addTonosOnLastVowel(genPlPlain),
+      applyLikeLemma(genPlPlain),
     ])
   }
   if (type === 'noun_fem_-ση_-εις') {

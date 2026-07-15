@@ -75,18 +75,14 @@ export function mascOsPluralGenAccPl(
   }
 }
 
-/** 女性名詞 -α（antepenult）の複数属格：母音ユニット（ει/αι 等）で後ろから1番目へトノスを置く */
+/** 女性名詞 -α/-ά/-η の複数属格：現代語ではほぼ語末（-ών）にトノス */
 export function femAlphaPluralGenPl(
-  type: InflectionType,
+  _type: InflectionType,
   stemPlain: string,
-  lemmaNorm: string,
-  applyLikeLemma: (w: string) => string,
+  _lemmaNorm: string,
+  _applyLikeLemma: (w: string) => string,
 ): string {
-  const genPlPlain = `${stemPlain}ων`
-  if (type === 'noun_fem_-α' && accentPositionFromEndByVowelUnit(lemmaNorm) === 'antepenult') {
-    return addTonosOnNthFromEndVowelUnit(genPlPlain, 1)
-  }
-  return applyLikeLemma(genPlPlain)
+  return addTonosOnLastVowel(`${stemPlain}ων`)
 }
 
 /** 女性名詞 -ση / -ξη の複数：-εις / -εων（ει は1ユニット）。トノスは -εις 形で決め、-εων は同じ語幹位置へ写す */
@@ -272,7 +268,8 @@ export function nounAutoForms(lemmaNorm: string, gender: NounGender, t?: Inflect
       n_acc_sg: applyLikeLemma(`${st}η`),
       n_acc_pl: applyLikeLemma(`${st}ες`),
       n_gen_sg: applyLikeLemma(`${st}ης`),
-      n_gen_pl: applyLikeLemma(`${st}ων`),
+      // 例: τέχνη → τεχνών（複数属格は語末トノス）
+      n_gen_pl: addTonosOnLastVowel(`${st}ων`),
     }
   }
   if (type === 'noun_fem_-ση_-εις') {
@@ -445,7 +442,7 @@ export function nounMatrix(lemmaNorm: string, t?: InflectionType): NounMatrix | 
           number: 'pl',
           forms: {
             nom: applyLikeLemma(`${stemPlain}ες`),
-            gen: applyLikeLemma(`${stemPlain}ων`),
+            gen: addTonosOnLastVowel(`${stemPlain}ων`),
             acc: applyLikeLemma(`${stemPlain}ες`),
           },
         },
