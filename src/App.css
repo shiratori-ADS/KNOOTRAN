@@ -754,11 +754,17 @@ textarea {
 }
 
 .notePageRenameInput {
+  box-sizing: border-box;
   flex: 0 0 auto;
   width: 140px;
   max-width: 40vw;
-  padding: 6px 8px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
   border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text-h);
   font-size: 13px;
 }
 
@@ -959,9 +965,15 @@ textarea {
 }
 
 .noteToolbarSelect {
+  box-sizing: border-box;
   flex: 0 0 auto;
-  padding: 6px 8px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
   border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text-h);
   font-size: 13px;
 }
 
@@ -970,11 +982,13 @@ textarea {
 }
 
 .noteColorTrigger {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
   height: 32px;
+  min-height: 32px;
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1054,12 +1068,25 @@ textarea {
 }
 
 .noteToolbarBtn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  padding: 6px 10px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
   border-radius: 8px;
   font-size: 13px;
+  line-height: 1;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.noteToolbarBtn.secondary,
+.noteToolbarBtn.danger {
+  padding: 0 10px;
+  border-radius: 8px;
 }
 
 .noteToolbarBtn:disabled {
@@ -1073,6 +1100,7 @@ textarea {
   justify-content: center;
   width: 32px;
   height: 32px;
+  min-height: 32px;
   padding: 0;
 }
 
@@ -1104,9 +1132,15 @@ textarea {
 }
 
 .noteTableColWidthInput {
+  box-sizing: border-box;
   width: 72px;
-  padding: 6px 8px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
   border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text-h);
   font-size: 13px;
 }
 
