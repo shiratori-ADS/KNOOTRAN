@@ -4,6 +4,9 @@
   grid-template-rows: auto 1fr auto;
   /* topBarInner: padding 12+12, logo 24px, border 1px（ログアウトボタン時は 36px） */
   --top-bar-height: calc(1px + 12px + 24px + 12px);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .appShell:has(.topBar .iconButton) {
@@ -47,6 +50,8 @@
 
 .main {
   width: min(980px, 100%);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   padding: 14px 12px 90px;
   box-sizing: border-box;
@@ -693,6 +698,8 @@ textarea {
 
 /* --- Notes --- */
 .notePage {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -701,31 +708,32 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .noteTabsBar {
   position: sticky;
   top: var(--top-bar-height);
   z-index: 19;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
-  flex-wrap: nowrap;
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  margin-bottom: 10px;
   padding: 6px 0 8px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-  overflow: hidden;
+  /* タブの内容幅で画面全体が横に伸びないようにする */
+  contain: inline-size;
 }
 
 .noteTabActions {
   display: flex;
   gap: 6px;
-  flex: 0 0 auto;
 }
 
 .noteTabsScroll {
@@ -733,9 +741,7 @@ textarea {
   flex-wrap: nowrap;
   gap: 6px;
   align-items: center;
-  flex: 1 1 auto;
   min-width: 0;
-  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 4px;
@@ -789,6 +795,10 @@ textarea {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  contain: inline-size;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .noteTableToolbarLabel {
@@ -847,15 +857,19 @@ textarea {
 .noteEditorShell {
   display: grid;
   gap: 10px;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
 }
 
 .noteEditorScroll {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  contain: inline-size;
 }
 
 .noteEditor {
@@ -882,6 +896,9 @@ textarea {
   z-index: 18;
   display: grid;
   gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding-bottom: 4px;
   background: color-mix(in oklab, var(--bg) 94%, transparent);
   backdrop-filter: blur(10px);
@@ -928,6 +945,10 @@ textarea {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  contain: inline-size;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .noteToolbarGroup {
