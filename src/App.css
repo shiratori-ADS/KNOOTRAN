@@ -317,6 +317,10 @@ textarea {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
+  min-width: 0;
+}
+.mfStack > * {
+  min-width: 0;
 }
 @media (max-width: 720px) {
   .twoCol {

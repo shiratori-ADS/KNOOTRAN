@@ -825,26 +825,28 @@ export function InflectionSection({ selected }: { selected: Entry }) {
             男性
           </div>
           {nMasc ? (
-            <table className="matrix">
-              <thead>
-                <tr>
-                  <th></th>
-                  {['～は', '～の', '～を'].map((h) => (
-                    <th key={h}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {nMasc.rows.map((r) => (
-                  <tr key={r.number}>
-                    <td>{rowLabel(r.number)}</td>
-                    <td className="mono greek">{cellWithOverrides('masc', r.number, 'nom', r.forms.nom, endsMasc)}</td>
-                    <td className="mono greek">{cellWithOverrides('masc', r.number, 'gen', r.forms.gen, endsMasc)}</td>
-                    <td className="mono greek">{cellWithOverrides('masc', r.number, 'acc', r.forms.acc, endsMasc)}</td>
+            <div className="matrixWrap">
+              <table className="matrix">
+                <thead>
+                  <tr>
+                    <th></th>
+                    {['～は', '～の', '～を'].map((h) => (
+                      <th key={h}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {nMasc.rows.map((r) => (
+                    <tr key={r.number}>
+                      <td>{rowLabel(r.number)}</td>
+                      <td className="mono greek">{cellWithOverrides('masc', r.number, 'nom', r.forms.nom, endsMasc)}</td>
+                      <td className="mono greek">{cellWithOverrides('masc', r.number, 'gen', r.forms.gen, endsMasc)}</td>
+                      <td className="mono greek">{cellWithOverrides('masc', r.number, 'acc', r.forms.acc, endsMasc)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <span className="subtle">未対応です。</span>
           )}
@@ -855,26 +857,28 @@ export function InflectionSection({ selected }: { selected: Entry }) {
             女性
           </div>
           {nFem ? (
-            <table className="matrix">
-              <thead>
-                <tr>
-                  <th></th>
-                  {['～は', '～の', '～を'].map((h) => (
-                    <th key={h}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {nFem.rows.map((r) => (
-                  <tr key={r.number}>
-                    <td>{rowLabel(r.number)}</td>
-                    <td className="mono greek">{cellWithOverrides('fem', r.number, 'nom', r.forms.nom, endsFem)}</td>
-                    <td className="mono greek">{cellWithOverrides('fem', r.number, 'gen', r.forms.gen, endsFem)}</td>
-                    <td className="mono greek">{cellWithOverrides('fem', r.number, 'acc', r.forms.acc, endsFem)}</td>
+            <div className="matrixWrap">
+              <table className="matrix">
+                <thead>
+                  <tr>
+                    <th></th>
+                    {['～は', '～の', '～を'].map((h) => (
+                      <th key={h}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {nFem.rows.map((r) => (
+                    <tr key={r.number}>
+                      <td>{rowLabel(r.number)}</td>
+                      <td className="mono greek">{cellWithOverrides('fem', r.number, 'nom', r.forms.nom, endsFem)}</td>
+                      <td className="mono greek">{cellWithOverrides('fem', r.number, 'gen', r.forms.gen, endsFem)}</td>
+                      <td className="mono greek">{cellWithOverrides('fem', r.number, 'acc', r.forms.acc, endsFem)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <span className="subtle">未対応です。</span>
           )}
