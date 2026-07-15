@@ -330,3 +330,67 @@ export function deleteTable(ctx: TableContext): void {
   after.innerHTML = '<br>'
   ctx.table.replaceWith(after)
 }
+
+function appendTableColumn(table: HTMLTableElement): void {
+  forEachRow(table, (row, section) => {
+    const tag = section === 'head' ? 'th' : 'td'
+    row.appendChild(createCell(tag))
+  })
+  ensureColgroup(table)
+}
+
+function appendTableBodyRow(table: HTMLTableElement): void {
+  let tbody = table.tBodies[0]
+  if (!tbody) {
+    tbody = document.createElement('tbody')
+    table.appendChild(tbody)
+  }
+  const colCount = Math.max(tableColCount(table), 1)
+  const newRow = document.createElement('tr')
+  for (let i = 0; i < colCount; i += 1) {
+    newRow.appendChild(createCell('td'))
+  }
+  tbody.appendChild(newRow)
+  ensureColgroup(table)
+}
+
+/**
+ * 既存表のセルを起点に行列データを貼り付ける。
+ * 足りない行・列は末尾に追加する（上限は呼び出し側で clamp 済み想定）。
+ */
+export function pasteMatrixIntoNoteTable(ctx: TableContext, matrix: string[][]): void {
+  if (matrix.length === 0) return
+  const colCount = Math.max(...matrix.map((r) => r.length), 1)
+  const startRows = getAllRowsOrdered(ctx.table)
+  const startRowEl = ctx.cell.parentElement as HTMLTableRowElement
+  let startRowIndex = startRows.indexOf(startRowEl)
+  if (startRowIndex < 0) startRowIndex = 0
+  const startColIndex = ctx.colIndex
+
+  while (tableColCount(ctx.table) < startColIndex + colCount) {
+    appendTableColumn(ctx.table)
+  }
+
+  while (getAllRowsOrdered(ctx.table).length < startRowIndex + matrix.length) {
+    appendTableBodyRow(ctx.table)
+  }
+
+  const rows = getAllRowsOrdered(ctx.table)
+  for (let r = 0; r < matrix.length; r += 1) {
+    const row = rows[startRowIndex + r]
+    if (!row) continue
+    for (let c = 0; c < matrix[r].length; c += 1) {
+      const cell = row.cells[startColIndex + c]
+      if (!(cell instanceof HTMLTableCellElement)) continue
+      const text = matrix[r][c] ?? ''
+      const normalized = text.replace(/\u00a0/g, ' ').replace(/\r\n|\r/g, '\n').trim()
+      if (!normalized) {
+        cell.innerHTML = '&nbsp;'
+      } else {
+        cell.textContent = normalized
+      }
+    }
+  }
+
+  focusTableCell(ctx.table, startRowIndex, startColIndex)
+}

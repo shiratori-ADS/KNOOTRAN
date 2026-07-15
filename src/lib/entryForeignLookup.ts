@@ -21,3 +21,25 @@ export async function findEntryByNormalizedForeign(norm: string): Promise<Entry 
   if (byLemma) return byLemma
   return findEntryByNormalizedForeignForm(norm)
 }
+
+/** 正規化した見出し語または別形が一致するエントリをすべて返す（重複なし） */
+export async function findEntriesByNormalizedForeign(norm: string): Promise<Entry[]> {
+  if (!norm) return []
+  const byId = new Map<number, Entry>()
+  const rows = await db.entries
+    .filter(
+      (e) =>
+        normalizeToken(e.foreignLemma ?? '') === norm ||
+        (e.foreignForms ?? []).some((f) => normalizeToken(f) === norm),
+    )
+    .toArray()
+  for (const e of rows) {
+    if (e.id != null) byId.set(e.id, e)
+  }
+  return Array.from(byId.values())
+}
+
+/** ノートから単語帳へのリンク用 href */
+export function wordbookEntryHref(entryId: number): string {
+  return `/wordbook?id=${entryId}`
+}

@@ -12,6 +12,7 @@ type Props = {
   onFontSize: (size: string) => void
   onColor: (color: string) => void
   onOpenTableDialog: () => void
+  onOpenLinkDialog: () => void
 }
 
 export function NotesToolbar({
@@ -24,6 +25,7 @@ export function NotesToolbar({
   onFontSize,
   onColor,
   onOpenTableDialog,
+  onOpenLinkDialog,
 }: Props) {
   const [renaming, setRenaming] = useState(false)
   const [renameDraft, setRenameDraft] = useState(pageTitle)
@@ -136,6 +138,10 @@ export function NotesToolbar({
         ariaLabel="文字色"
         title="文字色"
       />
+
+      <button type="button" className="noteToolbarBtn secondary" onClick={onOpenLinkDialog} title="リンクを挿入">
+        リンク
+      </button>
 
       <button type="button" className="noteToolbarBtn secondary" onClick={onOpenTableDialog} title="表を挿入・設定">
         表

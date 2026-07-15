@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   applyCellBackgroundColor,
   applyCellTextAlign,
@@ -15,10 +16,13 @@ import {
   readCellTextAlign,
   readColumnsWidthPx,
   getSelectedColumnIndexes,
+  pasteMatrixIntoNoteTable,
   type CellTextAlign,
   type TableContext,
   type TableInsertOptions,
 } from '../tableHelpers'
+import { buildTableHtmlFromMatrix, parseClipboardAsTable } from '../pasteHelpers'
+import { NoteLinkDialog } from './NoteLinkDialog'
 import { NotesToolbar } from './NotesToolbar'
 import { TableEditToolbar } from './TableEditToolbar'
 import { TableInsertDialog } from './TableInsertDialog'
@@ -136,10 +140,14 @@ export function NoteEditor({
   onRenamePage,
   onChange,
 }: Props) {
+  const navigate = useNavigate()
   const editorRef = useRef<HTMLDivElement | null>(null)
   const tableCtxRef = useRef<TableContext | null>(null)
   const selectedColIndexesRef = useRef<number[]>([])
+  const savedRangeRef = useRef<Range | null>(null)
   const [tableDialogOpen, setTableDialogOpen] = useState(false)
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false)
+  const [linkSelectedText, setLinkSelectedText] = useState('')
   const [tableCtx, setTableCtx] = useState<TableContext | null>(null)
   const [selectedColIndexes, setSelectedColIndexes] = useState<number[]>([])
   const [colWidthDraft, setColWidthDraft] = useState('')
@@ -273,6 +281,123 @@ export function NoteEditor({
     [exec],
   )
 
+  const captureSelectionForLink = useCallback(() => {
+    const editor = editorRef.current
+    const selection = window.getSelection()
+    if (!editor || !selection || selection.rangeCount === 0) {
+      savedRangeRef.current = null
+      setLinkSelectedText('')
+      return false
+    }
+    const range = selection.getRangeAt(0)
+    if (!editor.contains(range.commonAncestorContainer)) {
+      savedRangeRef.current = null
+      setLinkSelectedText('')
+      return false
+    }
+    savedRangeRef.current = range.cloneRange()
+    setLinkSelectedText(selection.toString())
+    return selection.toString().trim().length > 0
+  }, [])
+
+  const restoreSavedSelection = useCallback(() => {
+    const editor = editorRef.current
+    const range = savedRangeRef.current
+    if (!editor || !range) return false
+    editor.focus()
+    const selection = window.getSelection()
+    selection?.removeAllRanges()
+    selection?.addRange(range)
+    return true
+  }, [])
+
+  const onOpenLinkDialog = useCallback(() => {
+    captureSelectionForLink()
+    setLinkDialogOpen(true)
+  }, [captureSelectionForLink])
+
+  const onInsertLink = useCallback(
+    (href: string) => {
+      exec(() => {
+        if (!restoreSavedSelection()) return
+        document.execCommand('createLink', false, href)
+        const selection = window.getSelection()
+        const node = selection?.anchorNode
+        const el = node?.nodeType === Node.ELEMENT_NODE ? (node as Element) : node?.parentElement
+        const anchor = el?.closest('a')
+        if (!(anchor instanceof HTMLAnchorElement)) return
+        // ブラウザが絶対URLに展開することがあるため、相対パスに戻す
+        anchor.setAttribute('href', href)
+        anchor.removeAttribute('target')
+        anchor.setAttribute('data-note-link', 'wordbook')
+      })
+      savedRangeRef.current = null
+    },
+    [exec, restoreSavedSelection],
+  )
+
+  const onRemoveLink = useCallback(() => {
+    exec(() => {
+      if (!restoreSavedSelection()) return
+      document.execCommand('unlink')
+    })
+    savedRangeRef.current = null
+  }, [exec, restoreSavedSelection])
+
+  const onEditorClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement | null
+      const anchor = target?.closest?.('a')
+      const editor = editorRef.current
+      if (anchor instanceof HTMLAnchorElement && editor?.contains(anchor)) {
+        const rawHref = anchor.getAttribute('href') ?? ''
+        try {
+          const url = new URL(rawHref, window.location.origin)
+          if (url.origin === window.location.origin && url.pathname.startsWith('/wordbook')) {
+            e.preventDefault()
+            navigate(`${url.pathname}${url.search}${url.hash}`)
+            return
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      refreshTableContext()
+    },
+    [navigate, refreshTableContext],
+  )
+
+  const onPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLDivElement>) => {
+      const editor = editorRef.current
+      if (!editor) return
+
+      const html = e.clipboardData.getData('text/html') || null
+      const plain = e.clipboardData.getData('text/plain') || null
+      const matrix = parseClipboardAsTable(html, plain)
+      if (!matrix) return
+
+      e.preventDefault()
+
+      const ctx = getTableContext(editor) ?? tableCtxRef.current
+      if (ctx && editor.contains(ctx.table)) {
+        isTableEditingRef.current = true
+        try {
+          pasteMatrixIntoNoteTable(ctx, matrix)
+        } finally {
+          isTableEditingRef.current = false
+        }
+        emitChange()
+        return
+      }
+
+      focusEditor()
+      document.execCommand('insertHTML', false, buildTableHtmlFromMatrix(matrix))
+      emitChange()
+    },
+    [emitChange, focusEditor],
+  )
+
   const onCellAlign = useCallback(
     (align: CellTextAlign) => {
       exec(() => {
@@ -349,6 +474,7 @@ export function NoteEditor({
               onFontSize={onFontSize}
               onColor={onColor}
               onOpenTableDialog={() => setTableDialogOpen(true)}
+              onOpenLinkDialog={onOpenLinkDialog}
             />
             {tableCtx ? (
               <TableEditToolbar
@@ -388,7 +514,8 @@ export function NoteEditor({
           aria-label="ノート本文"
           suppressContentEditableWarning
           onInput={emitChange}
-          onClick={refreshTableContext}
+          onClick={onEditorClick}
+          onPaste={onPaste}
           onKeyUp={refreshTableContext}
           onBlur={emitChange}
         />
@@ -397,6 +524,13 @@ export function NoteEditor({
         open={tableDialogOpen}
         onClose={() => setTableDialogOpen(false)}
         onInsert={onInsertTable}
+      />
+      <NoteLinkDialog
+        open={linkDialogOpen}
+        selectedText={linkSelectedText}
+        onClose={() => setLinkDialogOpen(false)}
+        onInsertLink={onInsertLink}
+        onRemoveLink={onRemoveLink}
       />
     </div>
   )

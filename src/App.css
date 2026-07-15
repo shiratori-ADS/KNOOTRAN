@@ -1085,6 +1085,12 @@ textarea {
   margin: 0 0 0.6em;
 }
 
+.noteEditor a {
+  color: #1b63d1;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .noteEditor table.note-table {
   width: max-content;
   max-width: none;
@@ -1131,16 +1137,34 @@ textarea {
 
 .noteDialog {
   width: min(480px, 100%);
-  max-height: min(80vh, 640px);
+  max-height: min(85vh, 720px);
   margin: 0;
   display: grid;
   gap: 10px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .noteDialogTitle {
   margin: 0;
   font-size: 18px;
+}
+
+.noteLinkSelectedText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.noteLinkSection {
+  display: grid;
+  gap: 8px;
+}
+
+.noteLinkSectionTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
 }
 
 .noteDialogSearch {
@@ -1153,7 +1177,7 @@ textarea {
   margin: 0;
   padding: 0;
   overflow-y: auto;
-  max-height: 320px;
+  max-height: 180px;
   border: 1px solid var(--border);
   border-radius: 10px;
 }

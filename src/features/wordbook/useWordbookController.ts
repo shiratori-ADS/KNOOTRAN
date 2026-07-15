@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { db, getSettings } from '../../db/db'
 import type { Entry, InflectionOverrideKey, InflectionType, NounGender, PartOfSpeech, Settings } from '../../db/types'
 import { stripGreekTonos } from '../../grammar/accent'
@@ -24,6 +25,7 @@ import type { VerbInflectionFamily } from './wordbookHelpers'
 import { markLocalDirty } from '../../lib/cloudAutoSync'
 
 export function useWordbookController() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [items, setItems] = useState<Entry[]>([])
   const [selected, setSelected] = useState<Entry | null>(null)
@@ -59,6 +61,34 @@ export function useWordbookController() {
   useEffect(() => {
     getSettings().then(setSettings)
   }, [])
+
+  // ノート等からの deep-link: /wordbook?id=<entryId>
+  useEffect(() => {
+    const raw = searchParams.get('id')
+    if (!raw) return
+    const id = Number(raw)
+    if (!Number.isFinite(id)) return
+
+    let alive = true
+    void (async () => {
+      const entry = await db.entries.get(id)
+      if (!alive || !entry) return
+      setSelected(entry)
+      setIsEditing(false)
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete('id')
+          return next
+        },
+        { replace: true },
+      )
+    })()
+
+    return () => {
+      alive = false
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     let alive = true
