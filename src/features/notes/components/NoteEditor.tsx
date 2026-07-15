@@ -25,6 +25,9 @@ type Props = {
   pageId: number
   content: string
   toolbarOpen: boolean
+  canDeletePage: boolean
+  onAddPage: () => void
+  onDeletePage: () => void
   onChange: (html: string) => void
 }
 
@@ -118,7 +121,15 @@ function applyFontSize(editor: HTMLElement, size: string) {
   }
 }
 
-export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
+export function NoteEditor({
+  pageId,
+  content,
+  toolbarOpen,
+  canDeletePage,
+  onAddPage,
+  onDeletePage,
+  onChange,
+}: Props) {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const tableCtxRef = useRef<TableContext | null>(null)
   const selectedColIndexesRef = useRef<number[]>([])
@@ -304,6 +315,9 @@ export function NoteEditor({ pageId, content, toolbarOpen, onChange }: Props) {
         <div className="noteToolbarDock isOpen">
           <div id="note-editor-toolbar-panels" className="noteToolbarPanels" onMouseDown={onToolbarMouseDown}>
             <NotesToolbar
+              canDeletePage={canDeletePage}
+              onAddPage={onAddPage}
+              onDeletePage={onDeletePage}
               onBold={onBold}
               onFontSize={onFontSize}
               onColor={onColor}

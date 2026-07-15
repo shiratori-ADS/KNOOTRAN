@@ -711,7 +711,7 @@ textarea {
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   padding: 6px 0 8px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
@@ -728,7 +728,9 @@ textarea {
   gap: 6px;
   overflow-x: auto;
   flex: 1;
+  min-width: 0;
   padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .noteTab {
@@ -750,19 +752,6 @@ textarea {
   font-weight: 600;
 }
 
-.noteTabAdd {
-  flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-h);
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-}
-
 .noteTabRenameInput {
   flex: 0 0 auto;
   min-width: 100px;
@@ -770,43 +759,53 @@ textarea {
   border-radius: 8px;
 }
 
-.noteTabDelete {
-  flex: 0 0 auto;
-  padding: 8px 10px;
-  font-size: 12px;
+.noteEmptyState {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 12px 0;
 }
 
 .noteTableToolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   align-items: center;
   padding: 8px 10px;
   border: 1px solid var(--accent-border);
   border-radius: 10px;
   background: color-mix(in oklab, var(--accent-bg) 70%, var(--code-bg));
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .noteTableToolbarLabel {
+  flex: 0 0 auto;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-h);
   margin-right: 4px;
+  white-space: nowrap;
 }
 
 .noteTableToolbarGroup {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex: 0 0 auto;
 }
 
 .noteTableToolbarSubLabel {
+  flex: 0 0 auto;
   font-size: 12px;
   color: var(--text);
   margin-right: 2px;
+  white-space: nowrap;
 }
 
 .noteTableToolbarDivider {
+  flex: 0 0 auto;
   width: 1px;
   height: 24px;
   background: var(--border);
@@ -908,37 +907,53 @@ textarea {
 
 .noteToolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: color-mix(in oklab, var(--bg) 96%, black);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .noteToolbarGroup {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
+}
+
+.noteToolbarDivider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 24px;
+  background: var(--border);
 }
 
 .noteToolbarLabel {
+  flex: 0 0 auto;
   font-size: 12px;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .noteToolbarSelect {
+  flex: 0 0 auto;
   padding: 6px 8px;
   border-radius: 8px;
   font-size: 13px;
 }
 
 .noteToolbarBtn {
+  flex: 0 0 auto;
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 13px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .noteToolbarBtnIcon {

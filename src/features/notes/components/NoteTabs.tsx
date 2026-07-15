@@ -7,12 +7,11 @@ type Props = {
   toolbarOpen: boolean
   onToggleToolbar: () => void
   onSelect: (id: number) => void
-  onAdd: () => void
-  onDelete: (id: number) => void
   onRename: (id: number, title: string) => void
 }
 
-export function NoteTabs({ pages, activeId, toolbarOpen, onToggleToolbar, onSelect, onAdd, onDelete, onRename }: Props) {  const [renamingId, setRenamingId] = useState<number | null>(null)
+export function NoteTabs({ pages, activeId, toolbarOpen, onToggleToolbar, onSelect, onRename }: Props) {
+  const [renamingId, setRenamingId] = useState<number | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
 
   function startRename(page: NotePage) {
@@ -68,9 +67,6 @@ export function NoteTabs({ pages, activeId, toolbarOpen, onToggleToolbar, onSele
             </button>
           )
         })}
-        <button type="button" className="noteTabAdd" onClick={() => void onAdd()} aria-label="ページを追加" title="ページを追加">
-          ＋
-        </button>
       </div>
       {activeId != null ? (
         <div className="noteTabActions">
@@ -85,17 +81,6 @@ export function NoteTabs({ pages, activeId, toolbarOpen, onToggleToolbar, onSele
           >
             {toolbarOpen ? '▲' : '▼'}
           </button>
-          {pages.length > 1 ? (
-            <button
-              type="button"
-              className="noteTabDelete secondary"
-              onClick={() => {
-                if (window.confirm('このページを削除しますか？')) void onDelete(activeId)
-              }}
-            >
-              削除
-            </button>
-          ) : null}
         </div>
       ) : null}
     </div>
