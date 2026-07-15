@@ -1062,6 +1062,11 @@ textarea {
   white-space: nowrap;
 }
 
+.noteToolbarBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .noteToolbarBtnIcon {
   display: inline-flex;
   align-items: center;

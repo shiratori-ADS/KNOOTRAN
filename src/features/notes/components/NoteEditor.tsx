@@ -22,6 +22,7 @@ import {
   type TableInsertOptions,
 } from '../tableHelpers'
 import { buildTableHtmlFromMatrix, parseClipboardAsTable } from '../pasteHelpers'
+import { pushNoteUndoSnapshot, type NoteUndoStack } from '../noteUndo'
 import { NoteLinkDialog } from './NoteLinkDialog'
 import { NotesToolbar } from './NotesToolbar'
 import { TableEditToolbar } from './TableEditToolbar'
@@ -153,6 +154,31 @@ export function NoteEditor({
   const [colWidthDraft, setColWidthDraft] = useState('')
   const isInternalUpdate = useRef(false)
   const isTableEditingRef = useRef(false)
+  const undoStackRef = useRef<NoteUndoStack>([])
+  const typingSessionRef = useRef(false)
+  const typingEndTimerRef = useRef<number | null>(null)
+  const [canUndo, setCanUndo] = useState(false)
+
+  const syncCanUndo = useCallback(() => {
+    setCanUndo(undoStackRef.current.length > 0)
+  }, [])
+
+  const clearUndoHistory = useCallback(() => {
+    undoStackRef.current = []
+    typingSessionRef.current = false
+    if (typingEndTimerRef.current != null) {
+      window.clearTimeout(typingEndTimerRef.current)
+      typingEndTimerRef.current = null
+    }
+    setCanUndo(false)
+  }, [])
+
+  const pushUndoSnapshot = useCallback(() => {
+    const el = editorRef.current
+    if (!el) return
+    undoStackRef.current = pushNoteUndoSnapshot(undoStackRef.current, el.innerHTML)
+    syncCanUndo()
+  }, [syncCanUndo])
 
   const refreshTableContext = useCallback(() => {
     const editor = editorRef.current
@@ -193,6 +219,10 @@ export function NoteEditor({
   }, [])
 
   useEffect(() => {
+    clearUndoHistory()
+  }, [pageId, clearUndoHistory])
+
+  useEffect(() => {
     const el = editorRef.current
     if (!el) return
     if (el.innerHTML !== content) {
@@ -202,6 +232,12 @@ export function NoteEditor({
     }
     refreshTableContext()
   }, [pageId, content, refreshTableContext])
+
+  useEffect(() => {
+    return () => {
+      if (typingEndTimerRef.current != null) window.clearTimeout(typingEndTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     const onSelectionChange = () => refreshTableContext()
@@ -229,19 +265,71 @@ export function NoteEditor({
     editorRef.current?.focus()
   }, [])
 
+  const applyHtml = useCallback(
+    (html: string) => {
+      const el = editorRef.current
+      if (!el) return
+      isInternalUpdate.current = true
+      el.innerHTML = html || '<p><br></p>'
+      isInternalUpdate.current = false
+      onChange(el.innerHTML)
+      refreshTableContext()
+    },
+    [onChange, refreshTableContext],
+  )
+
+  const onUndo = useCallback(() => {
+    if (undoStackRef.current.length === 0) return
+    const prev = undoStackRef.current[undoStackRef.current.length - 1]
+    undoStackRef.current = undoStackRef.current.slice(0, -1)
+    typingSessionRef.current = false
+    if (typingEndTimerRef.current != null) {
+      window.clearTimeout(typingEndTimerRef.current)
+      typingEndTimerRef.current = null
+    }
+    syncCanUndo()
+    applyHtml(prev)
+    focusEditor()
+  }, [applyHtml, focusEditor, syncCanUndo])
+
+  const markTypingSessionEnd = useCallback(() => {
+    if (typingEndTimerRef.current != null) window.clearTimeout(typingEndTimerRef.current)
+    typingEndTimerRef.current = window.setTimeout(() => {
+      typingSessionRef.current = false
+      typingEndTimerRef.current = null
+    }, 800)
+  }, [])
+
+  const onBeforeInput = useCallback(() => {
+    if (isInternalUpdate.current) return
+    if (!typingSessionRef.current) {
+      pushUndoSnapshot()
+      typingSessionRef.current = true
+    }
+  }, [pushUndoSnapshot])
+
+  const onEditorInput = useCallback(() => {
+    emitChange()
+    markTypingSessionEnd()
+  }, [emitChange, markTypingSessionEnd])
+
   const exec = useCallback(
     (fn: () => void) => {
+      typingSessionRef.current = false
+      pushUndoSnapshot()
       focusEditor()
       fn()
       emitChange()
     },
-    [emitChange, focusEditor],
+    [emitChange, focusEditor, pushUndoSnapshot],
   )
 
   const runTableEdit = useCallback(
     (fn: (ctx: TableContext) => void) => {
       const ctx = tableCtxRef.current ?? getTableContext(editorRef.current)
       if (!ctx) return
+      typingSessionRef.current = false
+      pushUndoSnapshot()
       isTableEditingRef.current = true
       try {
         fn(ctx)
@@ -250,7 +338,7 @@ export function NoteEditor({
       }
       emitChange()
     },
-    [emitChange],
+    [emitChange, pushUndoSnapshot],
   )
 
   const onBold = useCallback(() => {
@@ -375,9 +463,16 @@ export function NoteEditor({
       const html = e.clipboardData.getData('text/html') || null
       const plain = e.clipboardData.getData('text/plain') || null
       const matrix = parseClipboardAsTable(html, plain)
-      if (!matrix) return
+      if (!matrix) {
+        // 普通のテキスト貼り付けも履歴に残す
+        typingSessionRef.current = false
+        pushUndoSnapshot()
+        return
+      }
 
       e.preventDefault()
+      typingSessionRef.current = false
+      pushUndoSnapshot()
 
       const ctx = getTableContext(editor) ?? tableCtxRef.current
       if (ctx && editor.contains(ctx.table)) {
@@ -395,7 +490,18 @@ export function NoteEditor({
       document.execCommand('insertHTML', false, buildTableHtmlFromMatrix(matrix))
       emitChange()
     },
-    [emitChange, focusEditor],
+    [emitChange, focusEditor, pushUndoSnapshot],
+  )
+
+  const onEditorKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const mod = e.ctrlKey || e.metaKey
+      if (!mod || e.key.toLowerCase() !== 'z' || e.shiftKey || e.altKey) return
+      if (undoStackRef.current.length === 0) return
+      e.preventDefault()
+      onUndo()
+    },
+    [onUndo],
   )
 
   const onCellAlign = useCallback(
@@ -467,9 +573,11 @@ export function NoteEditor({
             <NotesToolbar
               pageTitle={pageTitle}
               canDeletePage={canDeletePage}
+              canUndo={canUndo}
               onAddPage={onAddPage}
               onDeletePage={onDeletePage}
               onRenamePage={onRenamePage}
+              onUndo={onUndo}
               onBold={onBold}
               onFontSize={onFontSize}
               onColor={onColor}
@@ -513,9 +621,11 @@ export function NoteEditor({
           aria-multiline="true"
           aria-label="ノート本文"
           suppressContentEditableWarning
-          onInput={emitChange}
+          onBeforeInput={onBeforeInput}
+          onInput={onEditorInput}
           onClick={onEditorClick}
           onPaste={onPaste}
+          onKeyDown={onEditorKeyDown}
           onKeyUp={refreshTableContext}
           onBlur={emitChange}
         />

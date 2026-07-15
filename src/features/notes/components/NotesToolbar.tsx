@@ -5,9 +5,11 @@ import { NoteColorTileSelect } from './NoteColorTileSelect'
 type Props = {
   pageTitle: string
   canDeletePage: boolean
+  canUndo: boolean
   onAddPage: () => void
   onDeletePage: () => void
   onRenamePage: (title: string) => void
+  onUndo: () => void
   onBold: () => void
   onFontSize: (size: string) => void
   onColor: (color: string) => void
@@ -18,9 +20,11 @@ type Props = {
 export function NotesToolbar({
   pageTitle,
   canDeletePage,
+  canUndo,
   onAddPage,
   onDeletePage,
   onRenamePage,
+  onUndo,
   onBold,
   onFontSize,
   onColor,
@@ -101,6 +105,17 @@ export function NotesToolbar({
       </span>
 
       <span className="noteToolbarDivider" aria-hidden="true" />
+
+      <button
+        type="button"
+        className="noteToolbarBtn secondary"
+        onClick={onUndo}
+        disabled={!canUndo}
+        aria-label="戻す"
+        title="戻す（Ctrl+Z）"
+      >
+        戻す
+      </button>
 
       <label className="noteToolbarGroup">
         <span className="noteToolbarLabel">サイズ</span>
