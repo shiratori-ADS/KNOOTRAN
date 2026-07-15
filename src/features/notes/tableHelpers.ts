@@ -106,6 +106,17 @@ export function applyCellTextAlign(cells: HTMLTableCellElement[], align: CellTex
   }
 }
 
+export function readCellBackgroundColor(cell: HTMLTableCellElement): string {
+  return cell.style.backgroundColor.trim()
+}
+
+/** color が空文字のときは背景色をクリア */
+export function applyCellBackgroundColor(cells: HTMLTableCellElement[], color: string) {
+  for (const cell of cells) {
+    cell.style.backgroundColor = color
+  }
+}
+
 function createCell(tag: 'td' | 'th'): HTMLTableCellElement {
   const cell = document.createElement(tag)
   cell.contentEditable = 'true'

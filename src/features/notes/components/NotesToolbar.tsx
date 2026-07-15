@@ -1,9 +1,13 @@
+import { useEffect, useState } from 'react'
 import { NOTE_COLORS, NOTE_FONT_SIZES } from '../noteHelpers'
+import { NoteColorTileSelect } from './NoteColorTileSelect'
 
 type Props = {
+  pageTitle: string
   canDeletePage: boolean
   onAddPage: () => void
   onDeletePage: () => void
+  onRenamePage: (title: string) => void
   onBold: () => void
   onFontSize: (size: string) => void
   onColor: (color: string) => void
@@ -11,14 +15,35 @@ type Props = {
 }
 
 export function NotesToolbar({
+  pageTitle,
   canDeletePage,
   onAddPage,
   onDeletePage,
+  onRenamePage,
   onBold,
   onFontSize,
   onColor,
   onOpenTableDialog,
 }: Props) {
+  const [renaming, setRenaming] = useState(false)
+  const [renameDraft, setRenameDraft] = useState(pageTitle)
+  const [textColor, setTextColor] = useState<string>(NOTE_COLORS[0].value)
+
+  useEffect(() => {
+    setRenaming(false)
+    setRenameDraft(pageTitle)
+  }, [pageTitle])
+
+  function commitRename() {
+    onRenamePage(renameDraft)
+    setRenaming(false)
+  }
+
+  function cancelRename() {
+    setRenameDraft(pageTitle)
+    setRenaming(false)
+  }
+
   return (
     <div className="noteToolbar" role="toolbar" aria-label="書式設定">
       <span className="noteToolbarGroup">
@@ -26,6 +51,40 @@ export function NotesToolbar({
         <button type="button" className="noteToolbarBtn secondary" onClick={onAddPage} aria-label="ページを追加" title="ページを追加">
           ＋
         </button>
+        {renaming ? (
+          <input
+            className="notePageRenameInput"
+            value={renameDraft}
+            autoFocus
+            onChange={(e) => setRenameDraft(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                commitRename()
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                cancelRename()
+              }
+            }}
+            aria-label="ページ名を編集"
+            title="Enterで確定 / Escで取消"
+          />
+        ) : (
+          <button
+            type="button"
+            className="noteToolbarBtn secondary"
+            onClick={() => {
+              setRenameDraft(pageTitle)
+              setRenaming(true)
+            }}
+            aria-label="ページ名を変更"
+            title="ページ名を変更"
+          >
+            名前
+          </button>
+        )}
         {canDeletePage ? (
           <button
             type="button"
@@ -66,26 +125,17 @@ export function NotesToolbar({
         <strong>B</strong>
       </button>
 
-      <label className="noteToolbarGroup">
-        <span className="noteToolbarLabel">色</span>
-        <select
-          className="noteToolbarSelect"
-          defaultValue=""
-          onChange={(e) => {
-            if (e.target.value) onColor(e.target.value)
-            e.target.value = ''
-          }}
-        >
-          <option value="" disabled>
-            選択
-          </option>
-          {NOTE_COLORS.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <NoteColorTileSelect
+        label="色"
+        options={NOTE_COLORS}
+        value={textColor}
+        onChange={(color) => {
+          setTextColor(color)
+          onColor(color)
+        }}
+        ariaLabel="文字色"
+        title="文字色"
+      />
 
       <button type="button" className="noteToolbarBtn secondary" onClick={onOpenTableDialog} title="表を挿入・設定">
         表

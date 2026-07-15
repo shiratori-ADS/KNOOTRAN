@@ -1,10 +1,12 @@
 import type { CellTextAlign } from '../tableHelpers'
 import { TableAlignButtons } from './TableAlignButtons'
-import { TableInsertButtons } from './TableInsertButtons'
+import { TableCellBgButtons } from './TableCellBgButtons'
 import { TableDeleteButtons } from './TableDeleteButtons'
+import { TableInsertButtons } from './TableInsertButtons'
 
 type Props = {
   currentAlign: CellTextAlign
+  currentBg: string
   selectedColCount: number
   colWidthPx: string
   onColWidthPxChange: (value: string) => void
@@ -13,6 +15,7 @@ type Props = {
   onAlignLeft: () => void
   onAlignCenter: () => void
   onAlignRight: () => void
+  onCellBg: (color: string) => void
   onInsertRowAbove: () => void
   onInsertRowBelow: () => void
   onInsertColLeft: () => void
@@ -24,6 +27,7 @@ type Props = {
 
 export function TableEditToolbar({
   currentAlign,
+  currentBg,
   selectedColCount,
   colWidthPx,
   onColWidthPxChange,
@@ -32,6 +36,7 @@ export function TableEditToolbar({
   onAlignLeft,
   onAlignCenter,
   onAlignRight,
+  onCellBg,
   onInsertRowAbove,
   onInsertRowBelow,
   onInsertColLeft,
@@ -78,6 +83,7 @@ export function TableEditToolbar({
         onAlignCenter={onAlignCenter}
         onAlignRight={onAlignRight}
       />
+      <TableCellBgButtons currentBg={currentBg} onChange={onCellBg} />
       <span className="noteTableToolbarDivider" aria-hidden="true" />
       <TableInsertButtons
         onInsertRowAbove={onInsertRowAbove}

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { NotePage } from '../../../db/types'
 
 type Props = {
@@ -7,66 +6,31 @@ type Props = {
   toolbarOpen: boolean
   onToggleToolbar: () => void
   onSelect: (id: number) => void
-  onRename: (id: number, title: string) => void
 }
 
-export function NoteTabs({ pages, activeId, toolbarOpen, onToggleToolbar, onSelect, onRename }: Props) {
-  const [renamingId, setRenamingId] = useState<number | null>(null)
-  const [renameDraft, setRenameDraft] = useState('')
-
-  function startRename(page: NotePage) {
-    if (page.id == null) return
-    setRenamingId(page.id)
-    setRenameDraft(page.title)
-  }
-
-  function commitRename() {
-    if (renamingId == null) return
-    onRename(renamingId, renameDraft)
-    setRenamingId(null)
-    setRenameDraft('')
-  }
-
+export function NoteTabs({ pages, activeId, toolbarOpen, onToggleToolbar, onSelect }: Props) {
   return (
     <div className="noteTabsBar">
-      <div className="noteTabsScroll">
-        {pages.map((page) => {
-          const isActive = page.id === activeId
-          if (page.id == null) return null
-
-          if (renamingId === page.id) {
-            return (
-              <input
-                key={page.id}
-                className="noteTabRenameInput"
-                value={renameDraft}
-                autoFocus
-                onChange={(e) => setRenameDraft(e.target.value)}
-                onBlur={commitRename}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitRename()
-                  if (e.key === 'Escape') {
-                    setRenamingId(null)
-                    setRenameDraft('')
-                  }
-                }}
-              />
-            )
-          }
-
-          return (
-            <button
-              key={page.id}
-              type="button"
-              className={isActive ? 'noteTab active' : 'noteTab'}
-              onClick={() => onSelect(page.id!)}
-              onDoubleClick={() => startRename(page)}
-              title="ダブルクリックで名前変更"
-            >
-              {page.title}
-            </button>
-          )
-        })}
+      <div className="notePageSelectWrap">
+        <select
+          className="notePageSelect"
+          value={activeId ?? ''}
+          onChange={(e) => {
+            const id = Number(e.target.value)
+            if (Number.isFinite(id)) onSelect(id)
+          }}
+          aria-label="ページを選択"
+          disabled={pages.length === 0}
+        >
+          {pages.length === 0 ? <option value="">ページなし</option> : null}
+          {pages.map((page) =>
+            page.id == null ? null : (
+              <option key={page.id} value={page.id}>
+                {page.title}
+              </option>
+            ),
+          )}
+        </select>
       </div>
       {activeId != null ? (
         <div className="noteTabActions">

@@ -28,7 +28,6 @@ export function NotesPage() {
         toolbarOpen={toolbarOpen}
         onToggleToolbar={() => setToolbarOpen((open) => !open)}
         onSelect={c.setActiveId}
-        onRename={c.renamePage}
       />
 
       {c.activePage?.id != null ? (
@@ -36,6 +35,7 @@ export function NotesPage() {
           key={c.activePage.id}
           pageId={c.activePage.id}
           content={c.activePage.content}
+          pageTitle={c.activePage.title}
           toolbarOpen={toolbarOpen}
           canDeletePage={c.pages.length > 1}
           onAddPage={() => void c.addPage()}
@@ -43,6 +43,10 @@ export function NotesPage() {
             if (c.activeId == null) return
             if (!window.confirm('このページを削除しますか？')) return
             void c.deletePage(c.activeId)
+          }}
+          onRenamePage={(title) => {
+            if (c.activeId == null) return
+            c.renamePage(c.activeId, title)
           }}
           onChange={c.updateContent}
         />

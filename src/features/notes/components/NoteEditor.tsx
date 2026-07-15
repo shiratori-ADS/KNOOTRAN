@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  applyCellBackgroundColor,
   applyCellTextAlign,
   applyColumnsWidth,
   buildTableHtml,
@@ -10,6 +11,7 @@ import {
   getTableContext,
   insertTableColumn,
   insertTableRow,
+  readCellBackgroundColor,
   readCellTextAlign,
   readColumnsWidthPx,
   getSelectedColumnIndexes,
@@ -24,10 +26,12 @@ import { TableInsertDialog } from './TableInsertDialog'
 type Props = {
   pageId: number
   content: string
+  pageTitle: string
   toolbarOpen: boolean
   canDeletePage: boolean
   onAddPage: () => void
   onDeletePage: () => void
+  onRenamePage: (title: string) => void
   onChange: (html: string) => void
 }
 
@@ -124,10 +128,12 @@ function applyFontSize(editor: HTMLElement, size: string) {
 export function NoteEditor({
   pageId,
   content,
+  pageTitle,
   toolbarOpen,
   canDeletePage,
   onAddPage,
   onDeletePage,
+  onRenamePage,
   onChange,
 }: Props) {
   const editorRef = useRef<HTMLDivElement | null>(null)
@@ -285,7 +291,26 @@ export function NoteEditor({
     [exec],
   )
 
+  const onCellBg = useCallback(
+    (color: string) => {
+      exec(() => {
+        const editor = editorRef.current
+        const selection = window.getSelection()
+        if (!editor || !selection || selection.rangeCount === 0) return
+        const range = selection.getRangeAt(0)
+        let cells = getCellsInRange(editor, range)
+        if (cells.length === 0) {
+          const ctx = tableCtxRef.current ?? getTableContext(editor)
+          if (ctx) cells = [ctx.cell]
+        }
+        if (cells.length > 0) applyCellBackgroundColor(cells, color)
+      })
+    },
+    [exec],
+  )
+
   const currentCellAlign = tableCtx ? readCellTextAlign(tableCtx.cell) : 'left'
+  const currentCellBg = tableCtx ? readCellBackgroundColor(tableCtx.cell) : ''
 
   const onApplyColWidth = useCallback(() => {
     runTableEdit((ctx) => {
@@ -315,9 +340,11 @@ export function NoteEditor({
         <div className="noteToolbarDock isOpen">
           <div id="note-editor-toolbar-panels" className="noteToolbarPanels" onMouseDown={onToolbarMouseDown}>
             <NotesToolbar
+              pageTitle={pageTitle}
               canDeletePage={canDeletePage}
               onAddPage={onAddPage}
               onDeletePage={onDeletePage}
+              onRenamePage={onRenamePage}
               onBold={onBold}
               onFontSize={onFontSize}
               onColor={onColor}
@@ -326,6 +353,7 @@ export function NoteEditor({
             {tableCtx ? (
               <TableEditToolbar
                 currentAlign={currentCellAlign}
+                currentBg={currentCellBg}
                 selectedColCount={selectedColIndexes.length}
                 colWidthPx={colWidthDraft}
                 onColWidthPxChange={setColWidthDraft}
@@ -334,6 +362,7 @@ export function NoteEditor({
                 onAlignLeft={() => onCellAlign('left')}
                 onAlignCenter={() => onCellAlign('center')}
                 onAlignRight={() => onCellAlign('right')}
+                onCellBg={onCellBg}
                 onInsertRowAbove={() => runTableEdit((ctx) => insertTableRow(ctx, 'above'))}
                 onInsertRowBelow={() => runTableEdit((ctx) => insertTableRow(ctx, 'below'))}
                 onInsertColLeft={() => runTableEdit((ctx) => insertTableColumn(ctx, 'left'))}
