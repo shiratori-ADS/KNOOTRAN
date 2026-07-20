@@ -127,6 +127,25 @@ export function useNotesController() {
     [scheduleSave],
   )
 
+  const movePage = useCallback(async (pageId: number, direction: 'up' | 'down') => {
+    const all = await db.notePages.orderBy('sortOrder').toArray()
+    const idx = all.findIndex((p) => p.id === pageId)
+    if (idx < 0) return
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= all.length) return
+
+    const next = [...all]
+    const tmp = next[idx]!
+    next[idx] = next[swapIdx]!
+    next[swapIdx] = tmp
+
+    const now = Date.now()
+    const refreshed = next.map((p, i) => ({ ...p, sortOrder: i, updatedAt: now }))
+    await Promise.all(refreshed.map((p) => db.notePages.put(p)))
+    markLocalDirty()
+    setPages(refreshed)
+  }, [])
+
   return {
     pages,
     activeId,
@@ -138,5 +157,6 @@ export function useNotesController() {
     addPage,
     deletePage,
     renamePage,
+    movePage,
   }
 }

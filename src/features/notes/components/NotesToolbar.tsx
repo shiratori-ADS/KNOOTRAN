@@ -5,10 +5,13 @@ import { NoteColorTileSelect } from './NoteColorTileSelect'
 type Props = {
   pageTitle: string
   canDeletePage: boolean
+  canMoveUp: boolean
+  canMoveDown: boolean
   canUndo: boolean
   onAddPage: () => void
   onDeletePage: () => void
   onRenamePage: (title: string) => void
+  onMovePage: (direction: 'up' | 'down') => void
   onUndo: () => void
   onBold: () => void
   onFontSize: (size: string) => void
@@ -20,10 +23,13 @@ type Props = {
 export function NotesToolbar({
   pageTitle,
   canDeletePage,
+  canMoveUp,
+  canMoveDown,
   canUndo,
   onAddPage,
   onDeletePage,
   onRenamePage,
+  onMovePage,
   onUndo,
   onBold,
   onFontSize,
@@ -56,6 +62,26 @@ export function NotesToolbar({
         <span className="noteToolbarLabel">ページ</span>
         <button type="button" className="noteToolbarBtn secondary" onClick={onAddPage} aria-label="ページを追加" title="ページを追加">
           ＋
+        </button>
+        <button
+          type="button"
+          className="noteToolbarBtn secondary noteToolbarBtnIcon"
+          onClick={() => onMovePage('up')}
+          disabled={!canMoveUp}
+          aria-label="ページを上へ"
+          title="ページを上へ"
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          className="noteToolbarBtn secondary noteToolbarBtnIcon"
+          onClick={() => onMovePage('down')}
+          disabled={!canMoveDown}
+          aria-label="ページを下へ"
+          title="ページを下へ"
+        >
+          ↓
         </button>
         {renaming ? (
           <input

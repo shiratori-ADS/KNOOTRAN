@@ -34,9 +34,12 @@ type Props = {
   pageTitle: string
   toolbarOpen: boolean
   canDeletePage: boolean
+  canMoveUp: boolean
+  canMoveDown: boolean
   onAddPage: () => void
   onDeletePage: () => void
   onRenamePage: (title: string) => void
+  onMovePage: (direction: 'up' | 'down') => void
   onChange: (html: string) => void
 }
 
@@ -136,9 +139,12 @@ export function NoteEditor({
   pageTitle,
   toolbarOpen,
   canDeletePage,
+  canMoveUp,
+  canMoveDown,
   onAddPage,
   onDeletePage,
   onRenamePage,
+  onMovePage,
   onChange,
 }: Props) {
   const navigate = useNavigate()
@@ -262,7 +268,7 @@ export function NoteEditor({
   }, [onChange, refreshTableContext])
 
   const focusEditor = useCallback(() => {
-    editorRef.current?.focus()
+    editorRef.current?.focus({ preventScroll: true })
   }, [])
 
   const applyHtml = useCallback(
@@ -362,42 +368,78 @@ export function NoteEditor({
     [exec],
   )
 
-  const onInsertTable = useCallback(
-    (options: TableInsertOptions) => {
-      exec(() => document.execCommand('insertHTML', false, buildTableHtml(options)))
-    },
-    [exec],
-  )
-
-  const captureSelectionForLink = useCallback(() => {
+  const captureEditorSelection = useCallback(() => {
     const editor = editorRef.current
     const selection = window.getSelection()
     if (!editor || !selection || selection.rangeCount === 0) {
       savedRangeRef.current = null
-      setLinkSelectedText('')
       return false
     }
     const range = selection.getRangeAt(0)
     if (!editor.contains(range.commonAncestorContainer)) {
       savedRangeRef.current = null
-      setLinkSelectedText('')
       return false
     }
     savedRangeRef.current = range.cloneRange()
-    setLinkSelectedText(selection.toString())
-    return selection.toString().trim().length > 0
+    return true
   }, [])
+
+  const captureSelectionForLink = useCallback(() => {
+    if (!captureEditorSelection()) {
+      setLinkSelectedText('')
+      return false
+    }
+    const selection = window.getSelection()
+    setLinkSelectedText(selection?.toString() ?? '')
+    return (selection?.toString() ?? '').trim().length > 0
+  }, [captureEditorSelection])
 
   const restoreSavedSelection = useCallback(() => {
     const editor = editorRef.current
     const range = savedRangeRef.current
     if (!editor || !range) return false
-    editor.focus()
+    editor.focus({ preventScroll: true })
     const selection = window.getSelection()
     selection?.removeAllRanges()
     selection?.addRange(range)
     return true
   }, [])
+
+  const scrollSelectionIntoView = useCallback(() => {
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return
+    const range = selection.getRangeAt(0)
+    const node = range.startContainer
+    const el = node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [])
+
+  const onInsertTable = useCallback(
+    (options: TableInsertOptions) => {
+      exec(() => {
+        if (!restoreSavedSelection()) {
+          const editor = editorRef.current
+          const selection = window.getSelection()
+          if (editor && selection) {
+            const endRange = document.createRange()
+            endRange.selectNodeContents(editor)
+            endRange.collapse(false)
+            selection.removeAllRanges()
+            selection.addRange(endRange)
+          }
+        }
+        document.execCommand('insertHTML', false, buildTableHtml(options))
+        scrollSelectionIntoView()
+      })
+      savedRangeRef.current = null
+    },
+    [exec, restoreSavedSelection, scrollSelectionIntoView],
+  )
+
+  const onOpenTableDialog = useCallback(() => {
+    captureEditorSelection()
+    setTableDialogOpen(true)
+  }, [captureEditorSelection])
 
   const onOpenLinkDialog = useCallback(() => {
     captureSelectionForLink()
@@ -573,15 +615,18 @@ export function NoteEditor({
             <NotesToolbar
               pageTitle={pageTitle}
               canDeletePage={canDeletePage}
+              canMoveUp={canMoveUp}
+              canMoveDown={canMoveDown}
               canUndo={canUndo}
               onAddPage={onAddPage}
               onDeletePage={onDeletePage}
               onRenamePage={onRenamePage}
+              onMovePage={onMovePage}
               onUndo={onUndo}
               onBold={onBold}
               onFontSize={onFontSize}
               onColor={onColor}
-              onOpenTableDialog={() => setTableDialogOpen(true)}
+              onOpenTableDialog={onOpenTableDialog}
               onOpenLinkDialog={onOpenLinkDialog}
             />
             {tableCtx ? (

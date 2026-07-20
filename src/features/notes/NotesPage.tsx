@@ -15,6 +15,10 @@ export function NotesPage() {
     )
   }
 
+  const activeIndex = c.pages.findIndex((p) => p.id === c.activeId)
+  const canMoveUp = activeIndex > 0
+  const canMoveDown = activeIndex >= 0 && activeIndex < c.pages.length - 1
+
   return (
     <section className="page notePage">
       <div className="notePageHeader">
@@ -38,6 +42,8 @@ export function NotesPage() {
           pageTitle={c.activePage.title}
           toolbarOpen={toolbarOpen}
           canDeletePage={c.pages.length > 1}
+          canMoveUp={canMoveUp}
+          canMoveDown={canMoveDown}
           onAddPage={() => void c.addPage()}
           onDeletePage={() => {
             if (c.activeId == null) return
@@ -47,6 +53,10 @@ export function NotesPage() {
           onRenamePage={(title) => {
             if (c.activeId == null) return
             c.renamePage(c.activeId, title)
+          }}
+          onMovePage={(direction) => {
+            if (c.activeId == null) return
+            void c.movePage(c.activeId, direction)
           }}
           onChange={c.updateContent}
         />
