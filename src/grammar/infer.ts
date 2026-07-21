@@ -71,9 +71,11 @@ export function inferNounInflectionTypeFromLemma(rawLemma: string, nounGender?: 
     return 'noun_masc_-ης_penult'
   }
   if (lemma.endsWith('ο')) return 'noun_2nd_neut_-ο'
-  if (lemma.endsWith('ι')) return 'noun_neut_-ι'
-  // -ί (U+03AF) は normalizeToken(NFC) 済み前提で判定できる
-  if (lemmaRaw.endsWith('ί')) return 'noun_neut_-ί'
+  if (lemma.endsWith('ι')) {
+    // 語末アクセント（αυτί など）は -ί 型。トノス除去後の endsWith('ι') より先に判定する
+    if (lemmaRaw.endsWith('ί') || accentPos === 'last') return 'noun_neut_-ί'
+    return 'noun_neut_-ι'
+  }
   if (lemma.endsWith('υ')) return lemma.endsWith('χτυ') ? 'noun_neut_-υ_-υα' : 'noun_neut_-υ_-ια'
   if (nounGender === 'fem' && (lemmaRaw.endsWith('ού') || lemmaRaw.endsWith('ού'))) return 'noun_fem_-ού'
   if (lemma.endsWith('η')) {
