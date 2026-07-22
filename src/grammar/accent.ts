@@ -103,20 +103,13 @@ export function accentPositionFromEnd(word: string): AccentPositionFromEnd {
  *
  * NOTE:
  * - 二重母音は通常後ろ側の母音にトノス（ου 等）。ια/ιε/ιο は前側にもあり得る（例: τραπεζαρία）
- * - -ίας の ια は分離し、属格のアクセント（-άς）に対応
+ * - -ίας も ια を1ユニットのままにし、見出しの ία/ιά のオフセットを写す（ανθρωπολογία→ας、τραπεζαριά→άς）
  */
 /** 母音ユニット1つ分（語幹上の開始位置と、トノスを載せる文字 index） */
 type VowelUnitSpan = { start: number; accentAt: number }
 
-/** ια/ιε/ιο を1ユニットにまとめるか（-ίας は分離して属格のアクセントに対応） */
-function mergeAsVowelUnit(two: string, plain: string, i: number): boolean {
-  if (!VOWEL_UNITS_2.has(two)) return false
-  if (two === 'ιε') return true
-  if (two === 'ια' || two === 'ιο') {
-    const next = plain[i + 2] ?? ''
-    return next !== 'ς' && next !== 'σ'
-  }
-  return true
+function mergeAsVowelUnit(two: string, _plain: string, _i: number): boolean {
+  return VOWEL_UNITS_2.has(two)
 }
 
 function collectVowelUnitSpans(plain: string, accentedWord: string): VowelUnitSpan[] {
@@ -224,12 +217,19 @@ export function addTonosOnNthFromEndVowelUnit(
     const sourceUnits = collectVowelUnitSpans(sourcePlain, sourceAccentWord)
     const sourceUnit = sourceUnits[sourceUnits.length - n]
     if (sourceUnit) {
-      const offset = sourceUnit.accentAt - sourceUnit.start
-      const two = plain.slice(targetUnit.start, targetUnit.start + 2)
-      accentAt =
-        two.length === 2 && mergeAsVowelUnit(two, plain, targetUnit.start)
-          ? targetUnit.start + Math.min(offset, 1)
-          : targetUnit.start
+      const sourceTwo = sourcePlain.slice(sourceUnit.start, sourceUnit.start + 2)
+      const sourceIsDiphthong =
+        sourceTwo.length === 2 && mergeAsVowelUnit(sourceTwo, sourcePlain, sourceUnit.start)
+      // ソースが単母音（πυρετός の ό など）のときは二重母音の既定（後ろ側: ου→ού）を保つ。
+      // ιά/ία のような前後の写しは、ソース側も二重母音ユニットのときだけ行う。
+      if (sourceIsDiphthong) {
+        const offset = sourceUnit.accentAt - sourceUnit.start
+        const two = plain.slice(targetUnit.start, targetUnit.start + 2)
+        accentAt =
+          two.length === 2 && mergeAsVowelUnit(two, plain, targetUnit.start)
+            ? targetUnit.start + Math.min(offset, 1)
+            : targetUnit.start
+      }
     }
   }
 
