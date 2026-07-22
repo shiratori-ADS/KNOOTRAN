@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db } from '../../../db/db'
 import type { Entry } from '../../../db/types'
-import { findEntriesByNormalizedForeign, wordbookEntryHref } from '../../../lib/entryForeignLookup'
+import { entryHasForeignFormExact, entryMatchesForeignQuery } from '../../../grammar/entryMatchForms'
+import { wordbookEntryHref } from '../../../lib/entryForeignLookup'
 import { normalizeToken } from '../../../lib/normalize'
 import { posLabel } from '../../wordbook/wordbookHelpers'
 
@@ -13,11 +14,8 @@ type Props = {
   onRemoveLink: () => void
 }
 
-function entryMatchesQuery(e: Entry, q: string): boolean {
+function entryMatchesMeaningQuery(e: Entry, q: string): boolean {
   if (!q) return true
-  const lemma = normalizeToken(e.foreignLemma ?? '')
-  if (lemma.includes(q)) return true
-  if ((e.foreignForms ?? []).some((f) => normalizeToken(f).includes(q))) return true
   if (normalizeToken(e.meaningJaPrimary).includes(q)) return true
   if ((e.meaningJaVariants ?? []).some((m) => normalizeToken(m).includes(q))) return true
   return false
@@ -42,8 +40,12 @@ export function NoteLinkDialog({ open, selectedText, onClose, onInsertLink, onRe
     void (async () => {
       setLoading(true)
       try {
-        const exact = normSelection ? await findEntriesByNormalizedForeign(normSelection) : []
+        const all = await db.entries.toArray()
         if (!alive) return
+
+        const exact = normSelection
+          ? all.filter((e) => e.id != null && entryHasForeignFormExact(e, normSelection))
+          : []
         setExactHits(exact)
 
         const q = normalizeToken(trimmedSelection)
@@ -51,11 +53,14 @@ export function NoteLinkDialog({ open, selectedText, onClose, onInsertLink, onRe
           setSearchHits([])
           return
         }
-        const all = await db.entries.toArray()
-        if (!alive) return
         const exactIds = new Set(exact.map((e) => e.id))
         const rest = all
-          .filter((e) => e.id != null && !exactIds.has(e.id) && entryMatchesQuery(e, q))
+          .filter(
+            (e) =>
+              e.id != null &&
+              !exactIds.has(e.id) &&
+              (entryMatchesForeignQuery(e, q) || entryMatchesMeaningQuery(e, q)),
+          )
           .slice(0, 30)
         setSearchHits(rest)
       } finally {
@@ -82,7 +87,14 @@ export function NoteLinkDialog({ open, selectedText, onClose, onInsertLink, onRe
         if (!alive) return
         const exactIds = new Set(exactHits.map((e) => e.id))
         setSearchHits(
-          all.filter((e) => e.id != null && !exactIds.has(e.id) && entryMatchesQuery(e, q)).slice(0, 30),
+          all
+            .filter(
+              (e) =>
+                e.id != null &&
+                !exactIds.has(e.id) &&
+                (entryMatchesForeignQuery(e, q) || entryMatchesMeaningQuery(e, q)),
+            )
+            .slice(0, 30),
         )
       })()
     }, 180)
@@ -136,7 +148,7 @@ export function NoteLinkDialog({ open, selectedText, onClose, onInsertLink, onRe
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="単語帳を検索（見出し・別形・意味）"
+            placeholder="単語帳を検索（見出し・別形・活用形・意味）"
             aria-label="単語帳を検索"
           />
           {searchHits.length > 0 ? (
