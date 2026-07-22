@@ -75,7 +75,26 @@ export function mascOsPluralGenAccPl(
   }
 }
 
-/** 女性名詞 -α/-ά/-η の複数属格：現代語ではほぼ語末（-ών）にトノス */
+/** 中性 -ο：見出しが antepenult のとき属格（単・複）は penult へ移動（例: αυτοκίνητο → αυτοκινήτου / αυτοκινήτων） */
+export function neutOGenForms(
+  stemPlain: string,
+  lemmaNorm: string,
+  applyLikeLemma: (w: string) => string,
+): { genSg: string; genPl: string } {
+  const genSgPlain = `${stemPlain}ου`
+  const genPlPlain = `${stemPlain}ων`
+  if (accentPositionFromEndByVowelUnit(lemmaNorm) === 'antepenult') {
+    return {
+      genSg: addTonosOnNthFromEndVowelUnit(genSgPlain, 2),
+      genPl: addTonosOnNthFromEndVowelUnit(genPlPlain, 2),
+    }
+  }
+  return {
+    genSg: applyLikeLemma(genSgPlain),
+    genPl: applyLikeLemma(genPlPlain),
+  }
+}
+
 export function femAlphaPluralGenPl(
   _type: InflectionType,
   stemPlain: string,
@@ -235,13 +254,14 @@ export function nounAutoForms(lemmaNorm: string, gender: NounGender, t?: Inflect
   if (type === 'noun_2nd_neut_-ο') {
     if (!endsWith('ο')) return null
     const st = stem(-1)
+    const { genSg, genPl } = neutOGenForms(st, lemmaNorm, applyLikeLemma)
     return {
       n_nom_sg: applyLikeLemma(`${st}ο`),
       n_nom_pl: applyLikeLemma(`${st}α`),
       n_acc_sg: applyLikeLemma(`${st}ο`),
       n_acc_pl: applyLikeLemma(`${st}α`),
-      n_gen_sg: applyLikeLemma(`${st}ου`),
-      n_gen_pl: applyLikeLemma(`${st}ων`),
+      n_gen_sg: genSg,
+      n_gen_pl: genPl,
     }
   }
   if (type === 'noun_2nd_neut_-ος') {
@@ -390,9 +410,8 @@ export function nounMatrix(lemmaNorm: string, t?: InflectionType): NounMatrix | 
     if (!lemmaPlain.endsWith('ο')) return null
     const stem = stripGreekTonos(lemmaNorm.slice(0, -1))
     const nomSg = applyLikeLemma(`${stem}ο`)
-    const genSg = applyLikeLemma(`${stem}ου`)
     const nomPl = applyLikeLemma(`${stem}α`)
-    const genPl = applyLikeLemma(`${stem}ων`)
+    const { genSg, genPl } = neutOGenForms(stem, lemmaNorm, applyLikeLemma)
     return {
       rows: [
         { number: 'sg', forms: { nom: nomSg, gen: genSg, acc: nomSg } },

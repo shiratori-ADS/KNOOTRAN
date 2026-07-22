@@ -1,7 +1,7 @@
 import { normalizeToken } from '../lib/normalize'
 import type { Entry, InflectionType } from '../db/types'
 import { resolveNounInflectionType } from './infer'
-import { femAlphaPluralGenPl, femEtaEisPluralForms, mascOsPluralGenAccPl, reconcileNounInflectionOverrides } from './noun'
+import { femAlphaPluralGenPl, femEtaEisPluralForms, mascOsPluralGenAccPl, neutOGenForms, reconcileNounInflectionOverrides } from './noun'
 import type {
   SentenceAnalysis,
   SentenceNounCase,
@@ -384,10 +384,13 @@ function nounForms(entry: NounLike, lemmaNorm: string, type?: InflectionType): {
       const nomAcc = [`${stem}ο`, `${stem}α`]
       const genSgPlain = `${stemPlain}ου`
       const genPlPlain = `${stemPlain}ων`
+      const { genSg, genPl } = neutOGenForms(stemPlain, lemmaNorm, applyLikeLemma)
       const gen = Array.from(
         new Set([
           `${stem}ου`,
           `${stem}ων`,
+          genSg,
+          genPl,
           applyLikeLemma(genSgPlain),
           applyLikeLemma(genPlPlain),
           addTonosOnPenultVowel(genSgPlain),
