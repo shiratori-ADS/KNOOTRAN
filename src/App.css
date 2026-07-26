@@ -893,10 +893,15 @@ textarea {
   border-radius: 12px;
   background: var(--code-bg);
   color: var(--text-h);
+  /* 標準サイズ。インラインの font-size（最小10px 等）の基準にもなる */
+  font-size: 16px;
   line-height: 1.6;
   outline: none;
   overflow-wrap: anywhere;
   box-sizing: border-box;
+  /* iOS Safari が 16px 未満を勝手に拡大するのを防ぐ */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .noteEditor.isReadOnly {
