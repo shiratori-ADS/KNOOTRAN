@@ -886,6 +886,11 @@ textarea {
   box-sizing: border-box;
 }
 
+.noteEditor.isReadOnly {
+  cursor: default;
+  user-select: text;
+}
+
 .noteToolbarDock {
   position: sticky;
   top: calc(var(--top-bar-height) + 3.25rem);

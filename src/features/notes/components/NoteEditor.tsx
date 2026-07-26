@@ -229,6 +229,18 @@ export function NoteEditor({
   }, [pageId, clearUndoHistory])
 
   useEffect(() => {
+    if (toolbarOpen) return
+    const el = editorRef.current
+    if (el && document.activeElement === el) el.blur()
+    tableCtxRef.current = null
+    selectedColIndexesRef.current = []
+    setTableCtx(null)
+    setSelectedColIndexes([])
+    setTableDialogOpen(false)
+    setLinkDialogOpen(false)
+  }, [toolbarOpen])
+
+  useEffect(() => {
     const el = editorRef.current
     if (!el) return
     if (el.innerHTML !== content) {
@@ -238,6 +250,16 @@ export function NoteEditor({
     }
     refreshTableContext()
   }, [pageId, content, refreshTableContext])
+
+  useEffect(() => {
+    const el = editorRef.current
+    if (!el) return
+    // 表セルは個別に contentEditable を持つため、閲覧モードでは編集不可へ同期する
+    const cells = el.querySelectorAll<HTMLTableCellElement>('table.note-table th, table.note-table td')
+    cells.forEach((cell) => {
+      cell.contentEditable = toolbarOpen ? 'true' : 'false'
+    })
+  }, [toolbarOpen, content, pageId])
 
   useEffect(() => {
     return () => {
@@ -660,19 +682,20 @@ export function NoteEditor({
       <div className="noteEditorScroll">
         <div
           ref={editorRef}
-          className="noteEditor"
-          contentEditable
+          className={`noteEditor${toolbarOpen ? '' : ' isReadOnly'}`}
+          contentEditable={toolbarOpen}
           role="textbox"
           aria-multiline="true"
-          aria-label="ノート本文"
+          aria-readonly={!toolbarOpen}
+          aria-label={toolbarOpen ? 'ノート本文（編集中）' : 'ノート本文（閲覧）'}
           suppressContentEditableWarning
-          onBeforeInput={onBeforeInput}
-          onInput={onEditorInput}
+          onBeforeInput={toolbarOpen ? onBeforeInput : undefined}
+          onInput={toolbarOpen ? onEditorInput : undefined}
           onClick={onEditorClick}
-          onPaste={onPaste}
-          onKeyDown={onEditorKeyDown}
-          onKeyUp={refreshTableContext}
-          onBlur={emitChange}
+          onPaste={toolbarOpen ? onPaste : undefined}
+          onKeyDown={toolbarOpen ? onEditorKeyDown : undefined}
+          onKeyUp={toolbarOpen ? refreshTableContext : undefined}
+          onBlur={toolbarOpen ? emitChange : undefined}
         />
       </div>
       <TableInsertDialog

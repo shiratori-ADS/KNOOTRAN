@@ -40,8 +40,8 @@ export function NoteTabs({ pages, activeId, toolbarOpen, onToggleToolbar, onSele
             onClick={onToggleToolbar}
             aria-expanded={toolbarOpen}
             aria-controls="note-editor-toolbar-panels"
-            aria-label={toolbarOpen ? '編集を隠す' : '編集を表示'}
-            title={toolbarOpen ? '編集を隠す' : '編集を表示'}
+            aria-label={toolbarOpen ? '編集を終了' : '編集を開始'}
+            title={toolbarOpen ? '編集を終了（閲覧のみ）' : '編集を開始'}
           >
             {toolbarOpen ? '▲' : '▼'}
           </button>
