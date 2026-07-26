@@ -524,9 +524,8 @@ export function ListPane({
             {sorted.map((e) => (
               <li key={e.id}>
                 <button className="listItem" onClick={() => onSelect(e)}>
-                  <div className="listTitle mono greek">{displayForm(e.foreignLemma ?? e.foreignForms[0] ?? '(no form)')}</div>
-                  <div className="listSub">
-                    <span className="v">{e.meaningJaVariants?.length ? e.meaningJaVariants.join(' / ') : e.meaningJaPrimary}</span>
+                  <div className="listTitleRow">
+                    <div className="listTitle mono greek">{displayForm(e.foreignLemma ?? e.foreignForms[0] ?? '(no form)')}</div>
                     {e.pos === 'noun' ? (
                       <span className="badge badgePos badgePos-noun">{`${posLabel(e.pos)}:${genderLabel(e.nounGender)}`}</span>
                     ) : e.pos === 'verb' && verbInflectionShortLabel(e.inflectionType) ? (
@@ -534,6 +533,9 @@ export function ListPane({
                     ) : (
                       <span className={`badge badgePos badgePos-${e.pos}`}>{posLabel(e.pos)}</span>
                     )}
+                  </div>
+                  <div className="listSub">
+                    <span className="v">{e.meaningJaVariants?.length ? e.meaningJaVariants.join(' / ') : e.meaningJaPrimary}</span>
                     {e.tags?.length ? (
                       <div className="chips">
                         {e.tags.map((t) => (

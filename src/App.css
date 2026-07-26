@@ -595,6 +595,19 @@ textarea {
 .listTitle {
   font-size: 19px;
   font-weight: 700;
+  min-width: 0;
+}
+.listTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.listTitleRow .listTitle {
+  flex: 0 1 auto;
+}
+.listTitleRow .badgePos {
+  flex: 0 0 auto;
 }
 
 /* 単語帳の見出し語（詳細/編集） */
