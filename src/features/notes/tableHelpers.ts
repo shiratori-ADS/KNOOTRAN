@@ -1,5 +1,27 @@
 export type CellTextAlign = 'left' | 'center' | 'right'
 
+export type TableBorderStyle = 'none' | 'solid' | 'dotted' | 'dashed' | 'double'
+
+export type TableBorderSide = 'all' | 'top' | 'bottom' | 'left' | 'right' | 'horizontal' | 'vertical'
+
+export const TABLE_BORDER_STYLES: Array<{ value: TableBorderStyle; label: string }> = [
+  { value: 'none', label: 'なし' },
+  { value: 'solid', label: '実線' },
+  { value: 'dotted', label: '点線' },
+  { value: 'dashed', label: '破線' },
+  { value: 'double', label: '二重線' },
+]
+
+export const TABLE_BORDER_SIDES: Array<{ value: TableBorderSide; label: string }> = [
+  { value: 'all', label: '四周' },
+  { value: 'top', label: '上' },
+  { value: 'bottom', label: '下' },
+  { value: 'left', label: '左' },
+  { value: 'right', label: '右' },
+  { value: 'horizontal', label: '横' },
+  { value: 'vertical', label: '縦' },
+]
+
 export type TableInsertOptions = {
   rows: number
   cols: number
@@ -114,6 +136,42 @@ export function readCellBackgroundColor(cell: HTMLTableCellElement): string {
 export function applyCellBackgroundColor(cells: HTMLTableCellElement[], color: string) {
   for (const cell of cells) {
     cell.style.backgroundColor = color
+  }
+}
+
+const BORDER_SIDE_EDGES: Record<TableBorderSide, Array<'top' | 'bottom' | 'left' | 'right'>> = {
+  all: ['top', 'bottom', 'left', 'right'],
+  top: ['top'],
+  bottom: ['bottom'],
+  left: ['left'],
+  right: ['right'],
+  horizontal: ['top', 'bottom'],
+  vertical: ['left', 'right'],
+}
+
+function borderCssValue(style: TableBorderStyle): string {
+  if (style === 'none') return 'none'
+  if (style === 'double') return '6px double var(--border)'
+  return `1px ${style} var(--border)`
+}
+
+/** 選択セルの指定方向に線種を適用（なし / 実線 / 点線 / 破線 / 二重線） */
+export function applyCellBorderStyle(
+  cells: HTMLTableCellElement[],
+  style: TableBorderStyle,
+  side: TableBorderSide,
+) {
+  const edges = BORDER_SIDE_EDGES[side]
+  const value = borderCssValue(style)
+  for (const cell of cells) {
+    // 旧・表全体指定が残っていれば外す
+    cell.closest('table.note-table')?.removeAttribute('data-border-style')
+    for (const edge of edges) {
+      if (edge === 'top') cell.style.borderTop = value
+      else if (edge === 'bottom') cell.style.borderBottom = value
+      else if (edge === 'left') cell.style.borderLeft = value
+      else cell.style.borderRight = value
+    }
   }
 }
 

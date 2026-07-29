@@ -1,5 +1,6 @@
-import type { CellTextAlign } from '../tableHelpers'
+import type { CellTextAlign, TableBorderSide, TableBorderStyle } from '../tableHelpers'
 import { TableAlignButtons } from './TableAlignButtons'
+import { TableBorderStyleSelect } from './TableBorderStyleSelect'
 import { TableCellBgButtons } from './TableCellBgButtons'
 import { TableDeleteButtons } from './TableDeleteButtons'
 import { TableInsertButtons } from './TableInsertButtons'
@@ -16,6 +17,7 @@ type Props = {
   onAlignCenter: () => void
   onAlignRight: () => void
   onCellBg: (color: string) => void
+  onBorderStyle: (style: TableBorderStyle, side: TableBorderSide) => void
   onInsertRowAbove: () => void
   onInsertRowBelow: () => void
   onInsertColLeft: () => void
@@ -37,6 +39,7 @@ export function TableEditToolbar({
   onAlignCenter,
   onAlignRight,
   onCellBg,
+  onBorderStyle,
   onInsertRowAbove,
   onInsertRowBelow,
   onInsertColLeft,
@@ -77,6 +80,7 @@ export function TableEditToolbar({
           自動
         </button>
       </span>
+      <TableBorderStyleSelect onApply={onBorderStyle} />
       <TableAlignButtons
         currentAlign={currentAlign}
         onAlignLeft={onAlignLeft}

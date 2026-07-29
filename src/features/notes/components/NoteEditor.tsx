@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   applyCellBackgroundColor,
+  applyCellBorderStyle,
   applyCellTextAlign,
   applyColumnsWidth,
   buildTableHtml,
@@ -18,6 +19,8 @@ import {
   getSelectedColumnIndexes,
   pasteMatrixIntoNoteTable,
   type CellTextAlign,
+  type TableBorderSide,
+  type TableBorderStyle,
   type TableContext,
   type TableInsertOptions,
 } from '../tableHelpers'
@@ -604,6 +607,24 @@ export function NoteEditor({
     [exec],
   )
 
+  const onBorderStyle = useCallback(
+    (style: TableBorderStyle, side: TableBorderSide) => {
+      exec(() => {
+        const editor = editorRef.current
+        const selection = window.getSelection()
+        if (!editor || !selection || selection.rangeCount === 0) return
+        const range = selection.getRangeAt(0)
+        let cells = getCellsInRange(editor, range)
+        if (cells.length === 0) {
+          const ctx = tableCtxRef.current ?? getTableContext(editor)
+          if (ctx) cells = [ctx.cell]
+        }
+        if (cells.length > 0) applyCellBorderStyle(cells, style, side)
+      })
+    },
+    [exec],
+  )
+
   const currentCellAlign = tableCtx ? readCellTextAlign(tableCtx.cell) : 'left'
   const currentCellBg = tableCtx ? readCellBackgroundColor(tableCtx.cell) : ''
 
@@ -664,6 +685,7 @@ export function NoteEditor({
                 onAlignCenter={() => onCellAlign('center')}
                 onAlignRight={() => onCellAlign('right')}
                 onCellBg={onCellBg}
+                onBorderStyle={onBorderStyle}
                 onInsertRowAbove={() => runTableEdit((ctx) => insertTableRow(ctx, 'above'))}
                 onInsertRowBelow={() => runTableEdit((ctx) => insertTableRow(ctx, 'below'))}
                 onInsertColLeft={() => runTableEdit((ctx) => insertTableColumn(ctx, 'left'))}
