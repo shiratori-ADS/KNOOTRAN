@@ -11,7 +11,7 @@ export const NOTE_COLORS = [
   { label: '赤', value: '#c44' },
   { label: '青', value: '#2563eb' },
   { label: '緑', value: '#15803d' },
-  { label: '橙', value: '#c2410c' },
+  { label: '橙', value: '#e67e22' },
   { label: '紫', value: '#7c3aed' },
 ] as const
 
